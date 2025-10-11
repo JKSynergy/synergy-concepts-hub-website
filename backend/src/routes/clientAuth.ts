@@ -166,6 +166,156 @@ router.get('/verify', async (req: Request, res: Response) => {
 });
 
 // Client Registration
+// Check if borrower exists (for account activation)
+router.post('/check-existing', [
+  body('phone').notEmpty().withMessage('Phone number is required'),
+  body('nationalId').optional(),
+], async (req: Request, res: Response) => {
+  try {
+    const { phone, nationalId } = req.body;
+
+    const borrower = await prisma.borrower.findFirst({
+      where: {
+        OR: [
+          { phone },
+          nationalId ? { nationalId } : {}
+        ]
+      }
+    });
+
+    if (borrower) {
+      return res.json({
+        success: true,
+        exists: true,
+        data: {
+          borrowerId: borrower.borrowerId,
+          firstName: borrower.firstName,
+          lastName: borrower.lastName,
+          phone: borrower.phone,
+          email: borrower.email,
+          nationalId: borrower.nationalId,
+          hasLoans: await prisma.loan.count({ where: { borrowerId: borrower.id } }) > 0,
+        }
+      });
+    }
+
+    return res.json({
+      success: true,
+      exists: false
+    });
+  } catch (error) {
+    console.error('Check existing borrower error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// Activate existing borrower account
+router.post('/activate-account', [
+  body('phone').notEmpty().withMessage('Phone number is required'),
+  body('nationalId').notEmpty().withMessage('National ID is required for verification'),
+  body('dateOfBirth').notEmpty().withMessage('Date of birth is required for verification'),
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+], async (req: Request, res: Response) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation error',
+        errors: errors.array()
+      });
+    }
+
+    const { phone, nationalId, dateOfBirth, password } = req.body;
+
+    // Find borrower by phone and verify identity with national ID and DOB
+    const borrower = await prisma.borrower.findFirst({
+      where: { phone }
+    });
+
+    if (!borrower) {
+      return res.status(404).json({
+        success: false,
+        message: 'No account found with this phone number'
+      });
+    }
+
+    // Verify identity (in production, compare hashed values)
+    if (borrower.nationalId !== nationalId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Identity verification failed. National ID does not match our records.'
+      });
+    }
+
+    // Verify date of birth (compare dates, allowing for timezone differences)
+    const providedDOB = new Date(dateOfBirth).toISOString().split('T')[0];
+    const storedDOB = borrower.dateOfBirth ? new Date(borrower.dateOfBirth).toISOString().split('T')[0] : null;
+    
+    if (storedDOB !== providedDOB) {
+      return res.status(401).json({
+        success: false,
+        message: 'Identity verification failed. Date of birth does not match our records.'
+      });
+    }
+
+    // TODO: In production, hash the password before storing
+    // For now, we'll store it in a custom field or use email field temporarily
+    // Note: The schema doesn't have a password field for borrowers
+    // You'll need to add this in a migration
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { 
+        id: borrower.id,
+        borrowerId: borrower.borrowerId,
+        phone: borrower.phone,
+        type: 'client'
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    const userData = {
+      id: borrower.id,
+      borrowerId: borrower.borrowerId,
+      firstName: borrower.firstName,
+      lastName: borrower.lastName,
+      phone: borrower.phone,
+      email: borrower.email,
+      nationalId: borrower.nationalId,
+      dateOfBirth: borrower.dateOfBirth,
+      gender: borrower.gender,
+      district: borrower.district,
+      subcounty: borrower.subcounty,
+      village: borrower.village,
+      occupation: borrower.occupation,
+      monthlyIncome: borrower.monthlyIncome ? Number(borrower.monthlyIncome) : null,
+      creditRating: borrower.creditRating,
+      status: borrower.status,
+      createdAt: borrower.createdAt.toISOString(),
+      updatedAt: borrower.updatedAt.toISOString(),
+    };
+
+    return res.json({
+      success: true,
+      message: 'Account activated successfully! Welcome to QuickCredit.',
+      token,
+      user: userData
+    });
+
+  } catch (error) {
+    console.error('Account activation error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
 router.post('/register', [
   body('firstName').notEmpty().withMessage('First name is required'),
   body('lastName').notEmpty().withMessage('Last name is required'),
@@ -193,7 +343,8 @@ router.post('/register', [
     if (existingBorrower) {
       return res.status(400).json({
         success: false,
-        message: 'Phone number already registered'
+        message: 'Phone number already registered. If you are an existing client, please use the "Activate Account" option.',
+        showActivation: true  // Signal to frontend to show activation flow
       });
     }
 

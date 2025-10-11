@@ -1,0 +1,7 @@
+applicationId,borrowerId,requestedAmount,purpose,status,submittedAt,reviewedAt,reviewedBy
+APP001,QC001,1000000,Business Expansion,APPROVED,2023-01-15,2023-01-16,admin
+APP002,QC002,500000,School Fees,APPROVED,2023-02-10,2023-02-12,loan_officer_1
+APP003,QC003,2000000,Farm Equipment,APPROVED,2023-03-05,2023-03-08,admin
+APP004,QC004,750000,Stock Purchase,APPROVED,2023-04-12,2023-04-15,loan_officer_2
+APP005,QC001,1500000,Shop Renovation,PENDING,2023-11-28,,,
+APP006,QC005,300000,Motorcycle,REJECTED,2023-05-10,2023-05-12,admin

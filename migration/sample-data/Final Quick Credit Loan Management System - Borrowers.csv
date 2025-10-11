@@ -1,0 +1,6 @@
+borrowerId,firstName,lastName,phone,email,gender,dateOfBirth,nationalId,district,subcounty,village,occupation,status,createdAt
+QC001,John,Doe,256700123456,john.doe@email.com,Male,1990-01-15,CM123456789A,Kampala,Central,Nakawa,Business Owner,ACTIVE,2023-01-15
+QC002,Mary,Smith,256701234567,mary.smith@email.com,Female,1985-05-20,CM987654321B,Wakiso,Kira,Kira Town,Teacher,ACTIVE,2023-02-10
+QC003,Peter,Okello,256702345678,,Male,1988-12-03,CM111222333C,Mukono,Mukono TC,Center,Farmer,ACTIVE,2023-03-05
+QC004,Sarah,Nakato,256703456789,sarah.n@email.com,Female,1992-07-18,CM444555666D,Kampala,Rubaga,Mengo,Trader,ACTIVE,2023-04-12
+QC005,David,Musoke,256704567890,,Male,1987-09-25,CM777888999E,Entebbe,Entebbe MC,Kigungu,Mechanic,ACTIVE,2023-05-08

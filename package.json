@@ -1,0 +1,42 @@
+{
+  "name": "quickcredit-loan-management",
+  "version": "1.0.0",
+  "description": "Modern microservices-based loan management system with mobile money and WhatsApp integration",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:client\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:client": "cd client-portal && npm run dev",
+    "build": "npm run build:backend && npm run build:frontend && npm run build:client",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "build:client": "cd client-portal && npm run build",
+    "start": "cd backend && npm start",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "migrate": "cd backend && npm run migrate",
+    "seed": "cd backend && npm run seed"
+  },
+  "keywords": [
+    "loan-management",
+    "fintech",
+    "mobile-money",
+    "whatsapp-api",
+    "microservices",
+    "nodejs",
+    "react"
+  ],
+  "author": "QuickCredit Uganda",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "workspaces": [
+    "backend",
+    "frontend",
+    "client-portal",
+    "shared"
+  ]
+}

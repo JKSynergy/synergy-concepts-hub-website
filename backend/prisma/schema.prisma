@@ -1,0 +1,302 @@
+// Simplified Prisma schema for SQLite compatibility
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User model for authentication
+model User {
+  id          String   @id @default(uuid())
+  username    String   @unique
+  email       String   @unique
+  password    String
+  firstName   String
+  lastName    String
+  role        String   @default("LOAN_OFFICER")
+  status      String   @default("ACTIVE")
+  lastLogin   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  borrowersCreated    Borrower[]       @relation("CreatedBy")
+  loansManaged        Loan[]           @relation("LoanOfficer")
+  applicationsReviewed LoanApplication[] @relation("ReviewedBy")
+
+  @@map("users")
+}
+
+// Borrower model
+model Borrower {
+  id                String   @id @default(uuid())
+  borrowerId        String   @unique
+  firstName         String
+  lastName          String
+  phone             String   @unique
+  email             String?
+  gender            String?
+  dateOfBirth       DateTime?
+  nationalId        String?  @unique
+  district          String?
+  subcounty         String?
+  village           String?
+  occupation        String?
+  monthlyIncome     Float?
+  creditRating      String   @default("NO_CREDIT")
+  status            String   @default("ACTIVE")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  createdById       String
+  
+  createdBy         User     @relation("CreatedBy", fields: [createdById], references: [id])
+  loans             Loan[]
+  applications      LoanApplication[]
+  repayments        Repayment[]
+  savings           Savings[]
+
+  @@map("borrowers")
+}
+
+// Loan Application model
+model LoanApplication {
+  id                String   @id @default(uuid())
+  applicationId     String   @unique
+  borrowerId        String
+  fullName          String?
+  dob               String?
+  nationalId        String?
+  phone             String?
+  email             String?
+  address           String?
+  employmentStatus  String?
+  employer          String?
+  monthlyIncome     Float?
+  requestedAmount   Float
+  purpose           String
+  termMonths        Int
+  loanTerm          Int?
+  collateral        String?
+  guarantorName     String?
+  guarantorId       String?
+  guarantorPhone    String?
+  guarantorRelation String?
+  consentVerify     String?
+  consentNotifications String?
+  status            String   @default("PENDING")
+  submittedAt       DateTime @default(now())
+  reviewedAt        DateTime?
+  reviewedById      String?
+  approvedAmount    Float?
+  rejectionReason   String?
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  borrower          Borrower @relation(fields: [borrowerId], references: [id])
+  reviewedBy        User?    @relation("ReviewedBy", fields: [reviewedById], references: [id])
+  loan              Loan?    @relation("ApplicationLoan")
+
+  @@map("loan_applications")
+}
+
+// Loan model
+model Loan {
+  id                String   @id @default(uuid())
+  loanId            String   @unique
+  applicationId     String?  @unique
+  borrowerId        String
+  loanOfficerId     String
+  principal         Float
+  interestRate      Float
+  termMonths        Int
+  totalInterest     Float
+  totalAmount       Float
+  monthlyPayment    Float
+  status            String   @default("PENDING")
+  purpose           String?
+  disbursedAt       DateTime?
+  disbursedAmount   Float?
+  outstandingBalance Float   @default(0)
+  nextPaymentDate   DateTime?
+  nextPaymentAmount Float?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  application       LoanApplication? @relation("ApplicationLoan", fields: [applicationId], references: [id])
+  borrower          Borrower @relation(fields: [borrowerId], references: [id])
+  loanOfficer       User     @relation("LoanOfficer", fields: [loanOfficerId], references: [id])
+  repayments        Repayment[]
+
+  @@map("loans")
+}
+
+// Repayment model
+model Repayment {
+  id                String   @id @default(uuid())
+  receiptNumber     String   @unique
+  loanId            String
+  borrowerId        String
+  amount            Float
+  principalAmount   Float?
+  interestAmount    Float?
+  paymentMethod     String
+  transactionId     String?
+  status            String   @default("COMPLETED")
+  paidAt            DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  loan              Loan     @relation(fields: [loanId], references: [id])
+  borrower          Borrower @relation(fields: [borrowerId], references: [id])
+
+  @@map("repayments")
+}
+
+// Savings model
+model Savings {
+  id                String   @id @default(uuid())
+  savingsId         String   @unique
+  borrowerId        String
+  balance           Float    @default(0)
+  interestRate      Float    @default(0)
+  status            String   @default("ACTIVE")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  borrower          Borrower @relation(fields: [borrowerId], references: [id])
+
+  @@map("savings")
+}
+
+// Expense model
+model Expense {
+  id                String   @id @default(uuid())
+  expenseId         String   @unique
+  description       String
+  amount            Float
+  category          String
+  expenseDate       DateTime
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("expenses")
+}
+
+// Alert model
+model Alert {
+  id                String   @id @default(uuid())
+  alertId           String   @unique
+  timestamp         DateTime
+  type              String
+  refId             String?
+  clientName        String?
+  message           String
+  isRead            Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("alerts")
+}
+
+// Declined Loan model
+model DeclinedLoan {
+  id                String   @id @default(uuid())
+  loanId            String   @unique
+  customerName      String
+  amount            Float
+  termMonths        Int
+  interestRate      Float
+  originationDate   DateTime
+  dueDate           DateTime
+  outstandingBalance Float
+  projectedProfits  Float?
+  status            String   @default("DECLINED")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("declined_loans")
+}
+
+// Deposit model
+model Deposit {
+  id                String   @id @default(uuid())
+  depositId         String   @unique
+  accountId         String
+  depositDate       DateTime
+  amount            Float
+  method            String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("deposits")
+}
+
+// Saver model
+model Saver {
+  id                String   @id @default(uuid())
+  accountId         String   @unique
+  customerName      String
+  email             String?
+  phone             String?
+  dateOfBirth       DateTime?
+  nationalId        String?
+  address           String?
+  occupation        String?
+  openingDate       DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("savers")
+}
+
+// Withdrawal model
+model Withdrawal {
+  id                String   @id @default(uuid())
+  withdrawalId      String   @unique
+  accountId         String
+  withdrawalDate    DateTime
+  amount            Float
+  method            String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("withdrawals")
+}
+
+// Overdue Record model - Tracks overdue loan history and automated actions
+model OverdueRecord {
+  id                String   @id @default(uuid())
+  recordId          String   @unique
+  loanId            String
+  borrowerId        String
+  daysOverdue       Int
+  overdueAmount     Float
+  principalOverdue  Float
+  interestOverdue   Float
+  penaltyAmount     Float    @default(0)
+  remindersSent     Int      @default(0)
+  lastReminderSent  DateTime?
+  lastReminderType  String?  // SMS, EMAIL, CALL
+  notes             String?
+  status            String   @default("ACTIVE") // ACTIVE, RESOLVED, ESCALATED
+  resolvedAt        DateTime?
+  resolvedBy        String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("overdue_records")
+}
+
+// Setting model
+model Setting {
+  id                String   @id @default(uuid())
+  key               String   @unique
+  value             String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("settings")
+}

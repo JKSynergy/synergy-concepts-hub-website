@@ -1,0 +1,19 @@
+Key,Value
+Interest Rate,0.15
+Overdue Rate,0.1
+Grace Period Days,5
+Notification On,TRUE
+Default Threshold %,5
+Min Credit Score,30
+Max Loan Term (months),12
+Admin Email,quickcredit611@gmail.com
+Currency Symbol,UGX
+Decimal Places,0
+Enable Logging,FALSE
+Loan ID Prefix,LN
+Month Ahead ,1
+BlockColor1,#DDEBF7
+BlockColor2,#E2EFDA
+HighlightColor,#FFF2CC
+clientRowColor,#FFFFFF
+adminRowColor,#F0F0F0

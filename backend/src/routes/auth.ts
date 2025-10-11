@@ -1,10 +1,16 @@
 import express, { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import { body, validationResult } from 'express-validator';
+import { PrismaClient } from '@prisma/client';
 
 const router = express.Router();
+const prisma = new PrismaClient();
 
-// Simple login for demo purposes
+const JWT_SECRET = process.env.JWT_SECRET || 'quickcredit-secret-key-2025';
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'quickcredit-refresh-secret-2025';
+
+// Login with database authentication
 router.post('/login', [
   body('username').notEmpty().withMessage('Username is required'),
   body('password').notEmpty().withMessage('Password is required')
@@ -21,51 +27,79 @@ router.post('/login', [
 
     const { username, password } = req.body;
 
-    // Demo credentials - in production this would check against database
-    if (username === 'admin' && password === 'admin123') {
-      // Generate JWT token and refresh token
-      const token = jwt.sign(
-        { 
-          id: 1, 
-          email: 'admin@quickcredit.com', 
-          username: 'admin',
-          role: 'ADMIN' 
-        },
-        'demo-secret-key',
-        { expiresIn: '24h' }
-      );
+    // Find user in database
+    const user = await prisma.user.findUnique({
+      where: { username }
+    });
 
-      const refreshToken = jwt.sign(
-        { 
-          id: 1, 
-          username: 'admin',
-          type: 'refresh'
-        },
-        'demo-refresh-secret-key',
-        { expiresIn: '7d' }
-      );
-
-      return res.json({
-        success: true,
-        message: 'Login successful',
-        data: {
-          token,
-          refreshToken,
-          user: {
-            id: '1',
-            username: 'admin',
-            email: 'admin@quickcredit.com',
-            role: 'ADMIN',
-            firstName: 'System',
-            lastName: 'Administrator'
-          }
-        }
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid username or password'
       });
     }
 
-    return res.status(401).json({
-      success: false,
-      message: 'Invalid credentials'
+    // Check if user is active
+    if (user.status !== 'ACTIVE') {
+      return res.status(403).json({
+        success: false,
+        message: 'Account is inactive. Please contact administrator.'
+      });
+    }
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid username or password'
+      });
+    }
+
+    // Update last login
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLogin: new Date() }
+    });
+
+    // Generate JWT token and refresh token
+    const token = jwt.sign(
+      { 
+        id: user.id, 
+        email: user.email, 
+        username: user.username,
+        role: user.role 
+      },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    const refreshToken = jwt.sign(
+      { 
+        id: user.id, 
+        username: user.username,
+        type: 'refresh'
+      },
+      JWT_REFRESH_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    return res.json({
+      success: true,
+      message: 'Login successful',
+      data: {
+        token,
+        refreshToken,
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          firstName: user.firstName,
+          lastName: user.lastName
+        }
+      }
     });
 
   } catch (error) {

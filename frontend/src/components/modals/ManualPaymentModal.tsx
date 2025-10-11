@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { databaseService } from '../../services/databaseService';
 import type { LoanData, BorrowerData, RepaymentData } from '../../services/databaseService';
 import jsPDF from 'jspdf';
@@ -13,6 +14,7 @@ const ManualPaymentModal: React.FC<ManualPaymentModalProps> = ({ isOpen, onClose
   const [loans, setLoans] = useState<LoanData[]>([]);
   const [borrowers, setBorrowers] = useState<BorrowerData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
   
   const [formData, setFormData] = useState({
     customerName: '',
@@ -36,6 +38,7 @@ const ManualPaymentModal: React.FC<ManualPaymentModalProps> = ({ isOpen, onClose
           setBorrowers(borrowersData);
         } catch (error) {
           console.error('Failed to load data:', error);
+          toast.error('Failed to load data. Please try again.');
         } finally {
           setLoading(false);
         }
@@ -79,10 +82,15 @@ const ManualPaymentModal: React.FC<ManualPaymentModalProps> = ({ isOpen, onClose
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Prevent double submission
+    if (isProcessing) {
+      return;
+    }
+    
     try {
       // Validate form
       if (!formData.customerName || !formData.amount || !formData.loanId) {
-        alert('Please fill in all required fields');
+        toast.error('Please fill in all required fields');
         return;
       }
 
@@ -92,9 +100,15 @@ const ManualPaymentModal: React.FC<ManualPaymentModalProps> = ({ isOpen, onClose
       );
 
       if (!selectedBorrower) {
-        alert('Selected customer not found');
+        toast.error('Selected customer not found');
         return;
       }
+
+      // Set processing state to prevent form reset
+      setIsProcessing(true);
+
+      // Show loading toast
+      const loadingToast = toast.loading('Processing payment...');
 
       // Prepare payment data for the API
       const paymentData = {
@@ -107,6 +121,9 @@ const ManualPaymentModal: React.FC<ManualPaymentModalProps> = ({ isOpen, onClose
 
       // Process payment through the API
       const result = await databaseService.processPayment(paymentData);
+
+      // Dismiss loading toast
+      toast.dismiss(loadingToast);
 
       if (result.success) {
         // Generate PDF receipt with the actual receipt number
@@ -193,15 +210,22 @@ const ManualPaymentModal: React.FC<ManualPaymentModalProps> = ({ isOpen, onClose
           notes: ''
         });
         
-        alert(`Payment recorded successfully! Receipt Number: ${result.receiptNumber}. Receipt downloaded.`);
+        // Show success toast
+        toast.success(
+          `Payment recorded successfully! Receipt ${result.receiptNumber} downloaded.`,
+          { duration: 5000 }
+        );
+        setIsProcessing(false);
         onClose();
       } else {
-        alert('Failed to process payment. Please try again.');
+        toast.error('Failed to process payment. Please try again.');
+        setIsProcessing(false);
       }
       
     } catch (error) {
       console.error('Failed to process payment:', error);
-      alert('Failed to process payment. Please try again.');
+      toast.error('Failed to process payment. Please try again.');
+      setIsProcessing(false);
     }
   };
 
@@ -436,10 +460,13 @@ const ManualPaymentModal: React.FC<ManualPaymentModalProps> = ({ isOpen, onClose
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-colors font-medium flex items-center gap-2"
+                  disabled={isProcessing}
+                  className={`px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-colors font-medium flex items-center gap-2 ${
+                    isProcessing ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 >
                   <Save className="w-4 h-4" />
-                  Record Payment
+                  {isProcessing ? 'Processing...' : 'Record Payment'}
                 </button>
               </div>
             </form>

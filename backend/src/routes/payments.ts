@@ -11,6 +11,7 @@ router.post('/', async (req, res) => {
       borrowerId,
       amount,
       paymentDate,
+      paidAt,  // Accept both field names
       paymentMethod,
       notes
     } = req.body;
@@ -30,6 +31,9 @@ router.post('/', async (req, res) => {
         message: 'Invalid payment amount'
       });
     }
+
+    // Use paidAt if provided, otherwise paymentDate
+    const paymentDateValue = paidAt || paymentDate;
 
     // Find the loan
     const loan = await prisma.loan.findFirst({
@@ -107,7 +111,7 @@ router.post('/', async (req, res) => {
           principalAmount: paymentAmount, // For now, treat all as principal
           paymentMethod: paymentMethod || 'Cash',
           status: 'COMPLETED',
-          paidAt: paymentDate ? new Date(paymentDate) : new Date()
+          paidAt: paymentDateValue ? new Date(paymentDateValue) : new Date()
         }
       });
 
@@ -149,21 +153,20 @@ router.post('/', async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      data: {
-        repayment: {
-          id: result.repayment.id,
-          receiptNumber: result.repayment.receiptNumber,
-          amount: result.repayment.amount,
-          paidAt: result.repayment.paidAt,
-          paymentMethod: result.repayment.paymentMethod,
-          status: result.repayment.status
-        },
-        loan: {
-          id: result.updatedLoan.id,
-          loanId: result.updatedLoan.loanId,
-          outstandingBalance: result.updatedLoan.outstandingBalance,
-          status: result.updatedLoan.status
-        }
+      receiptNumber: result.repayment.receiptNumber,
+      repayment: {
+        id: result.repayment.id,
+        receiptNumber: result.repayment.receiptNumber,
+        amount: result.repayment.amount,
+        paidAt: result.repayment.paidAt,
+        paymentMethod: result.repayment.paymentMethod,
+        status: result.repayment.status
+      },
+      updatedLoan: {
+        id: result.updatedLoan.id,
+        loanId: result.updatedLoan.loanId,
+        outstandingBalance: result.updatedLoan.outstandingBalance,
+        status: result.updatedLoan.status
       },
       message: `Payment of UGX ${paymentAmount.toLocaleString()} processed successfully. Receipt: ${result.repayment.receiptNumber}`
     });

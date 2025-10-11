@@ -14,6 +14,7 @@ import clientRoutes from './routes/client';
 import borrowersRoutes from './routes/borrowers';
 import loansRoutes from './routes/loans';
 import repaymentsRoutes from './routes/repayments';
+import paymentsRoutes from './routes/payments';
 import savingsRoutes from './routes/savings';
 import expensesRoutes from './routes/expenses';
 import applicationsRoutes from './routes/applications';
@@ -52,26 +53,14 @@ app.use(helmet({
     },
   },
 }));
-// CORS configuration
+// CORS configuration - Allow all origins in development
 app.use(cors({
-  origin: function (origin, callback) {
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:8080',
-      'http://127.0.0.1:3000',
-      'http://127.0.0.1:3001',
-      'http://127.0.0.1:8080'
-    ];
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: true, // Allow all origins in development
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-requested-with']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-requested-with', 'Accept'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 600 // Cache preflight requests for 10 minutes
 }));
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -123,6 +112,7 @@ app.use('/api/client', clientRoutes); // Client portal API
 app.use('/api/borrowers', borrowersRoutes);
 app.use('/api/loans', loansRoutes);
 app.use('/api/repayments', repaymentsRoutes);
+app.use('/api/payments', paymentsRoutes); // Payment processing endpoint
 app.use('/api/savings', savingsRoutes);
 app.use('/api/expenses', expensesRoutes);
 app.use('/api/applications', applicationsRoutes);

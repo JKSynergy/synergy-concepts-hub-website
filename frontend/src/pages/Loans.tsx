@@ -76,8 +76,8 @@ const Loans: React.FC = () => {
   // View and display states
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [showFilters, setShowFilters] = useState(false);
-  const [sortBy, setSortBy] = useState<'customerName' | 'principal' | 'status' | 'nextPaymentDate' | 'outstandingBalance'>('customerName');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [sortBy, setSortBy] = useState<'customerName' | 'principal' | 'status' | 'nextPaymentDate' | 'outstandingBalance' | 'originationDate'>('originationDate');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -278,8 +278,15 @@ const Loans: React.FC = () => {
         profit: loan.totalInterest
       }));
       
-      setLoans(transformedLoans);
-      console.log('Loaded loans:', transformedLoans);
+      // Sort loans by most recent first
+      const sortedLoans = transformedLoans.sort((a: any, b: any) => {
+        const dateA = new Date(a.originationDate || a.createdAt || 0).getTime();
+        const dateB = new Date(b.originationDate || b.createdAt || 0).getTime();
+        return dateB - dateA; // Descending order (newest first)
+      });
+      
+      setLoans(sortedLoans);
+      console.log('Loaded loans:', sortedLoans);
       
       // Validate calculations for first few loans
       console.log('=== Loan Calculation Validation ===');
@@ -437,6 +444,10 @@ const Loans: React.FC = () => {
       case 'outstandingBalance':
         aValue = getOutstandingBalance(a);
         bValue = getOutstandingBalance(b);
+        break;
+      case 'originationDate':
+        aValue = new Date(a.disbursedAt || '1970-01-01');
+        bValue = new Date(b.disbursedAt || '1970-01-01');
         break;
       default:
         return 0;

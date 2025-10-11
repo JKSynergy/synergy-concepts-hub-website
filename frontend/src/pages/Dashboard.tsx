@@ -396,11 +396,20 @@ const Dashboard: React.FC = () => {
     loadDashboardData();
     
     // Set up automatic refresh every 30 seconds to ensure dynamic updates
-    const refreshInterval = setInterval(loadDashboardData, 30000);
+    // But only refresh if no modals are open (to prevent form data loss)
+    const refreshInterval = setInterval(() => {
+      const anyModalOpen = Object.values(modals).some(isOpen => isOpen);
+      if (!anyModalOpen) {
+        console.log('🔄 Auto-refreshing dashboard data...');
+        loadDashboardData();
+      } else {
+        console.log('⏸️ Skipping auto-refresh (modal is open)');
+      }
+    }, 30000);
     
     // Cleanup interval on unmount
     return () => clearInterval(refreshInterval);
-  }, []);
+  }, [modals]); // Add modals as dependency to track their state
 
   // Show loading state
   if (isLoading) {

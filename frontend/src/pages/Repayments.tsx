@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { Search, User, DollarSign, CheckCircle, Clock, AlertTriangle, Receipt, CreditCard, Eye, Download, Plus, X, Save } from 'lucide-react';
+import { Search, User, DollarSign, CheckCircle, Clock, AlertTriangle, Receipt, CreditCard, Eye, Download, Plus, X, Save, Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { databaseService } from '../services/databaseService';
 import type { RepaymentData, LoanData, BorrowerData } from '../services/databaseService';
 import { formatDate } from '../utils/dateUtils';
@@ -11,12 +12,17 @@ interface EnhancedRepaymentData extends RepaymentData {
   outstandingBalance?: string;
   customerName: string;
   customerId?: string;
+  borrowerReference?: string;
+  loanReference?: string;
   loanDisplayId?: string;
+  customerPhone?: string;
+  customerEmail?: string;
   hasLoanData?: boolean;
   hasBorrowerData?: boolean;
   dataSource?: string;
   borrowerPhone?: string;
   borrowerEmail?: string;
+  remainingBalance?: number;
 }
 
 const Repayments = () => {
@@ -35,6 +41,8 @@ const Repayments = () => {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedRepayment, setSelectedRepayment] = useState<any>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [repaymentToDelete, setRepaymentToDelete] = useState<any>(null);
   
   // Manual payment modal states
   const [isAddPaymentModalOpen, setIsAddPaymentModalOpen] = useState(false);
@@ -130,18 +138,20 @@ const Repayments = () => {
       // Check if the repayment data already has the enhanced fields from the backend
       if (repayment.customerName && repayment.loanReference) {
         // Use the backend-provided enhanced data directly
+        const enhancedRepayment = repayment as any;
         return {
           ...repayment,
-          loanStatus: repayment.loanStatus || 'Active',
-          outstandingBalance: formatUGX(repayment.remainingBalance || 0),
-          customerName: repayment.customerName,
-          customerId: repayment.borrower?.borrowerId || repayment.borrowerId,
-          loanDisplayId: repayment.loanReference,
+          loanStatus: enhancedRepayment.loanStatus || 'Active',
+          outstandingBalance: formatUGX(enhancedRepayment.remainingBalance || 0),
+          customerName: enhancedRepayment.customerName,
+          customerId: enhancedRepayment.borrowerReference || repayment.borrower?.borrowerId || repayment.borrowerId,
+          borrowerReference: enhancedRepayment.borrowerReference || repayment.borrower?.borrowerId,
+          loanDisplayId: enhancedRepayment.loanReference,
           hasLoanData: true,
           hasBorrowerData: true,
           dataSource: 'api',
-          borrowerPhone: repayment.borrower?.phone || repayment.customerPhone || 'N/A',
-          borrowerEmail: repayment.borrower?.email || 'N/A'
+          borrowerPhone: repayment.borrower?.phone || enhancedRepayment.customerPhone || 'N/A',
+          borrowerEmail: repayment.borrower?.email || enhancedRepayment.customerEmail || 'N/A'
         };
       }
 
@@ -228,25 +238,10 @@ const Repayments = () => {
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
-      // Sort by loan ID (using the display-friendly loan ID)
-      const loanIdA = a.loanDisplayId || a.loanReference || a.loanId;
-      const loanIdB = b.loanDisplayId || b.loanReference || b.loanId;
-      
-      // Extract numeric part for proper sorting (e.g., LOAN0001 -> 1)
-      const extractNumber = (id: string) => {
-        const match = id.match(/(\d+)/);
-        return match ? parseInt(match[0]) : 0;
-      };
-      
-      const numA = extractNumber(loanIdA);
-      const numB = extractNumber(loanIdB);
-      
-      // If both have numbers, sort numerically, otherwise sort alphabetically
-      if (numA !== 0 && numB !== 0) {
-        return numA - numB;
-      } else {
-        return loanIdA.localeCompare(loanIdB);
-      }
+      // Sort by payment date - most recent first
+      const dateA = new Date(a.paidAt || 0).getTime();
+      const dateB = new Date(b.paidAt || 0).getTime();
+      return dateB - dateA; // Descending order (newest first)
     });
 
   // Pagination calculations
@@ -337,9 +332,9 @@ const Repayments = () => {
       yPos += lineHeight;
       pdf.text(`Customer Name: ${repayment.customerName}`, 25, yPos);
       yPos += lineHeight;
-      pdf.text(`Customer ID: ${repayment.customerId}`, 25, yPos);
+      pdf.text(`Customer ID: ${repayment.borrowerReference || repayment.customerId}`, 25, yPos);
       yPos += lineHeight;
-      pdf.text(`Loan ID: ${repayment.loanId}`, 25, yPos);
+      pdf.text(`Loan ID: ${repayment.loanDisplayId || repayment.loanReference || repayment.loanId}`, 25, yPos);
       yPos += lineHeight * 1.5;
       
       pdf.setFontSize(14);
@@ -377,6 +372,38 @@ const Repayments = () => {
       console.error('PDF download failed:', error);
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  // Delete repayment handler
+  const handleDeleteRepayment = (repayment: any) => {
+    setRepaymentToDelete(repayment);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDeleteRepayment = async () => {
+    if (!repaymentToDelete) return;
+
+    const loadingToast = toast.loading('Deleting payment...');
+
+    try {
+      await databaseService.deleteRepayment(repaymentToDelete.id);
+      
+      // Remove from local state
+      setRepayments(prev => prev.filter(r => r.id !== repaymentToDelete.id));
+      
+      toast.dismiss(loadingToast);
+      toast.success('Payment deleted successfully');
+      
+      console.log('✅ Payment deleted:', repaymentToDelete.receiptNumber);
+      
+      // Close modal and reset state
+      setIsDeleteModalOpen(false);
+      setRepaymentToDelete(null);
+    } catch (error) {
+      console.error('❌ Failed to delete payment:', error);
+      toast.dismiss(loadingToast);
+      toast.error('Failed to delete payment. Please try again.');
     }
   };
 
@@ -678,6 +705,13 @@ const Repayments = () => {
                         >
                           <Download className={`w-4 h-4 ${isDownloading ? 'animate-pulse' : ''}`} />
                         </button>
+                        <button 
+                          onClick={() => handleDeleteRepayment(repayment)}
+                          className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50 transition-colors"
+                          title="Delete Payment"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -792,7 +826,7 @@ const Repayments = () => {
                   
                   <div>
                     <label className="text-sm font-medium text-gray-500">Customer ID</label>
-                    <p className="text-lg font-semibold text-gray-900">{selectedRepayment.customerId}</p>
+                    <p className="text-lg font-semibold text-gray-900">{selectedRepayment.borrowerReference || selectedRepayment.customerId}</p>
                   </div>
                   
                   {selectedRepayment.hasBorrowerData && (
@@ -828,7 +862,7 @@ const Repayments = () => {
                   
                   <div>
                     <label className="text-sm font-medium text-gray-500">Loan ID</label>
-                    <p className="text-lg font-semibold text-gray-900">{selectedRepayment.loanId}</p>
+                    <p className="text-lg font-semibold text-gray-900">{selectedRepayment.loanDisplayId || selectedRepayment.loanReference || selectedRepayment.loanId}</p>
                   </div>
                   
                   <div>
@@ -1091,6 +1125,91 @@ const Repayments = () => {
                   Record Payment
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && repaymentToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-red-100 rounded-lg">
+                  <AlertTriangle className="w-6 h-6 text-red-600" />
+                </div>
+                <h2 className="text-xl font-bold text-gray-900">Delete Payment</h2>
+              </div>
+              <button
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setRepaymentToDelete(null);
+                }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="space-y-4">
+              <p className="text-gray-600">
+                Are you sure you want to delete this payment? This action cannot be undone.
+              </p>
+
+              {/* Payment Details */}
+              <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Receipt Number:</span>
+                  <span className="font-semibold text-gray-900">{repaymentToDelete.receiptNumber}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Amount:</span>
+                  <span className="font-semibold text-green-600">
+                    UGX {repaymentToDelete.amount?.toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Customer:</span>
+                  <span className="font-semibold text-gray-900">{repaymentToDelete.customerName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Date:</span>
+                  <span className="font-semibold text-gray-900">
+                    {formatDate(repaymentToDelete.paidAt || repaymentToDelete.date)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2 p-3 bg-red-50 rounded-lg border border-red-200">
+                <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-red-700">
+                  Deleting this payment will restore the loan's outstanding balance. 
+                  Make sure this is what you want to do.
+                </p>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-4 border-t">
+              <button
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setRepaymentToDelete(null);
+                }}
+                className="flex-1 px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteRepayment}
+                className="flex-1 px-6 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-colors font-medium flex items-center justify-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete Payment
+              </button>
             </div>
           </div>
         </div>

@@ -95,7 +95,13 @@ export const useApplications = (options: UseApplicationsOptions = {}): UseApplic
         );
 
         if (response.success) {
-          setApplications(response.data);
+          // Sort applications by most recent first
+          const sortedApplications = response.data.sort((a, b) => {
+            const dateA = new Date(a.submittedAt || a.submissionDate || a.createdAt || 0).getTime();
+            const dateB = new Date(b.submittedAt || b.submissionDate || b.createdAt || 0).getTime();
+            return dateB - dateA; // Descending order (newest first)
+          });
+          setApplications(sortedApplications);
           setTotalCount(response.total);
           setTotalPages(response.totalPages);
         } else {

@@ -13,7 +13,14 @@
     "migrate:prod": "npx prisma migrate deploy",
     "seed": "npx prisma db seed",
     "generate": "npx prisma generate",
-    "studio": "npx prisma studio"
+    "studio": "npx prisma studio",
+    "sync": "node auto-sync-csv.js",
+    "compare": "node compare-savings-data.js",
+    "import-deposits": "node import-missing-deposits.js",
+    "verify-phones": "node verify-phone-numbers.js",
+    "update-phones": "node update-phone-numbers.js",
+    "verify-dates": "node verify-opening-dates.js",
+    "update-dates": "node update-opening-dates.js"
   },
   "dependencies": {
     "@prisma/client": "^5.7.1",

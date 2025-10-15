@@ -75,6 +75,8 @@ export interface SavingsData {
   balance: number;
   interestRate: number;
   status: string;
+  createdAt: string;
+  updatedAt: string;
   borrower?: BorrowerData;
 }
 
@@ -435,7 +437,10 @@ class DatabaseService {
 
   // Applications
   async getApplications(): Promise<ApplicationData[]> {
-    const response = await this.apiClient.get('/applications');
+    // Get all applications without pagination limit for dashboard/reports
+    const response = await this.apiClient.get('/applications', {
+      params: { limit: 1000 } // High limit to get all applications
+    });
     return response.data.data || response.data;
   }
 

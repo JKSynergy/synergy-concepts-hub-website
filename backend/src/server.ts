@@ -159,11 +159,11 @@ app.get('/api/borrowers-with-loans', async (req, res) => {
     });
 
     // Enrich borrowers with loan statistics
-    const enrichedBorrowers = borrowers.map(borrower => ({
+    const enrichedBorrowers = borrowers.map((borrower: any) => ({
       ...borrower,
       loanCount: borrower._count.loans,
-      activeLoanCount: borrower.loans.filter(l => l.status === 'ACTIVE' || l.status === 'OVERDUE').length,
-      totalOutstanding: borrower.loans.reduce((sum, loan) => sum + (loan.outstandingBalance || 0), 0)
+      activeLoanCount: borrower.loans.filter((l: any) => l.status === 'ACTIVE' || l.status === 'OVERDUE').length,
+      totalOutstanding: borrower.loans.reduce((sum: number, loan: any) => sum + (loan.outstandingBalance || 0), 0)
     }));
 
     await prisma.$disconnect();

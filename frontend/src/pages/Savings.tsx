@@ -19,6 +19,7 @@ interface Transaction {
   type: 'deposit' | 'withdrawal';
   amount: number;
   date: string;
+  method?: string;
   description?: string;
 }
 
@@ -173,11 +174,77 @@ const Savings: React.FC = () => {
   };
 
   // Action handlers
-  const handleViewAccount = (account: SavingsAccount) => {
+  const handleViewAccount = async (account: SavingsAccount) => {
     setSelectedAccount(account);
-    // Load transactions for this account - TODO: implement when service is ready
-    // const accountTransactions = realDataService.getTransactionsForAccount(account.id);
-    setSelectedAccountTransactions([]);
+    
+    // Load real transactions for this account
+    try {
+      console.log('🔍 Loading transactions for account:', account.savingsId);
+      
+      // Ensure deposits and withdrawals are loaded
+      let deposits = realDeposits;
+      let withdrawals = realWithdrawals;
+      
+      // If not loaded yet, fetch them now
+      if (deposits.length === 0 || withdrawals.length === 0) {
+        console.log('📥 Fetching deposits and withdrawals data...');
+        const [depositsResponse, withdrawalsResponse] = await Promise.all([
+          databaseService.getDeposits(),
+          databaseService.getWithdrawals()
+        ]);
+        
+        deposits = depositsResponse || [];
+        withdrawals = withdrawalsResponse || [];
+        
+        // Update state for future use
+        setRealDeposits(deposits);
+        setRealWithdrawals(withdrawals);
+        
+        console.log('✅ Loaded:', deposits.length, 'deposits,', withdrawals.length, 'withdrawals');
+      }
+      
+      const accountTransactions: Transaction[] = [];
+      
+      // Get deposits for this account
+      const accountDeposits = deposits.filter(d => d.accountId === account.savingsId);
+      console.log('💰 Found', accountDeposits.length, 'deposits for', account.savingsId);
+      
+      accountDeposits.forEach(deposit => {
+        accountTransactions.push({
+          id: deposit.depositId,
+          type: 'deposit',
+          amount: deposit.amount,
+          date: deposit.depositDate,
+          method: deposit.method,
+          description: `Deposit via ${deposit.method}`
+        });
+      });
+      
+      // Get withdrawals for this account
+      const accountWithdrawals = withdrawals.filter(w => w.accountId === account.savingsId);
+      console.log('💸 Found', accountWithdrawals.length, 'withdrawals for', account.savingsId);
+      
+      accountWithdrawals.forEach(withdrawal => {
+        accountTransactions.push({
+          id: withdrawal.withdrawalId,
+          type: 'withdrawal',
+          amount: withdrawal.amount,
+          date: withdrawal.withdrawalDate,
+          method: withdrawal.method,
+          description: `Withdrawal via ${withdrawal.method}`
+        });
+      });
+      
+      // Sort by date (most recent first)
+      accountTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      
+      setSelectedAccountTransactions(accountTransactions);
+      console.log(`✅ Loaded ${accountTransactions.length} total transactions for ${account.savingsId}`);
+    } catch (error) {
+      console.error('❌ Failed to load transactions:', error);
+      setSelectedAccountTransactions([]);
+    }
+    
     setIsViewModalOpen(true);
   };
 
@@ -276,13 +343,13 @@ const Savings: React.FC = () => {
       yPos += lineHeight;
       
       pdf.setFontSize(11);
-      pdf.text(`Account ID: ${account.id}`, 25, yPos);
+      pdf.text(`Account ID: ${account.savingsId}`, 25, yPos);
       yPos += lineHeight;
-      pdf.text(`Customer Name: ${account.borrower?.firstName} ${account.borrower?.lastName}`, 25, yPos);
+      pdf.text(`Customer Name: ${account.borrower ? `${account.borrower.firstName} ${account.borrower.lastName}` : 'N/A'}`, 25, yPos);
       yPos += lineHeight;
-      pdf.text(`Account Type: Savings Account`, 25, yPos);
+      pdf.text(`Phone: ${account.borrower?.phone || 'N/A'}`, 25, yPos);
       yPos += lineHeight;
-      pdf.text(`Opening Date: ${(account as any).createdAt ? formatDate((account as any).createdAt) : 'Not specified'}`, 25, yPos);
+      pdf.text(`Opening Date: ${formatDate(account.createdAt)}`, 25, yPos);
       yPos += lineHeight * 1.5;
       
       pdf.setFontSize(14);
@@ -296,7 +363,7 @@ const Savings: React.FC = () => {
       yPos += lineHeight;
       pdf.text(`Account Status: ${account.status}`, 25, yPos);
       yPos += lineHeight;
-      pdf.text(`Last Transaction: ${account.lastTransactionDate ? formatDate(account.lastTransactionDate) : 'No transactions'}`, 25, yPos);
+      pdf.text(`Last Updated: ${formatDate(account.updatedAt)}`, 25, yPos);
       yPos += lineHeight * 2;
       
       // Transaction History Section
@@ -342,7 +409,7 @@ const Savings: React.FC = () => {
           }
           
           pdf.setTextColor(0, 0, 0); // Reset to black
-          pdf.text(transaction.method, 135, yPos);
+          pdf.text(transaction.method || 'N/A', 135, yPos);
           yPos += lineHeight;
         });
         
@@ -442,7 +509,6 @@ const Savings: React.FC = () => {
       name: newSaverForm.name,
       phone: newSaverForm.phone,
       email: newSaverForm.email,
-      address: newSaverForm.address,
       registrationDate: new Date().toISOString().split('T')[0],
       status: 'Active'
     };
@@ -472,38 +538,28 @@ const Savings: React.FC = () => {
     
     // Generate unique account ID by finding the highest existing account ID
     const existingAccountIds = savings.map(acc => {
-      const idNum = parseInt(acc.id.replace(/\D/g, ''));
+      const idNum = parseInt(acc.savingsId.replace(/\D/g, ''));
       return isNaN(idNum) ? 0 : idNum;
     });
     const nextAccountId = Math.max(0, ...existingAccountIds) + 1;
-    const accountId = `SAV${String(nextAccountId).padStart(4, '0')}`; // Keeping SAV prefix as per existing data
-    
-    // Generate unique account number
-    const existingAccNumbers = savings.map(acc => {
-      const accNum = parseInt(acc.accountNumber.replace(/\D/g, ''));
-      return isNaN(accNum) ? 0 : accNum;
-    });
-    const nextAccNumber = Math.max(100000, ...existingAccNumbers) + 1;
-    const accountNumber = `ACC${String(nextAccNumber).padStart(6, '0')}`;
+    const savingsId = `SAV${String(nextAccountId).padStart(4, '0')}`; // Keeping SAV prefix as per existing data
     
     // Create new account object
     const newAccount: SavingsAccount = {
-      id: accountId,
-      saverId: newAccountForm.saverId,
-      customerName: saver.name,
-      accountNumber: accountNumber,
+      id: '', // Will be generated by backend
+      savingsId: savingsId,
+      borrowerId: newAccountForm.saverId,
       balance: parseFloat(newAccountForm.initialDeposit),
       interestRate: parseFloat(newAccountForm.interestRate),
-      openingDate: new Date().toISOString().split('T')[0],
-      lastTransactionDate: new Date().toISOString().split('T')[0],
-      status: 'Active',
-      accountType: newAccountForm.accountType
+      status: 'ACTIVE',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
     
     // Add to savings list (in real app, this would be API call)
     setSavings([...savings, newAccount]);
     
-    alert(`New savings account created successfully! Account ID: ${accountId}, Account Number: ${accountNumber}`);
+    alert(`New savings account created successfully! Account ID: ${savingsId}`);
     handleCloseModals();
   };
 
@@ -580,12 +636,15 @@ const Savings: React.FC = () => {
           pdf.text(generateAccountNumber(index), 20, yPos);
           pdf.text(saver.name.substring(0, 20), 50, yPos);
           pdf.text(saver.phone, 100, yPos);
-          pdf.text(saver.status, 140, yPos);
+          pdf.text(saver.status || 'Active', 140, yPos);
           pdf.text(formatDate(saver.registrationDate), 170, yPos);
         } else {
           const account = item as SavingsAccount;
-          pdf.text(account.id, 20, yPos);
-          pdf.text(account.customerName.substring(0, 20), 60, yPos);
+          pdf.text(account.savingsId, 20, yPos);
+          const customerName = account.borrower 
+            ? `${account.borrower.firstName} ${account.borrower.lastName}` 
+            : 'N/A';
+          pdf.text(customerName.substring(0, 20), 60, yPos);
           pdf.text(formatUGX(account.balance), 110, yPos);
           pdf.text(`${account.interestRate}%`, 150, yPos);
           pdf.text(account.status, 175, yPos);
@@ -674,14 +733,14 @@ const Savings: React.FC = () => {
       
       const monthDeposits = allDeposits
         .filter(deposit => {
-          const depositDate = new Date(deposit.date);
+          const depositDate = new Date(deposit.depositDate);
           return depositDate.getMonth() + 1 === month && depositDate.getFullYear() === year;
         })
         .reduce((sum, deposit) => sum + deposit.amount, 0);
         
       const monthWithdrawals = allWithdrawals
         .filter(withdrawal => {
-          const withdrawalDate = new Date(withdrawal.date);
+          const withdrawalDate = new Date(withdrawal.withdrawalDate);
           return withdrawalDate.getMonth() + 1 === month && withdrawalDate.getFullYear() === year;
         })
         .reduce((sum, withdrawal) => sum + withdrawal.amount, 0);
@@ -707,20 +766,20 @@ const Savings: React.FC = () => {
   // This month calculations
   const depositsThisMonth = allDeposits
     .filter(deposit => {
-      const depositDate = new Date(deposit.date);
+      const depositDate = new Date(deposit.depositDate);
       return depositDate.getMonth() + 1 === currentMonth && depositDate.getFullYear() === currentYear;
     })
     .reduce((sum, deposit) => sum + deposit.amount, 0);
     
   const withdrawalsThisMonth = allWithdrawals
     .filter(withdrawal => {
-      const withdrawalDate = new Date(withdrawal.date);
+      const withdrawalDate = new Date(withdrawal.withdrawalDate);
       return withdrawalDate.getMonth() + 1 === currentMonth && withdrawalDate.getFullYear() === currentYear;
     })
     .reduce((sum, withdrawal) => sum + withdrawal.amount, 0);
   
   const depositsCountThisMonth = allDeposits.filter(deposit => {
-    const depositDate = new Date(deposit.date);
+    const depositDate = new Date(deposit.depositDate);
     return depositDate.getMonth() + 1 === currentMonth && depositDate.getFullYear() === currentYear;
   }).length;
   
@@ -732,7 +791,7 @@ const Savings: React.FC = () => {
   
   const depositsLastMonth = allDeposits
     .filter(deposit => {
-      const depositDate = new Date(deposit.date);
+      const depositDate = new Date(deposit.depositDate);
       return depositDate.getMonth() + 1 === lastMonth && depositDate.getFullYear() === lastMonthYear;
     })
     .reduce((sum, deposit) => sum + deposit.amount, 0);
@@ -769,6 +828,28 @@ const Savings: React.FC = () => {
   
   const activeSavers = savers.filter(saver => saver.status === 'Active').length;
   const totalAccounts = savings.length;
+
+  // Interest Rate Calculation Function
+  // Rule: 5% annual interest (0.42% monthly) for balances consistently above UGX 5,000,000
+  const calculateInterestRate = (balance: number): { rate: number; monthlyAmount: number; annualAmount: number } => {
+    const MINIMUM_BALANCE = 5000000; // UGX 5 million
+    const ANNUAL_RATE = 0.05; // 5% per annum
+    const MONTHLY_RATE = ANNUAL_RATE / 12; // 0.42% per month
+    
+    if (balance >= MINIMUM_BALANCE) {
+      return {
+        rate: ANNUAL_RATE * 100, // Convert to percentage for display
+        monthlyAmount: balance * MONTHLY_RATE,
+        annualAmount: balance * ANNUAL_RATE
+      };
+    }
+    
+    return {
+      rate: 0,
+      monthlyAmount: 0,
+      annualAmount: 0
+    };
+  };
 
   if (loading) {
     return (
@@ -1251,7 +1332,7 @@ const Savings: React.FC = () => {
                     Balance
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Interest Rate
+                    Monthly Interest
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Open Date
@@ -1284,7 +1365,16 @@ const Savings: React.FC = () => {
                       UGX {account.balance.toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                      {account.interestRate}%
+                      {account.balance >= 5000000 ? (
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-green-600">
+                            {formatUGX(calculateInterestRate(account.balance).monthlyAmount)}
+                          </span>
+                          <span className="text-xs text-gray-500">monthly (5% p.a.)</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-500">Balance &lt; 5M</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                       {formatDate(account.createdAt)}
@@ -1455,17 +1545,23 @@ const Savings: React.FC = () => {
                 <div className="space-y-4">
                   <div>
                     <label className="text-sm font-medium text-gray-500">Account ID</label>
-                    <p className="text-lg font-semibold text-gray-900">{selectedAccount.id}</p>
+                    <p className="text-lg font-semibold text-gray-900">{selectedAccount.savingsId}</p>
                   </div>
                   
                   <div>
                     <label className="text-sm font-medium text-gray-500">Customer Name</label>
-                    <p className="text-lg font-semibold text-gray-900">{selectedAccount.customerName}</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {selectedAccount.borrower 
+                        ? `${selectedAccount.borrower.firstName} ${selectedAccount.borrower.lastName}`
+                        : 'N/A'}
+                    </p>
                   </div>
                   
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Account Type</label>
-                    <p className="text-lg font-semibold text-gray-900">{selectedAccount.accountType}</p>
+                    <label className="text-sm font-medium text-gray-500">Phone Number</label>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {selectedAccount.borrower?.phone || 'N/A'}
+                    </p>
                   </div>
                   
                   <div>
@@ -1477,27 +1573,56 @@ const Savings: React.FC = () => {
                 <div className="space-y-4">
                   <div>
                     <label className="text-sm font-medium text-gray-500">Interest Rate</label>
-                    <p className="text-lg font-semibold text-gray-900">{selectedAccount.interestRate}%</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {calculateInterestRate(selectedAccount.balance).rate}% per annum
+                    </p>
+                    {selectedAccount.balance >= 5000000 ? (
+                      <p className="text-sm text-green-600 mt-1">
+                        ✓ Qualifies for interest (Balance ≥ UGX 5M)
+                      </p>
+                    ) : (
+                      <p className="text-sm text-orange-600 mt-1">
+                        ⓘ Maintain UGX 5M+ to earn interest
+                      </p>
+                    )}
                   </div>
+                  
+                  {selectedAccount.balance >= 5000000 && (
+                    <>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Monthly Interest</label>
+                        <p className="text-lg font-semibold text-green-600">
+                          {formatUGX(calculateInterestRate(selectedAccount.balance).monthlyAmount)}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">Approx. 0.42% monthly</p>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Annual Interest</label>
+                        <p className="text-lg font-semibold text-green-600">
+                          {formatUGX(calculateInterestRate(selectedAccount.balance).annualAmount)}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">5% of balance per year</p>
+                      </div>
+                    </>
+                  )}
                   
                   <div>
                     <label className="text-sm font-medium text-gray-500">Opening Date</label>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {(selectedAccount as any).createdAt ? formatDate((selectedAccount as any).createdAt) : 'Not specified'}
-                    </p>
+                    <p className="text-lg font-semibold text-gray-900">{formatDate(selectedAccount.createdAt)}</p>
                   </div>
                   
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Last Transaction</label>
+                    <label className="text-sm font-medium text-gray-500">Last Updated</label>
                     <p className="text-lg font-semibold text-gray-900">
-                      {selectedAccount.lastTransactionDate ? formatDate(selectedAccount.lastTransactionDate) : 'No transactions'}
+                      {formatDate(selectedAccount.updatedAt)}
                     </p>
                   </div>
                   
                   <div>
                     <label className="text-sm font-medium text-gray-500">Status</label>
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      selectedAccount.status === 'Active' 
+                      selectedAccount.status === 'ACTIVE' 
                         ? 'bg-green-100 text-green-800' 
                         : 'bg-red-100 text-red-800'
                     }`}>
@@ -1627,8 +1752,12 @@ const Savings: React.FC = () => {
 
               <div className="mb-6">
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <h3 className="font-medium text-green-800">{selectedAccount.customerName}</h3>
-                  <p className="text-sm text-green-600">Account: {selectedAccount.id}</p>
+                  <h3 className="font-medium text-green-800">
+                    {selectedAccount.borrower 
+                      ? `${selectedAccount.borrower.firstName} ${selectedAccount.borrower.lastName}`
+                      : 'N/A'}
+                  </h3>
+                  <p className="text-sm text-green-600">Account: {selectedAccount.savingsId}</p>
                   <p className="text-sm text-green-600">Current Balance: {formatUGX(selectedAccount.balance)}</p>
                 </div>
               </div>
@@ -1722,8 +1851,12 @@ const Savings: React.FC = () => {
 
               <div className="mb-6">
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <h3 className="font-medium text-red-800">{selectedAccount.customerName}</h3>
-                  <p className="text-sm text-red-600">Account: {selectedAccount.id}</p>
+                  <h3 className="font-medium text-red-800">
+                    {selectedAccount.borrower 
+                      ? `${selectedAccount.borrower.firstName} ${selectedAccount.borrower.lastName}`
+                      : 'N/A'}
+                  </h3>
+                  <p className="text-sm text-red-600">Account: {selectedAccount.savingsId}</p>
                   <p className="text-sm text-red-600">Available Balance: {formatUGX(selectedAccount.balance)}</p>
                 </div>
               </div>
@@ -2058,11 +2191,6 @@ const Savings: React.FC = () => {
 
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Address</label>
-                    <p className="text-lg font-semibold text-gray-900">{selectedSaver.address || 'Not specified'}</p>
-                  </div>
-                  
-                  <div>
                     <label className="text-sm font-medium text-gray-500">Registration Date</label>
                     <p className="text-lg font-semibold text-gray-900">
                       {selectedSaver.registrationDate ? formatDate(selectedSaver.registrationDate) : 'Not specified'}
@@ -2083,7 +2211,7 @@ const Savings: React.FC = () => {
                   <div>
                     <label className="text-sm font-medium text-gray-500">Savings Accounts</label>
                     <p className="text-lg font-semibold text-green-600">
-                      {savings.filter(account => account.saverId === selectedSaver.id).length} accounts
+                      {savings.filter(account => account.borrowerId === selectedSaver.id).length} accounts
                     </p>
                   </div>
                 </div>
@@ -2093,13 +2221,13 @@ const Savings: React.FC = () => {
               <div className="border-t border-gray-200 pt-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Savings Accounts</h3>
                 
-                {savings.filter(account => account.saverId === selectedSaver.id).length > 0 ? (
+                {savings.filter(account => account.borrowerId === selectedSaver.id).length > 0 ? (
                   <div className="space-y-3">
-                    {savings.filter(account => account.saverId === selectedSaver.id).map((account) => (
+                    {savings.filter(account => account.borrowerId === selectedSaver.id).map((account) => (
                       <div key={account.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                         <div>
-                          <p className="font-semibold text-gray-900">{account.accountNumber}</p>
-                          <p className="text-sm text-gray-500">{account.accountType}</p>
+                          <p className="font-semibold text-gray-900">{account.savingsId}</p>
+                          <p className="text-sm text-gray-500">Savings Account</p>
                         </div>
                         <div className="text-right">
                           <p className="font-bold text-green-600">{formatUGX(account.balance)}</p>

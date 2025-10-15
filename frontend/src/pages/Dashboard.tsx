@@ -129,7 +129,11 @@ const Dashboard: React.FC = () => {
     realizedProfit: 0,
     totalSavings: 0,
     totalApplications: 0,
-    approvalRate: 0
+    approvalRate: 0,
+    totalDeposits: 0,
+    totalWithdrawals: 0,
+    monthlyDeposits: 0,
+    monthlyWithdrawals: 0
   });
 
   // Modal states
@@ -170,13 +174,15 @@ const Dashboard: React.FC = () => {
       setIsLoading(true);
       console.log('🔄 Loading dashboard data from database...');
       
-      // Load all data from database API
-      const [loans, repayments, borrowers, applications, savings] = await Promise.all([
+      // Load all data from database API including deposits and withdrawals
+      const [loans, repayments, borrowers, applications, savings, deposits, withdrawals] = await Promise.all([
         databaseService.getLoans(),
         databaseService.getRepayments(),
         databaseService.getBorrowers(),
         databaseService.getApplications(),
-        databaseService.getSavings()
+        databaseService.getSavings(),
+        databaseService.getDeposits(),
+        databaseService.getWithdrawals()
       ]);
 
         console.log('📊 Loaded data:', { 
@@ -184,7 +190,9 @@ const Dashboard: React.FC = () => {
           repayments: repayments.length, 
           borrowers: borrowers.length,
           applications: applications.length,
-          savings: savings.length
+          savings: savings.length,
+          deposits: deposits.length,
+          withdrawals: withdrawals.length
         });
 
         // Helper function to calculate actual loan status (same as overdue page)
@@ -231,8 +239,47 @@ const Dashboard: React.FC = () => {
         }).length;
         const approvalRate = totalApplications > 0 ? (approvedLoans / totalApplications) * 100 : 0;
         
-        // Calculate total savings balance
-        const totalSavings = savingsArray.reduce((sum, saving) => sum + (saving.balance || 0), 0);
+        // Calculate deposits and withdrawals
+        const depositsArray = Array.isArray(deposits) ? deposits : [];
+        const withdrawalsArray = Array.isArray(withdrawals) ? withdrawals : [];
+        
+        // Calculate total deposits and withdrawals
+        const totalDeposits = depositsArray.reduce((sum, deposit) => sum + (deposit.amount || 0), 0);
+        const totalWithdrawals = withdrawalsArray.reduce((sum, withdrawal) => sum + (withdrawal.amount || 0), 0);
+        
+        // Calculate net savings (deposits - withdrawals)
+        const netSavings = totalDeposits - totalWithdrawals;
+        
+        // Calculate savings balance from database (should match net savings ideally)
+        const totalSavingsBalance = savingsArray.reduce((sum, saving) => sum + (saving.balance || 0), 0);
+        
+        // Use the actual calculated net savings for accuracy
+        const totalSavings = netSavings;
+        
+        // Calculate this month's deposits and withdrawals
+        const currentMonth = new Date().getMonth();
+        const currentYear = new Date().getFullYear();
+        
+        const thisMonthDeposits = depositsArray.filter(deposit => {
+          const depositDate = new Date(deposit.depositDate);
+          return depositDate.getMonth() === currentMonth && depositDate.getFullYear() === currentYear;
+        });
+        const monthlyDepositAmount = thisMonthDeposits.reduce((sum, deposit) => sum + (deposit.amount || 0), 0);
+        
+        const thisMonthWithdrawals = withdrawalsArray.filter(withdrawal => {
+          const withdrawalDate = new Date(withdrawal.withdrawalDate);
+          return withdrawalDate.getMonth() === currentMonth && withdrawalDate.getFullYear() === currentYear;
+        });
+        const monthlyWithdrawalAmount = thisMonthWithdrawals.reduce((sum, withdrawal) => sum + (withdrawal.amount || 0), 0);
+        
+        console.log('💰 Savings calculations:', {
+          totalDeposits,
+          totalWithdrawals,
+          netSavings,
+          totalSavingsBalance,
+          monthlyDeposits: monthlyDepositAmount,
+          monthlyWithdrawals: monthlyWithdrawalAmount
+        });
         
         // Calculate total disbursed (sum of all loan principals)
         const totalDisbursed = loansArray.reduce((sum, loan) => sum + (loan.principal || 0), 0);
@@ -245,8 +292,6 @@ const Dashboard: React.FC = () => {
         const collectionRate = totalDisbursed > 0 ? (totalRepayments / totalDisbursed) * 100 : 0;
         
         // Calculate this month's revenue (repayments from current month)
-        const currentMonth = new Date().getMonth();
-        const currentYear = new Date().getFullYear();
         const thisMonthRepayments = repaymentsArray.filter(payment => {
           const paymentDate = new Date(payment.paidAt);
           return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
@@ -265,6 +310,16 @@ const Dashboard: React.FC = () => {
         
         const revenueChange = lastMonthRevenue > 0 ? 
           ((monthlyRevenue - lastMonthRevenue) / lastMonthRevenue * 100) : 0;
+        
+        // Calculate savings growth (last month vs this month)
+        const lastMonthDeposits = depositsArray.filter(deposit => {
+          const depositDate = new Date(deposit.depositDate);
+          return depositDate.getMonth() === lastMonth && depositDate.getFullYear() === lastMonthYear;
+        });
+        const lastMonthDepositAmount = lastMonthDeposits.reduce((sum, deposit) => sum + (deposit.amount || 0), 0);
+        
+        const savingsGrowth = lastMonthDepositAmount > 0 ? 
+          ((monthlyDepositAmount - lastMonthDepositAmount) / lastMonthDepositAmount * 100) : 0;
         
         // Calculate overdue trend (percentage of total active loans)
         const overdueRate = activeLoans > 0 ? (overdueLoans / activeLoans * 100) : 0;
@@ -298,6 +353,14 @@ const Dashboard: React.FC = () => {
             color: 'bg-purple-100'
           },
           {
+            title: 'Total Savings',
+            value: `UGX ${(totalSavings / 1000000).toFixed(2)}M`,
+            change: `${savingsGrowth >= 0 ? '+' : ''}${savingsGrowth.toFixed(1)}%`,
+            changeType: savingsGrowth >= 0 ? 'increase' as const : 'decrease' as const,
+            icon: 'DollarSign',
+            color: 'bg-blue-100'
+          },
+          {
             title: 'Collection Rate',
             value: `${collectionRate.toFixed(1)}%`,
             change: `${collectionRate > 80 ? '+' : ''}${(collectionRate - 75).toFixed(1)}%`,
@@ -312,6 +375,22 @@ const Dashboard: React.FC = () => {
             changeType: overdueChange as 'increase' | 'decrease',
             icon: 'AlertTriangle',
             color: 'bg-orange-100'
+          },
+          {
+            title: 'Monthly Deposits',
+            value: `UGX ${(monthlyDepositAmount / 1000000).toFixed(2)}M`,
+            change: `${thisMonthDeposits.length} deposits`,
+            changeType: thisMonthDeposits.length > 0 ? 'increase' as const : 'decrease' as const,
+            icon: 'TrendingUp',
+            color: 'bg-green-100'
+          },
+          {
+            title: 'Monthly Withdrawals',
+            value: `UGX ${(monthlyWithdrawalAmount / 1000000).toFixed(2)}M`,
+            change: `${thisMonthWithdrawals.length} withdrawals`,
+            changeType: 'decrease' as const,
+            icon: 'ArrowDown',
+            color: 'bg-red-100'
           },
           {
             title: 'This Month Revenue',
@@ -381,7 +460,11 @@ const Dashboard: React.FC = () => {
           realizedProfit,
           totalSavings,
           totalApplications,
-          approvalRate
+          approvalRate,
+          totalDeposits,
+          totalWithdrawals,
+          monthlyDeposits: monthlyDepositAmount,
+          monthlyWithdrawals: monthlyWithdrawalAmount
         });
         
       } catch (error: any) {
@@ -589,7 +672,7 @@ const Dashboard: React.FC = () => {
 
           {/* Bottom Row - Secondary Metrics */}
           <div className="border-t border-gray-200 dark:border-gray-700">
-            <div className="grid grid-cols-1 md:grid-cols-3 divide-x divide-gray-200 dark:divide-gray-700">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 divide-x divide-gray-200 dark:divide-gray-700">
               <div className="p-6 text-center">
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Realized Repayments</p>
                 <p className="text-xl font-bold text-green-600 dark:text-green-400">
@@ -608,6 +691,20 @@ const Dashboard: React.FC = () => {
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Realized Profit</p>
                 <p className={`text-xl font-bold ${financialMetrics.realizedProfit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                   UGX {(financialMetrics.realizedProfit / 1000000).toFixed(1)}M
+                </p>
+              </div>
+
+              <div className="p-6 text-center">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Total Deposits</p>
+                <p className="text-xl font-bold text-green-600 dark:text-green-400">
+                  UGX {(financialMetrics.totalDeposits / 1000000).toFixed(2)}M
+                </p>
+              </div>
+
+              <div className="p-6 text-center">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Total Withdrawals</p>
+                <p className="text-xl font-bold text-red-600 dark:text-red-400">
+                  UGX {(financialMetrics.totalWithdrawals / 1000000).toFixed(2)}M
                 </p>
               </div>
             </div>

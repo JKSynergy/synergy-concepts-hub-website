@@ -27,9 +27,9 @@ if not exist "%FRONTEND_DIR%" (
 )
 
 echo [1] Starting Backend Server...
-start "QuickCredit Backend" cmd /c "cd /d \"%BACKEND_DIR%\" && node simple-api-server.js && pause"
+start "QuickCredit Backend" cmd /c "cd /d \"%BACKEND_DIR%\" && npm run dev && pause"
 
-timeout /t 3 /nobreak >nul
+timeout /t 5 /nobreak >nul
 
 echo [2] Starting Frontend Development Server...
 start "QuickCredit Frontend" cmd /c "cd /d \"%FRONTEND_DIR%\" && npm run dev && pause"

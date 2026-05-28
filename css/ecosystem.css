@@ -1226,51 +1226,6 @@ body.album-open { overflow: hidden; }
 }
 
 /* ─── Clients ─── */
-.clients-marquee-wrap {
-  background: linear-gradient(180deg, rgba(2, 136, 209, 0.04) 0%, transparent 100%);
-}
-
-.clients-marquee {
-  overflow: hidden;
-  mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
-}
-
-.clients-marquee-track {
-  display: flex;
-  gap: 3rem;
-  width: max-content;
-  animation: clientMarquee 40s linear infinite;
-  padding: 0.5rem 0;
-}
-
-.clients-marquee-track:hover {
-  animation-play-state: paused;
-}
-
-@keyframes clientMarquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
-
-.client-marquee-item {
-  flex-shrink: 0;
-  font-family: 'Syne', sans-serif;
-  font-size: clamp(1rem, 2.5vw, 1.375rem);
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  color: rgba(255, 255, 255, 0.55);
-  white-space: nowrap;
-  transition: color 0.3s ease;
-}
-
-a.client-marquee-item {
-  text-decoration: none;
-}
-
-.client-marquee-item:hover {
-  color: var(--sch-white);
-}
-
 .clients-section {
   position: relative;
   overflow: hidden;
@@ -1846,10 +1801,6 @@ select.form-input option[value=""] {
   }
 
   .client-card { min-height: 88px; }
-
-  .clients-marquee-track {
-    animation-duration: 55s;
-  }
 
   .timeline {
     flex-direction: column;

@@ -1,5 +1,10 @@
 node_modules/
 _deploy/
 
-# Large local media (use Cloudinary CDN in production)
+# Large local media (use Cloudinary CDN / YouTube — not Cloudflare Pages static)
 images/albums/videos/
+*.mp4
+*.mov
+*.mkv
+*.avi
+academy images/

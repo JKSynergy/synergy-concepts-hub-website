@@ -12,21 +12,47 @@ if (Test-Path $outDir) {
 Write-Host "Building Tailwind CSS..." -ForegroundColor Cyan
 npm run build
 
-Write-Host "Copying site files to _deploy..." -ForegroundColor Cyan
-$excludeDirs = @("node_modules", ".git", "_deploy", ".github")
+Write-Host "Copying site files to _deploy (no local videos)..." -ForegroundColor Cyan
+$excludeDirs = @("node_modules", ".git", "_deploy", ".github", "academy images", "scripts")
+$excludePathPrefixes = @("images\albums\videos", "images/albums/videos")
+$maxFileBytes = 24MB
 $excludeFiles = @("package.json", "package-lock.json", "tailwind.config.js", "deploy.ps1", "prepare-upload.ps1", ".gitignore", "wrangler.toml", "README.md")
 
-Get-ChildItem -Path $PSScriptRoot -Force | ForEach-Object {
-    if ($_.PSIsContainer) {
-        if ($excludeDirs -contains $_.Name) { return }
-        Copy-Item $_.FullName -Destination (Join-Path $outDir $_.Name) -Recurse -Force
-    } else {
-        if ($excludeFiles -contains $_.Name) { return }
-        if ($_.Name -like "tailwind.input.css") { return }
-        New-Item -ItemType Directory -Path $outDir -Force | Out-Null
-        Copy-Item $_.FullName -Destination (Join-Path $outDir $_.Name) -Force
+function Should-SkipPath([string]$relativePath, [bool]$isDirectory) {
+    foreach ($prefix in $excludePathPrefixes) {
+        if ($relativePath -eq $prefix -or $relativePath.StartsWith("$prefix/") -or $relativePath.StartsWith("$prefix\")) {
+            return $true
+        }
+    }
+    $parts = $relativePath -split '[\\/]'
+    foreach ($part in $parts) {
+        if ($excludeDirs -contains $part) { return $true }
+    }
+    if (-not $isDirectory) {
+        if ($excludeFiles -contains $parts[-1]) { return $true }
+        if ($parts[-1] -like "tailwind.input.css") { return $true }
+    }
+    return $false
+}
+
+function Copy-DeployTree([string]$source, [string]$dest, [string]$relative = "") {
+    Get-ChildItem -Path $source -Force | ForEach-Object {
+        $rel = if ($relative) { Join-Path $relative $_.Name } else { $_.Name }
+        if (Should-SkipPath $rel $_.PSIsContainer) { return }
+
+        $target = Join-Path $dest $_.Name
+        if ($_.PSIsContainer) {
+            New-Item -ItemType Directory -Path $target -Force | Out-Null
+            Copy-DeployTree $_.FullName $target $rel
+        } elseif ($_.Length -le $maxFileBytes) {
+            Copy-Item $_.FullName -Destination $target -Force
+        } else {
+            Write-Host "  skip (>24 MiB): $rel ($([math]::Round($_.Length/1MB, 1)) MiB)" -ForegroundColor Yellow
+        }
     }
 }
+
+Copy-DeployTree $PSScriptRoot $outDir
 
 $fileCount = (Get-ChildItem $outDir -Recurse -File | Measure-Object).Count
 Write-Host ""

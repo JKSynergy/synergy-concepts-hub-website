@@ -26,12 +26,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build CSS
-        run: npm run build
+      - name: Build and prepare deploy folder
+        run: node scripts/prepare-deploy.mjs
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy . --project-name=synergywebsite --branch=main
+          command: pages deploy _deploy --project-name=synergywebsite --branch=main

@@ -1,10 +1,10 @@
 // Service Worker for Synergy Concepts Hub
 // Implements caching strategies for optimal performance
 
-const CACHE_NAME = 'sch-v1.4.0';
-const STATIC_CACHE = 'sch-static-v1.4.0';
-const DYNAMIC_CACHE = 'sch-dynamic-v1.4.0';
-const IMAGE_CACHE = 'sch-images-v1.4.0';
+const CACHE_NAME = 'sch-v1.5.0';
+const STATIC_CACHE = 'sch-static-v1.5.0';
+const DYNAMIC_CACHE = 'sch-dynamic-v1.5.0';
+const IMAGE_CACHE = 'sch-images-v1.5.0';
 
 // Resources to cache immediately
 const STATIC_ASSETS = [

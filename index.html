@@ -91,6 +91,7 @@
     <nav class="hidden lg:flex items-center gap-8" aria-label="Main navigation">
       <a href="#systems" class="nav-link">Systems</a>
       <a href="#media" class="nav-link">Media</a>
+      <a href="#clients" class="nav-link">Clients</a>
       <a href="#academy" class="nav-link">Academy</a>
       <a href="#case-studies" class="nav-link">Case Studies</a>
       <a href="#contact" class="btn btn-primary btn-magnetic text-sm py-2.5 px-5">Start a Project</a>
@@ -111,6 +112,7 @@
     <nav class="space-y-2">
       <a href="#systems" class="mobile-nav-link">Systems</a>
       <a href="#media" class="mobile-nav-link">Media</a>
+      <a href="#clients" class="mobile-nav-link">Clients</a>
       <a href="#academy" class="mobile-nav-link">Academy</a>
       <a href="#case-studies" class="mobile-nav-link">Case Studies</a>
       <a href="#contact" class="mobile-nav-link text-sch-blue">Contact</a>
@@ -270,6 +272,34 @@
   </div>
 </section>
 
+<!-- ═══════════════════ CLIENTS MARQUEE (Hero visibility) ═══════════════════ -->
+<section class="clients-marquee-wrap relative z-10 border-y border-white/5 py-8" aria-label="Our clients">
+  <div class="max-w-content mx-auto px-6 lg:px-8 mb-6">
+    <p class="text-center text-xs uppercase tracking-[0.2em] text-white/40 font-medium">Trusted by leading organizations across East Africa</p>
+  </div>
+  <div class="clients-marquee" aria-hidden="true">
+    <div class="clients-marquee-track">
+      <span class="client-marquee-item">Elgon Bottling Company Ug</span>
+      <span class="client-marquee-item">Destination Diani</span>
+      <span class="client-marquee-item">Diani Art Gallery</span>
+      <span class="client-marquee-item">Afrisites Tours & Travel</span>
+      <span class="client-marquee-item">Solverscreations Ug</span>
+      <span class="client-marquee-item">Davy Cinematography</span>
+      <span class="client-marquee-item">Synergy Multimedia Academy</span>
+      <span class="client-marquee-item">QuickCredit Ug</span>
+      <!-- duplicate for seamless loop -->
+      <span class="client-marquee-item">Elgon Bottling Company Ug</span>
+      <span class="client-marquee-item">Destination Diani</span>
+      <span class="client-marquee-item">Diani Art Gallery</span>
+      <span class="client-marquee-item">Afrisites Tours & Travel</span>
+      <span class="client-marquee-item">Solverscreations Ug</span>
+      <span class="client-marquee-item">Davy Cinematography</span>
+      <span class="client-marquee-item">Synergy Multimedia Academy</span>
+      <span class="client-marquee-item">QuickCredit Ug</span>
+    </div>
+  </div>
+</section>
+
 <!-- ═══════════════════ ECOSYSTEM OVERVIEW ═══════════════════ -->
 <section class="relative z-10 py-24 border-t border-white/5">
   <div class="max-w-content mx-auto px-6 lg:px-8">
@@ -313,37 +343,38 @@
 </section>
 
 <!-- ═══════════════════ CLIENTS ═══════════════════ -->
-<section id="clients" class="clients-section relative z-10 py-20 border-t border-white/5">
+<section id="clients" class="clients-section relative z-10 py-28 border-t border-white/5">
   <div class="max-w-content mx-auto px-6 lg:px-8">
-    <div class="text-center mb-12 reveal">
-      <span class="section-label">Trusted By</span>
-      <h2 class="font-display text-xl sm:text-2xl font-semibold mt-3 text-white/80">Organizations We Build For</h2>
+    <div class="text-center mb-14">
+      <span class="section-label">Our Clients</span>
+      <h2 class="section-title mt-4">Organizations We<br/>Build For</h2>
+      <p class="mt-4 text-white/50 max-w-xl mx-auto">From fintech and travel to manufacturing and creative studios — we partner with ambitious brands across Uganda, Kenya, and beyond.</p>
     </div>
 
-    <div class="clients-grid reveal">
+    <div class="clients-grid">
       <div class="client-card glass-card accent-blue">
-        <span>Elgon Bottling Company Ug</span>
+        <span class="client-name">Elgon Bottling Company Ug</span>
       </div>
       <div class="client-card glass-card accent-orange">
-        <span>Destination Diani</span>
+        <span class="client-name">Destination Diani</span>
       </div>
       <div class="client-card glass-card accent-green">
-        <span>Diani Art Gallery</span>
+        <span class="client-name">Diani Art Gallery</span>
       </div>
       <div class="client-card glass-card accent-red">
-        <span>Afrisites Tours & Travel</span>
+        <span class="client-name">Afrisites Tours & Travel</span>
       </div>
       <div class="client-card glass-card accent-blue">
-        <span>Solverscreations Ug</span>
+        <span class="client-name">Solverscreations Ug</span>
       </div>
       <div class="client-card glass-card accent-orange">
-        <span>Davy Cinematography</span>
+        <span class="client-name">Davy Cinematography</span>
       </div>
       <div class="client-card glass-card accent-green">
-        <span>Synergy Multimedia Academy</span>
+        <span class="client-name">Synergy Multimedia Academy</span>
       </div>
       <div class="client-card glass-card accent-red">
-        <span>QuickCredit Ug</span>
+        <span class="client-name">QuickCredit Ug</span>
       </div>
     </div>
   </div>
@@ -470,7 +501,7 @@
 
     <!-- Featured Showcase -->
     <div class="grid lg:grid-cols-2 gap-6 mb-8">
-      <div class="media-showcase reveal-scale">
+      <div class="media-showcase reveal-scale" data-album="videos" role="button" tabindex="0" aria-label="Open Film Production albums">
         <img src="https://res.cloudinary.com/djr43ohnq/image/upload/f_auto,q_auto:good,w_800/v1759536578/2149729052_dznia5.jpg" alt="Film production showcase" loading="lazy" width="800" height="500"/>
         <div class="media-overlay">
           <span class="media-tag mb-3">Film Production</span>
@@ -478,7 +509,7 @@
           <p class="text-sm text-white/60 mt-2">Cinematic storytelling for enterprise brands</p>
         </div>
       </div>
-      <div class="media-showcase reveal-scale stagger-1">
+      <div class="media-showcase reveal-scale stagger-1" data-album="graphics" data-subalbum="logos" role="button" tabindex="0" aria-label="Open Brand Identity album">
         <img src="https://res.cloudinary.com/djr43ohnq/image/upload/f_auto,q_auto:good,w_800/v1759536582/18697_q1ptuz.jpg" alt="Creative campaign showcase" loading="lazy" width="800" height="500"/>
         <div class="media-overlay">
           <span class="media-tag mb-3">Brand Identity</span>
@@ -491,7 +522,7 @@
     <!-- Cinematic Strip -->
     <div class="cinematic-strip reveal">
       <div class="cinematic-item">
-        <div class="media-showcase aspect-[4/3]">
+        <div class="media-showcase aspect-[4/3]" data-album="photos" role="button" tabindex="0" aria-label="Open Photography albums">
           <img src="https://res.cloudinary.com/djr43ohnq/image/upload/f_auto,q_auto:good,w_600/v1759536578/2149729052_dznia5.jpg" alt="Photography" loading="lazy"/>
           <div class="media-overlay">
             <span class="media-tag">Photography</span>
@@ -500,7 +531,7 @@
         </div>
       </div>
       <div class="cinematic-item">
-        <div class="media-showcase aspect-[4/3]">
+        <div class="media-showcase aspect-[4/3]" data-album="videos" data-subalbum="reels" role="button" tabindex="0" aria-label="Open Animation and reels album">
           <div class="w-full h-full bg-gradient-to-br from-sch-navy to-sch-blue/30 flex items-center justify-center">
             <div class="play-btn">
               <svg width="20" height="20" fill="white" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
@@ -513,7 +544,7 @@
         </div>
       </div>
       <div class="cinematic-item">
-        <div class="media-showcase aspect-[4/3]">
+        <div class="media-showcase aspect-[4/3]" data-album="graphics" data-subalbum="eflyers" role="button" tabindex="0" aria-label="Open Campaigns album">
           <img src="https://res.cloudinary.com/djr43ohnq/image/upload/f_auto,q_auto:good,w_600/v1759536582/18697_q1ptuz.jpg" alt="Content campaigns" loading="lazy"/>
           <div class="media-overlay">
             <span class="media-tag">Campaigns</span>
@@ -781,6 +812,7 @@
         <nav class="space-y-2">
           <a href="#systems" class="block text-sm text-white/50 hover:text-white transition-colors">Digital Systems</a>
           <a href="#media" class="block text-sm text-white/50 hover:text-white transition-colors">Media & Creative</a>
+          <a href="#clients" class="block text-sm text-white/50 hover:text-white transition-colors">Clients</a>
           <a href="https://synergymultimediaacademy.com" target="_blank" rel="noopener noreferrer" class="block text-sm text-white/50 hover:text-white transition-colors">Academy</a>
           <a href="#case-studies" class="block text-sm text-white/50 hover:text-white transition-colors">Case Studies</a>
         </nav>
@@ -810,8 +842,52 @@
   </div>
 </footer>
 
+<!-- Hidden legacy hook for portfolio manager -->
+<div id="albumsSlider" class="hidden" aria-hidden="true"></div>
+
+<!-- Album Viewer -->
+<div id="albumView" class="album-view hidden fixed inset-0 z-[300] flex flex-col" role="dialog" aria-modal="true" aria-label="Portfolio album viewer">
+  <div class="album-view-header flex items-center justify-between px-6 py-4">
+    <button id="albumBack" type="button" class="btn btn-ghost text-sm py-2 px-4">← Close Album</button>
+    <div id="imageCounter" class="text-sm text-white/50 font-medium"></div>
+  </div>
+
+  <div class="album-main-stage flex-1 relative flex items-center justify-center px-4 pb-4">
+    <div id="mainImageContainer" class="relative w-full h-full flex items-center justify-center"></div>
+
+    <button id="albumPrev" type="button" aria-label="Previous image" class="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full glass flex items-center justify-center hover:border-sch-blue/40 transition-colors">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <button id="albumNext" type="button" aria-label="Next image" class="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full glass flex items-center justify-center hover:border-sch-blue/40 transition-colors">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M9 6l6 6-6 6"/></svg>
+    </button>
+  </div>
+
+  <div class="border-t border-white/5 px-4 py-4">
+    <div class="flex items-center gap-3 max-w-5xl mx-auto">
+      <button id="thumbPrev" type="button" aria-label="Scroll thumbnails left" class="text-white/40 hover:text-white p-2">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <div id="thumbnailContainer" class="album-thumbs-strip flex gap-2 overflow-x-auto flex-1 scroll-smooth"></div>
+      <button id="thumbNext" type="button" aria-label="Scroll thumbnails right" class="text-white/40 hover:text-white p-2">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M9 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div id="lightbox" class="lightbox-view hidden fixed inset-0 z-[310] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Full size image">
+  <img id="lightboxImage" class="rounded-lg" alt="" decoding="async"/>
+  <button id="lightboxClose" type="button" aria-label="Close lightbox" class="absolute top-6 right-6 w-12 h-12 rounded-full glass flex items-center justify-center hover:border-sch-blue/40 transition-colors">
+    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+  <div id="lightboxCounter" class="absolute bottom-6 left-1/2 -translate-x-1/2 text-sm text-white/60 glass px-4 py-2 rounded-full"></div>
+</div>
+
 <script src="/js/site-config.js" defer></script>
 <script src="/js/ecosystem.js" defer></script>
+<script src="/js/main-portfolio.js" defer></script>
 <script src="/js/pwa.js" defer></script>
 
 </body>

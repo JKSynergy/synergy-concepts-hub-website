@@ -162,8 +162,9 @@ const MAIN_PORTFOLIO_ALBUMS = {
       "academy images/classrooms/20250822_165220.jpg"
     ],
     eflyers: [
-      // Electronic flyer designs - add your e-flyer images here
-      "academy images/classrooms/20250822_165240.jpg"
+      "images/albums/graphics/eflyers/SMA COURSES-01.png",
+      "images/albums/graphics/eflyers/SMA COURSES-02.png",
+      "images/albums/graphics/eflyers/SMA STUDY TIMES-02.jpg"
     ],
     letterheads: [
       // Letterhead designs - add your letterhead images here
@@ -298,7 +299,6 @@ class MainPortfolioManager {
   }
 
   initializePortfolio() {
-    // Get portfolio elements
     this.albumsSlider = document.getElementById('albumsSlider');
     this.albumView = document.getElementById('albumView');
     this.thumbnailContainer = document.getElementById('thumbnailContainer');
@@ -315,20 +315,34 @@ class MainPortfolioManager {
     this.thumbNext = document.getElementById('thumbNext');
     this.albumBack = document.getElementById('albumBack');
 
-    if (!this.albumsSlider) {
-      console.log('Main portfolio elements not found - this is normal for pages without main portfolio');
+    if (!this.albumView) {
+      console.log('Portfolio viewer not found on this page');
       return;
     }
 
-    console.log('Main portfolio system initializing...');
+    console.log('Portfolio album system initializing...');
     this.bindEvents();
   }
 
   bindEvents() {
-    // Portfolio album clicks
-    this.albumsSlider.addEventListener('click', (e) => this.handleAlbumClick(e));
-    
-    // Back to albums list
+    this.albumsSlider?.addEventListener('click', (e) => this.handleAlbumClick(e));
+
+    const mediaSection = document.getElementById('media');
+    mediaSection?.addEventListener('click', (e) => {
+      const trigger = e.target.closest('[data-album]');
+      if (!trigger) return;
+      e.preventDefault();
+      this.handleMediaAlbumClick(trigger);
+    });
+
+    mediaSection?.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const trigger = e.target.closest('[data-album]');
+      if (!trigger) return;
+      e.preventDefault();
+      this.handleMediaAlbumClick(trigger);
+    });
+
     this.albumBack?.addEventListener('click', () => this.closeAlbumView());
 
     // Navigation arrows
@@ -356,6 +370,42 @@ class MainPortfolioManager {
 
     // Thumbnail wheel scroll
     this.thumbnailContainer?.addEventListener('wheel', (e) => this.handleThumbnailScroll(e), { passive: false });
+  }
+
+  handleMediaAlbumClick(trigger) {
+    const albumKey = trigger.getAttribute('data-album');
+    const subAlbum = trigger.getAttribute('data-subalbum');
+    const nested = trigger.getAttribute('data-nested');
+
+    if (!albumKey || !MAIN_PORTFOLIO_ALBUMS[albumKey]) return;
+
+    document.body.classList.add('album-open');
+
+    if (nested && subAlbum) {
+      const nestedContent = MAIN_PORTFOLIO_ALBUMS[albumKey][subAlbum]?.[nested];
+      if (Array.isArray(nestedContent) && nestedContent.length > 0) {
+        this.openImageGallery(nestedContent, nested);
+      }
+      return;
+    }
+
+    if (subAlbum) {
+      const content = MAIN_PORTFOLIO_ALBUMS[albumKey][subAlbum];
+      const displayName = this.getDisplayName(albumKey, subAlbum);
+
+      if (Array.isArray(content)) {
+        if (content.length > 0) {
+          this.openImageGallery(content, displayName);
+        } else {
+          this.showSubAlbumSelection(albumKey, MAIN_PORTFOLIO_ALBUMS[albumKey]);
+        }
+      } else if (typeof content === 'object' && content !== null) {
+        this.showNestedSubAlbumSelection(albumKey, subAlbum, content, displayName);
+      }
+      return;
+    }
+
+    this.showSubAlbumSelection(albumKey, MAIN_PORTFOLIO_ALBUMS[albumKey]);
   }
 
   handleAlbumClick(e) {
@@ -456,7 +506,7 @@ class MainPortfolioManager {
     });
     
     // Show the album view
-    this.albumsSlider.classList.add('hidden');
+    this.albumsSlider?.classList.add('hidden');
     this.albumView.classList.remove('hidden');
   }
 
@@ -581,7 +631,7 @@ class MainPortfolioManager {
     // Create thumbnails with click handlers
     this.thumbnailContainer.innerHTML = items.map((url, index) => `
       <div class="thumbnail shrink-0 w-16 h-16 bg-center bg-cover cursor-pointer border-2 transition-all duration-300 rounded-lg ${
-        index === 0 ? 'border-yellow-400 opacity-100 scale-110' : 'border-transparent opacity-70 hover:opacity-90 hover:scale-105'
+        index === 0 ? 'border-sch-orange opacity-100 scale-110' : 'border-transparent opacity-70 hover:opacity-90 hover:scale-105'
       }" 
            style="background-image:url('${url}')" 
            data-index="${index}">
@@ -598,7 +648,7 @@ class MainPortfolioManager {
     
     this.updateImageCounter();
     
-    this.albumsSlider.classList.add('hidden');
+    this.albumsSlider?.classList.add('hidden');
     this.albumView.classList.remove('hidden');
     
     // Start auto-play by default
@@ -704,11 +754,11 @@ class MainPortfolioManager {
     // Update thumbnail selection
     document.querySelectorAll('.thumbnail').forEach((thumb, i) => {
       if (i === index) {
-        thumb.classList.add('border-yellow-400', 'opacity-100', 'scale-110');
+        thumb.classList.add('border-sch-orange', 'opacity-100', 'scale-110');
         thumb.classList.remove('border-transparent', 'opacity-70');
         thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       } else {
-        thumb.classList.remove('border-yellow-400', 'opacity-100', 'scale-110');
+        thumb.classList.remove('border-sch-orange', 'opacity-100', 'scale-110');
         thumb.classList.add('border-transparent', 'opacity-70');
       }
     });
@@ -739,9 +789,10 @@ class MainPortfolioManager {
   }
 
   closeAlbumView() {
-    this.pauseAutoPlay(); // Stop auto-play when closing
+    this.pauseAutoPlay();
     this.albumView.classList.add('hidden');
-    this.albumsSlider.classList.remove('hidden');
+    this.albumsSlider?.classList.remove('hidden');
+    document.body.classList.remove('album-open');
   }
 
   navigateImage(direction) {

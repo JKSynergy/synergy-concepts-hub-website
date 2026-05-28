@@ -1,0 +1,38 @@
+/* CSS fix for encoding issues - hides malformed arrows and shows proper ones */
+
+/* Hide the malformed arrow characters and replace with proper Unicode arrows */
+span[aria-hidden="true"]:contains("â†'"),
+span[aria-hidden="true"]:contains("â€™"),
+span[aria-hidden="true"]:contains("â€œ"),
+span[aria-hidden="true"]:contains("â€") {
+    font-size: 0 !important;
+}
+
+/* Add proper arrows after links that have malformed characters */
+a[href="#creative-hub"]::after,
+a[href="#portfolio"]::after,
+a[href="#academy"]::after,
+a[href="#equipment-rentals"]::after {
+    content: " →";
+    margin-left: 0.25rem;
+    font-size: 0.875rem;
+    color: inherit;
+}
+
+/* Alternative approach - replace all malformed arrows in buttons/links */
+.text-brand-blue span[aria-hidden="true"] {
+    display: none;
+}
+
+.text-brand-blue::after {
+    content: "→";
+    margin-left: 0.25rem;
+    display: inline-block;
+}
+
+/* Ensure proper spacing and alignment */
+.inline-flex.items-center.gap-1 {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}

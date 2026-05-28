@@ -1,0 +1,4 @@
+node_modules/
+
+# Large local media (use Cloudinary CDN in production)
+images/albums/videos/

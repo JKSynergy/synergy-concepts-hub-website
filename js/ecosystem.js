@@ -17,6 +17,7 @@
     initParallax();
     initHeroPanels();
     initSmoothScroll();
+    initCustomSelects();
     initQuoteForm();
     initProgressBars();
   }
@@ -225,6 +226,149 @@
     });
   }
 
+  /* ─── Custom Selects ─── */
+  function initCustomSelects() {
+    document.querySelectorAll('select.form-input').forEach((select) => {
+      if (select.dataset.customSelect === 'true') return;
+      select.dataset.customSelect = 'true';
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'form-select';
+      select.parentNode.insertBefore(wrapper, select);
+      wrapper.appendChild(select);
+
+      const trigger = document.createElement('button');
+      trigger.type = 'button';
+      trigger.className = 'form-input form-select-trigger';
+      trigger.setAttribute('aria-haspopup', 'listbox');
+      trigger.setAttribute('aria-expanded', 'false');
+
+      const label = select.id
+        ? document.querySelector(`label[for="${select.id}"]`)
+        : null;
+      if (label) {
+        if (!label.id) label.id = `${select.id}-label`;
+        trigger.setAttribute('aria-labelledby', label.id);
+      }
+
+      const valueSpan = document.createElement('span');
+      valueSpan.className = 'form-select-value';
+
+      const chevron = document.createElement('span');
+      chevron.className = 'form-select-chevron';
+      chevron.innerHTML =
+        '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>';
+
+      trigger.appendChild(valueSpan);
+      trigger.appendChild(chevron);
+
+      const menu = document.createElement('ul');
+      menu.className = 'form-select-menu';
+      menu.setAttribute('role', 'listbox');
+      if (label && label.id) menu.setAttribute('aria-labelledby', label.id);
+
+      Array.from(select.options).forEach((option) => {
+        if (!option.value) return;
+
+        const item = document.createElement('li');
+        item.className = 'form-select-option';
+        item.setAttribute('role', 'option');
+        item.dataset.value = option.value;
+        item.textContent = option.textContent;
+        menu.appendChild(item);
+      });
+
+      wrapper.appendChild(trigger);
+      wrapper.appendChild(menu);
+
+      select.classList.add('form-select-native');
+      select.tabIndex = -1;
+
+      function syncTrigger() {
+        const selected = select.options[select.selectedIndex];
+        const isPlaceholder = !select.value;
+
+        valueSpan.textContent = selected ? selected.textContent : '';
+        valueSpan.classList.toggle('is-placeholder', isPlaceholder);
+
+        menu.querySelectorAll('.form-select-option').forEach((option) => {
+          option.setAttribute(
+            'aria-selected',
+            option.dataset.value === select.value ? 'true' : 'false'
+          );
+        });
+      }
+
+      function openMenu() {
+        wrapper.classList.add('is-open');
+        trigger.setAttribute('aria-expanded', 'true');
+      }
+
+      function closeMenu() {
+        wrapper.classList.remove('is-open');
+        trigger.setAttribute('aria-expanded', 'false');
+      }
+
+      function toggleMenu() {
+        if (wrapper.classList.contains('is-open')) closeMenu();
+        else openMenu();
+      }
+
+      trigger.addEventListener('click', toggleMenu);
+
+      menu.addEventListener('click', (event) => {
+        const option = event.target.closest('.form-select-option');
+        if (!option) return;
+
+        select.value = option.dataset.value;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        syncTrigger();
+        closeMenu();
+        trigger.focus();
+      });
+
+      trigger.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          closeMenu();
+          return;
+        }
+
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          toggleMenu();
+        }
+
+        if (
+          (event.key === 'ArrowDown' || event.key === 'ArrowUp') &&
+          wrapper.classList.contains('is-open')
+        ) {
+          event.preventDefault();
+          const options = Array.from(menu.querySelectorAll('.form-select-option'));
+          const currentIndex = options.findIndex(
+            (option) => option.dataset.value === select.value
+          );
+          const nextIndex =
+            event.key === 'ArrowDown'
+              ? Math.min(currentIndex + 1, options.length - 1)
+              : Math.max(currentIndex - 1, 0);
+
+          if (options[nextIndex]) {
+            select.value = options[nextIndex].dataset.value;
+            syncTrigger();
+            options[nextIndex].scrollIntoView({ block: 'nearest' });
+          }
+        }
+      });
+
+      document.addEventListener('click', (event) => {
+        if (!wrapper.contains(event.target)) closeMenu();
+      });
+
+      select.addEventListener('change', syncTrigger);
+      syncTrigger();
+    });
+  }
+
   /* ─── Quote Form ─── */
   function initQuoteForm() {
     const form = document.getElementById('quoteForm');
@@ -249,6 +393,9 @@
           btn.textContent = 'Send Brief';
         }
         form.reset();
+        form.querySelectorAll('select.form-select-native').forEach((select) => {
+          select.dispatchEvent(new Event('change', { bubbles: true }));
+        });
       }, 1200);
     });
   }

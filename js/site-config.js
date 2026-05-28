@@ -3,6 +3,7 @@ window.SCH_CONFIG = {
   academyUrl: 'https://synergymultimediaacademy.com/',
   clients: {
     synergyMultimediaAcademy: 'https://synergymultimediaacademy.com/',
-    solverscreations: 'https://bookings-solverscreations.com/'
+    solverscreations: 'https://bookings-solverscreations.com/',
+    davyCinematography: 'https://davycinematography.com/'
   }
 };

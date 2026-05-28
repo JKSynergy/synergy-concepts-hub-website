@@ -33,7 +33,7 @@
     bannerEl.id = 'pwaInstallBanner';
     bannerEl.className = 'fixed bottom-0 left-0 right-0 z-[300] p-4 pb-[max(1rem,env(safe-area-inset-bottom))]';
     bannerEl.innerHTML =
-      '<div class="max-w-lg mx-auto bg-brand-charcoal text-white rounded-2xl shadow-2xl border border-white/10 p-4 flex items-center gap-4">' +
+      '<div class="max-w-lg mx-auto bg-sch-black text-white rounded-2xl shadow-2xl border border-white/10 p-4 flex items-center gap-4">' +
         contentHtml +
       '</div>';
     document.body.appendChild(bannerEl);

@@ -8,9 +8,10 @@ module.exports = {
     extend: {
       colors: {
         sch: {
-          black: '#212121',
-          charcoal: '#2a2a2a',
-          navy: '#1a1a1a',
+          black: '#0f0f0f',
+          charcoal: '#141414',
+          navy: '#0a0a0a',
+          'navy-light': '#1a1a1a',
           white: '#FFFFFF',
           blue: '#0288D1',
           red: '#E53935',

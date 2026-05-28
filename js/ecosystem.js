@@ -71,6 +71,10 @@
       link.addEventListener('click', closeMenu);
     });
 
+    mobileMenu?.addEventListener('click', (e) => {
+      if (e.target === mobileMenu) closeMenu();
+    });
+
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closeMenu();
     });
@@ -160,7 +164,14 @@
   /* ─── Subtle Parallax ─── */
   function initParallax() {
     const layers = document.querySelectorAll('[data-parallax]');
-    if (!layers.length || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (
+      !layers.length ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+      window.matchMedia('(max-width: 1023px)').matches ||
+      window.matchMedia('(pointer: coarse)').matches
+    ) {
+      return;
+    }
 
     let ticking = false;
 

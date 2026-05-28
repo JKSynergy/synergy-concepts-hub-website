@@ -59,80 +59,21 @@ const MAIN_PORTFOLIO_ALBUMS = {
     }
   },
   videos: {
-    // Video production portfolio organized by categories
-    commercials: [
-      // Commercial video thumbnails - add your commercial videos here
-      "academy images/classrooms/20250822_163612.jpg",
-      "academy images/classrooms/20250822_164726.jpg", 
-      "academy images/photography-classes/IMG_0105.jpg",
-      "academy images/students-working/student 01 (1).jpg",
-      "academy images/classrooms/20250822_165039.jpg"
-    ],
-    corporate: [
-      // Corporate video thumbnails
-      "academy images/classrooms/20250822_164554.jpg",
-      "academy images/students-working/student 01 (4).jpg",
-      "academy images/classrooms/20250822_165220.jpg",
-      "academy images/photography-classes/IMG_0106.jpg"
-    ],
-    documentaries: [
-      // Documentary thumbnails - add your documentary content here
-      "academy images/classrooms/20250822_164609.jpg",
-      "academy images/classrooms/20250822_164614.jpg"
-    ],
-    events: [
-      // Event video thumbnails
-      "academy images/classrooms/20250822_165442.jpg",
-      "academy images/classrooms/20250822_165604.jpg"
-    ],
-    introductions: [
-      // Introduction video thumbnails  
-      "academy images/classrooms/20250822_165608.jpg",
-      "academy images/classrooms/20250822_165622.jpg"
-    ],
-    liveEvents: [
-      // Live event coverage thumbnails
-      "academy images/classrooms/20250822_165729.jpg",
-      "academy images/classrooms/20250822_171009.jpg"
-    ],
-    loveStories: [
-      // Love story video thumbnails
-      "academy images/classrooms/20250822_171022.jpg",
-      "academy images/classrooms/20250822_171029.jpg"
-    ],
-    memoryLanes: [
-      // Memory lane video thumbnails
-      "academy images/classrooms/20250822_171103.jpg"
-    ],
-    musicVideos: [
-      // Music video thumbnails - add your music videos here
-      "academy images/students-working/student 01 (2).jpg",
-      "academy images/students-working/student 01 (3).jpg"
-    ],
-    promotional: [
-      // Promotional video thumbnails
-      "academy images/students-working/student 01 (5).jpg"
-    ],
-    reels: [
-      // Social media reels thumbnails
-      "academy images/students-working/student 01 (6).jpg",
-      "academy images/students-working/student 01 (7).jpg",
-      "academy images/photography-classes/IMG_0107.jpg",
-      "academy images/photography-classes/IMG_0110.jpg"
-    ],
-    testimonials: [
-      // Testimonial video thumbnails
-      "academy images/classrooms/20250822_164638.jpg"
-    ],
-    training: [
-      // Training video thumbnails
-      "academy images/classrooms/20250822_164713.jpg",
-      "academy images/classrooms/20250822_164718.jpg"
-    ],
-    weddings: [
-      // Wedding video thumbnails
-      "academy images/classrooms/20250822_164742.jpg"
-    ]
+    // Film production — add video thumbnails when ready (empty = Coming Soon in UI)
+    commercials: [],
+    corporate: [],
+    documentaries: [],
+    events: [],
+    introductions: [],
+    liveEvents: [],
+    loveStories: [],
+    memoryLanes: [],
+    musicVideos: [],
+    promotional: [],
+    reels: [],
+    testimonials: [],
+    training: [],
+    weddings: []
   },
   graphics: {
     // Graphics and branding portfolio organized by categories
@@ -275,6 +216,46 @@ const MAIN_PORTFOLIO_ALBUMS = {
   }
 };
 
+const FILM_ALBUM_GROUPS = [
+  {
+    id: 'brand',
+    label: 'Brand & Commercial',
+    description: 'Corporate films, ads, and brand storytelling',
+    albums: ['commercials', 'corporate', 'promotional', 'documentaries', 'training']
+  },
+  {
+    id: 'events',
+    label: 'Events & Stories',
+    description: 'Weddings, live coverage, and personal narratives',
+    albums: ['events', 'liveEvents', 'weddings', 'loveStories', 'memoryLanes', 'introductions']
+  },
+  {
+    id: 'creative',
+    label: 'Social & Creative',
+    description: 'Reels, music videos, and client testimonials',
+    albums: ['reels', 'musicVideos', 'testimonials']
+  }
+];
+
+const FILM_ALBUMS_COMING_SOON = true;
+
+const FILM_ALBUM_META = {
+  commercials: { tagline: 'High-impact brand stories', accent: 'blue', category: 'Commercial' },
+  corporate: { tagline: 'Professional corporate films', accent: 'blue', category: 'Corporate' },
+  promotional: { tagline: 'Campaign & launch films', accent: 'orange', category: 'Promo' },
+  documentaries: { tagline: 'Long-form documentary work', accent: 'blue', category: 'Documentary' },
+  training: { tagline: 'Educational & training content', accent: 'green', category: 'Training' },
+  events: { tagline: 'Event highlights & recaps', accent: 'orange', category: 'Events' },
+  liveEvents: { tagline: 'Live event coverage', accent: 'red', category: 'Live' },
+  weddings: { tagline: 'Cinematic wedding films', accent: 'orange', category: 'Wedding' },
+  loveStories: { tagline: 'Romantic story films', accent: 'orange', category: 'Love Story' },
+  memoryLanes: { tagline: 'Nostalgic memory films', accent: 'blue', category: 'Memory' },
+  introductions: { tagline: 'Profile & intro videos', accent: 'green', category: 'Intro' },
+  reels: { tagline: 'Short-form social reels', accent: 'orange', category: 'Reels' },
+  musicVideos: { tagline: 'Music & artist visuals', accent: 'red', category: 'Music' },
+  testimonials: { tagline: 'Client testimonial films', accent: 'green', category: 'Testimonial' }
+};
+
 // Main Portfolio Manager Class
 class MainPortfolioManager {
   constructor() {
@@ -282,6 +263,9 @@ class MainPortfolioManager {
     this.currentImageIndex = 0;
     this.currentAlbumTitle = '';
     this.currentAlbumDescription = '';
+    this.currentAlbumKey = '';
+    this.inGalleryView = false;
+    this.lastFilmAlbumData = null;
     this.autoPlayInterval = null;
     this.autoPlayDelay = 4000; // 4 seconds
     this.isAutoPlaying = false;
@@ -343,7 +327,7 @@ class MainPortfolioManager {
       this.handleMediaAlbumClick(trigger);
     });
 
-    this.albumBack?.addEventListener('click', () => this.closeAlbumView());
+    this.albumBack?.addEventListener('click', () => this.handleAlbumBack());
 
     // Navigation arrows
     this.albumPrev?.addEventListener('click', () => {
@@ -370,6 +354,42 @@ class MainPortfolioManager {
 
     // Thumbnail wheel scroll
     this.thumbnailContainer?.addEventListener('wheel', (e) => this.handleThumbnailScroll(e), { passive: false });
+
+    this.initAlbumTouchSwipe();
+  }
+
+  initAlbumTouchSwipe() {
+    const stage = this.albumView?.querySelector('.album-main-stage');
+    if (!stage) return;
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    stage.addEventListener(
+      'touchstart',
+      (e) => {
+        if (this.albumView.classList.contains('hidden')) return;
+        touchStartX = e.changedTouches[0].clientX;
+        touchStartY = e.changedTouches[0].clientY;
+      },
+      { passive: true }
+    );
+
+    stage.addEventListener(
+      'touchend',
+      (e) => {
+        if (this.albumView.classList.contains('hidden') || !this.inGalleryView || !this.currentAlbumImages.length) return;
+
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        const dy = e.changedTouches[0].clientY - touchStartY;
+
+        if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy)) return;
+
+        this.pauseAutoPlay();
+        this.navigateImage(dx > 0 ? -1 : 1);
+      },
+      { passive: true }
+    );
   }
 
   handleMediaAlbumClick(trigger) {
@@ -384,7 +404,8 @@ class MainPortfolioManager {
     if (nested && subAlbum) {
       const nestedContent = MAIN_PORTFOLIO_ALBUMS[albumKey][subAlbum]?.[nested];
       if (Array.isArray(nestedContent) && nestedContent.length > 0) {
-        this.openImageGallery(nestedContent, nested);
+        if (albumKey === 'videos') this.lastFilmAlbumData = MAIN_PORTFOLIO_ALBUMS.videos;
+        this.openImageGallery(nestedContent, nested, albumKey);
       }
       return;
     }
@@ -395,7 +416,8 @@ class MainPortfolioManager {
 
       if (Array.isArray(content)) {
         if (content.length > 0) {
-          this.openImageGallery(content, displayName);
+          if (albumKey === 'videos') this.lastFilmAlbumData = MAIN_PORTFOLIO_ALBUMS.videos;
+          this.openImageGallery(content, displayName, albumKey);
         } else {
           this.showSubAlbumSelection(albumKey, MAIN_PORTFOLIO_ALBUMS[albumKey]);
         }
@@ -438,6 +460,11 @@ class MainPortfolioManager {
   // Function to show sub-album selection
   showSubAlbumSelection(albumKey, albumData) {
     console.log('Showing sub-albums for:', albumKey);
+
+    if (albumKey === 'videos') {
+      this.showFilmAlbumSelection(albumData);
+      return;
+    }
     
     // Get sub-albums (show all, including empty ones)
     const subAlbumsWithContent = Object.entries(albumData).filter(([name, content]) => {
@@ -500,7 +527,7 @@ class MainPortfolioManager {
         if (typeof content === 'object' && !Array.isArray(content)) {
           this.showNestedSubAlbumSelection(albumKey, subAlbumName, content, displayName);
         } else {
-          this.openImageGallery(content, displayName);
+          this.openImageGallery(content, displayName, albumKey);
         }
       });
     });
@@ -508,6 +535,161 @@ class MainPortfolioManager {
     // Show the album view
     this.albumsSlider?.classList.add('hidden');
     this.albumView.classList.remove('hidden');
+    this.setAlbumViewMode('default');
+  }
+
+  showFilmAlbumSelection(albumData) {
+    this.currentAlbumKey = 'videos';
+    this.inGalleryView = false;
+    this.lastFilmAlbumData = albumData;
+    this.pauseAutoPlay();
+
+    const mainImageContainer = document.getElementById('mainImageContainer');
+
+    const renderGroup = (group) => {
+      const cards = group.albums
+        .filter((key) => albumData[key] !== undefined)
+        .map((subAlbumName) => this.renderFilmAlbumCard(subAlbumName, albumData[subAlbumName]))
+        .join('');
+
+      if (!cards) return '';
+
+      return `
+        <section class="film-album-group" aria-labelledby="film-group-${group.id}">
+          <div class="film-album-group__head">
+            <h3 id="film-group-${group.id}" class="film-album-group__title">${group.label}</h3>
+            <p class="film-album-group__desc">${group.description}</p>
+          </div>
+          <div class="film-album-grid">${cards}</div>
+        </section>
+      `;
+    };
+
+    mainImageContainer.innerHTML = `
+      <div class="film-album-picker">
+        <header class="film-album-picker__hero">
+          <span class="film-album-picker__label">Film Production</span>
+          <h2 class="film-album-picker__title">Choose a Collection</h2>
+          <p class="film-album-picker__subtitle">Collections are being updated. All categories show as coming soon until new films are uploaded.</p>
+        </header>
+        ${FILM_ALBUM_GROUPS.map(renderGroup).join('')}
+      </div>
+    `;
+
+    this.bindFilmAlbumCards(mainImageContainer, albumData);
+    this.setAlbumViewMode('film-picker');
+    this.updateAlbumBreadcrumb('Film Production', 'Collections');
+
+    this.albumsSlider?.classList.add('hidden');
+    this.albumView.classList.remove('hidden');
+    document.body.classList.add('album-open');
+    this.thumbnailContainer.innerHTML = '';
+    this.imageCounter.textContent = '';
+
+    requestAnimationFrame(() => {
+      const stage = this.albumView?.querySelector('.album-main-stage');
+      if (stage) stage.scrollTop = 0;
+    });
+  }
+
+  renderFilmAlbumCard(subAlbumName, content) {
+    const isEmpty = FILM_ALBUMS_COMING_SOON || this.getSubAlbumInfo(content).isEmpty;
+    const displayName = this.getDisplayName('videos', subAlbumName);
+    const meta = FILM_ALBUM_META[subAlbumName] || { tagline: 'Cinematic video collection', accent: 'blue', category: 'Film' };
+
+    const emptyClass = isEmpty ? 'film-album-card--empty' : '';
+    const emptyData = isEmpty ? 'true' : 'false';
+    const thumbStyle = isEmpty ? '' : `style="background-image: url('${this.getSubAlbumInfo(content).firstImage}')"`;
+    const frameClass = isEmpty ? 'film-album-card__frame--soon' : '';
+    const thumbClass = isEmpty ? 'film-album-card__thumb--placeholder' : 'film-album-card__thumb';
+
+    return `
+      <article class="film-album-card film-album-card--${meta.accent} ${emptyClass}"
+               data-album="videos" data-subalbum="${subAlbumName}" data-empty="${emptyData}"
+               tabindex="0" role="button" aria-label="${displayName}${isEmpty ? ', coming soon' : ''}">
+        <div class="film-album-card__frame ${frameClass}">
+          <div class="${thumbClass}" ${thumbStyle} aria-hidden="true"></div>
+          <div class="film-album-card__grain" aria-hidden="true"></div>
+          <div class="film-album-card__vignette" aria-hidden="true"></div>
+          <div class="film-album-card__play" aria-hidden="true">
+            <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          </div>
+          <span class="film-album-card__badge">${meta.category}</span>
+          <span class="film-album-card__count">${isEmpty ? 'Coming soon' : `${this.getSubAlbumInfo(content).count} clips`}</span>
+          ${isEmpty ? '<span class="film-album-card__soon">Coming Soon</span>' : ''}
+        </div>
+        <div class="film-album-card__body">
+          <h3 class="film-album-card__name">${displayName}</h3>
+          <p class="film-album-card__tagline">${isEmpty ? 'New work uploading soon' : meta.tagline}</p>
+        </div>
+      </article>
+    `;
+  }
+
+  bindFilmAlbumCards(container, albumData) {
+    const openCard = (card) => {
+      if (card.dataset.empty === 'true') return;
+
+      const subAlbumName = card.dataset.subalbum;
+      const content = albumData[subAlbumName];
+      const displayName = this.getDisplayName('videos', subAlbumName);
+
+      if (typeof content === 'object' && !Array.isArray(content)) {
+        this.showNestedSubAlbumSelection('videos', subAlbumName, content, displayName);
+      } else {
+        this.openImageGallery(content, displayName, 'videos');
+      }
+    };
+
+    container.querySelectorAll('.film-album-card').forEach((card) => {
+      card.addEventListener('click', () => openCard(card));
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openCard(card);
+        }
+      });
+    });
+  }
+
+  setAlbumViewMode(mode) {
+    const mainStage = document.getElementById('mainImageContainer');
+    this.albumView?.classList.remove('album-view--film-picker', 'album-view--film-gallery');
+    mainStage?.classList.remove('main-image-container--film-picker');
+    if (mode === 'film-picker') {
+      this.albumView?.classList.add('album-view--film-picker');
+      mainStage?.classList.add('main-image-container--film-picker');
+      this.albumPrev?.classList.add('hidden');
+      this.albumNext?.classList.add('hidden');
+      document.getElementById('albumThumbBar')?.classList.add('hidden');
+    } else if (mode === 'film-gallery') {
+      this.albumView?.classList.add('album-view--film-gallery');
+      mainStage?.classList.remove('main-image-container--film-picker');
+      this.albumPrev?.classList.remove('hidden');
+      this.albumNext?.classList.remove('hidden');
+      document.getElementById('albumThumbBar')?.classList.remove('hidden');
+    } else {
+      mainStage?.classList.remove('main-image-container--film-picker');
+      this.albumPrev?.classList.remove('hidden');
+      this.albumNext?.classList.remove('hidden');
+      document.getElementById('albumThumbBar')?.classList.remove('hidden');
+    }
+  }
+
+  updateAlbumBreadcrumb(section, current) {
+    const el = document.getElementById('albumViewBreadcrumb');
+    if (!el) return;
+    el.classList.remove('hidden');
+    el.innerHTML = `<span class="album-view-breadcrumb__section">${section}</span><span class="album-view-breadcrumb__sep" aria-hidden="true">/</span><span class="album-view-breadcrumb__current">${current}</span>`;
+    this.albumBack.textContent = '← Back';
+  }
+
+  handleAlbumBack() {
+    if (this.currentAlbumKey === 'videos' && this.inGalleryView && this.lastFilmAlbumData) {
+      this.showFilmAlbumSelection(this.lastFilmAlbumData);
+      return;
+    }
+    this.closeAlbumView();
   }
 
   // Show nested sub-album selection (e.g., individual wedding couples)
@@ -569,40 +751,84 @@ class MainPortfolioManager {
   }
 
   // Open image gallery
-  openImageGallery(items, title) {
+  openImageGallery(items, title, albumKey = '') {
     console.log('Opening image gallery with', items.length, 'items');
-    
+
+    const isFilm = albumKey === 'videos';
+    this.currentAlbumKey = albumKey;
+    this.inGalleryView = true;
     this.currentAlbumImages = items;
     this.currentImageIndex = 0;
     this.currentAlbumTitle = title;
     this.currentAlbumDescription = this.getAlbumDescription(title);
-    
+
+    const countLabel = isFilm
+      ? `${items.length} ${items.length === 1 ? 'frame' : 'frames'}`
+      : `${items.length} photos`;
+
     const mainImageContainer = document.getElementById('mainImageContainer');
-    mainImageContainer.innerHTML = `
-      <img id="mainImageEl" class="max-w-full max-h-full object-contain cursor-pointer transition-transform hover:scale-105" />
-      
-      <!-- Album Description - Bottom Left Overlay -->
-      <div id="albumDescription" class="absolute bottom-6 left-6 bg-black/60 backdrop-blur-sm rounded-lg p-4 text-white max-w-md">
-        <h3 class="text-xl font-bold mb-2">${this.currentAlbumTitle}</h3>
-        <p class="text-white/90 text-sm leading-relaxed">${this.currentAlbumDescription}</p>
-        <div class="flex items-center justify-between mt-3">
-          <span class="text-white/70 text-xs">${items.length} photos</span>
-          <button id="autoPlayToggle" class="text-white/80 hover:text-white transition-colors">
-            <svg id="playIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h1m4 0h1m2-5a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            <span id="autoPlayText" class="text-xs ml-1">Auto-play</span>
-          </button>
+
+    if (isFilm) {
+      mainImageContainer.innerHTML = `
+        <div class="film-gallery-stage">
+          <div class="film-gallery-letterbox film-gallery-letterbox--top" aria-hidden="true"></div>
+          <div class="film-gallery-frame">
+            <img id="mainImageEl" class="film-gallery-image" alt="" decoding="async" />
+            <div class="film-gallery-play-hint" aria-hidden="true">
+              <svg width="28" height="28" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </div>
+          </div>
+          <div class="film-gallery-letterbox film-gallery-letterbox--bottom" aria-hidden="true"></div>
         </div>
-      </div>
-    `;
+        <div id="albumDescription" class="film-gallery-hud">
+          <span class="film-gallery-hud__label">Now Viewing</span>
+          <h3 class="film-gallery-hud__title">${this.currentAlbumTitle}</h3>
+          <p class="film-gallery-hud__desc">${this.currentAlbumDescription}</p>
+          <div class="film-gallery-hud__footer">
+            <span class="film-gallery-hud__count">${countLabel}</span>
+            <button id="autoPlayToggle" type="button" class="film-gallery-hud__autoplay">
+              <svg id="playIcon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <span id="autoPlayText">Slideshow</span>
+            </button>
+          </div>
+        </div>
+      `;
+      this.setAlbumViewMode('film-gallery');
+      this.updateAlbumBreadcrumb('Film Production', title);
+    } else {
+      mainImageContainer.innerHTML = `
+        <img id="mainImageEl" class="max-w-full max-h-full object-contain cursor-pointer transition-transform hover:scale-105" alt="" decoding="async" />
+        <div id="albumDescription" class="absolute bottom-6 left-6 bg-black/60 backdrop-blur-sm rounded-lg p-4 text-white max-w-md">
+          <h3 class="text-xl font-bold mb-2">${this.currentAlbumTitle}</h3>
+          <p class="text-white/90 text-sm leading-relaxed">${this.currentAlbumDescription}</p>
+          <div class="flex items-center justify-between mt-3">
+            <span class="text-white/70 text-xs">${countLabel}</span>
+            <button id="autoPlayToggle" type="button" class="text-white/80 hover:text-white transition-colors flex items-center gap-1">
+              <svg id="playIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <span id="autoPlayText" class="text-xs">Auto-play</span>
+            </button>
+          </div>
+        </div>
+      `;
+      this.setAlbumViewMode('default');
+      document.getElementById('albumViewBreadcrumb')?.classList.add('hidden');
+      this.albumBack.textContent = '← Close Album';
+    }
     
     const mainImageEl = document.getElementById('mainImageEl');
     mainImageEl.src = items[0];
-    mainImageEl.alt = 'Portfolio image';
+    mainImageEl.alt = `${title} — frame 1 of ${items.length}`;
     mainImageEl.decoding = 'async';
-    
-    // Add click handler for lightbox
+    if (!isFilm) {
+      mainImageEl.classList.add('cursor-pointer');
+    }
+
     mainImageEl.addEventListener('click', () => {
       this.openLightbox(this.currentAlbumImages[this.currentImageIndex], this.currentImageIndex);
     });
@@ -628,18 +854,21 @@ class MainPortfolioManager {
       this.toggleAutoPlay();
     });
     
-    // Create thumbnails with click handlers
+    const thumbClass = isFilm ? 'album-thumb film-album-thumb' : 'thumbnail shrink-0 w-16 h-16 bg-center bg-cover cursor-pointer border-2 transition-all duration-300 rounded-lg';
+    const thumbActive = isFilm ? 'active' : 'border-sch-orange opacity-100 scale-110';
+    const thumbInactive = isFilm ? '' : 'border-transparent opacity-70 hover:opacity-90 hover:scale-105';
+
     this.thumbnailContainer.innerHTML = items.map((url, index) => `
-      <div class="thumbnail shrink-0 w-16 h-16 bg-center bg-cover cursor-pointer border-2 transition-all duration-300 rounded-lg ${
-        index === 0 ? 'border-sch-orange opacity-100 scale-110' : 'border-transparent opacity-70 hover:opacity-90 hover:scale-105'
-      }" 
-           style="background-image:url('${url}')" 
-           data-index="${index}">
+      <div class="${thumbClass} ${index === 0 ? thumbActive : thumbInactive}"
+           style="background-image:url('${url}')"
+           data-index="${index}"
+           role="button"
+           tabindex="0"
+           aria-label="Frame ${index + 1}">
       </div>
     `).join('');
-    
-    // Add click handlers to thumbnails
-    this.thumbnailContainer.querySelectorAll('.thumbnail').forEach((thumb, index) => {
+
+    this.thumbnailContainer.querySelectorAll('[data-index]').forEach((thumb, index) => {
       thumb.addEventListener('click', () => {
         this.setCurrentImage(index);
         this.pauseAutoPlay(); // Pause auto-play when user manually selects
@@ -748,18 +977,23 @@ class MainPortfolioManager {
     const currentMainImageEl = document.getElementById('mainImageEl');
     if (currentMainImageEl) {
       currentMainImageEl.src = this.currentAlbumImages[index];
-      currentMainImageEl.alt = `Portfolio image ${index + 1} of ${this.currentAlbumImages.length}`;
+      const label = this.currentAlbumKey === 'videos' ? 'frame' : 'image';
+      currentMainImageEl.alt = `${this.currentAlbumTitle} — ${label} ${index + 1} of ${this.currentAlbumImages.length}`;
     }
     
-    // Update thumbnail selection
-    document.querySelectorAll('.thumbnail').forEach((thumb, i) => {
-      if (i === index) {
+    const isFilm = this.currentAlbumKey === 'videos';
+    this.thumbnailContainer?.querySelectorAll('[data-index]').forEach((thumb, i) => {
+      if (isFilm) {
+        thumb.classList.toggle('active', i === index);
+      } else if (i === index) {
         thumb.classList.add('border-sch-orange', 'opacity-100', 'scale-110');
         thumb.classList.remove('border-transparent', 'opacity-70');
-        thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       } else {
         thumb.classList.remove('border-sch-orange', 'opacity-100', 'scale-110');
         thumb.classList.add('border-transparent', 'opacity-70');
+      }
+      if (i === index) {
+        thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       }
     });
     
@@ -790,6 +1024,12 @@ class MainPortfolioManager {
 
   closeAlbumView() {
     this.pauseAutoPlay();
+    this.currentAlbumKey = '';
+    this.inGalleryView = false;
+    this.lastFilmAlbumData = null;
+    this.setAlbumViewMode('default');
+    document.getElementById('albumViewBreadcrumb')?.classList.add('hidden');
+    this.albumBack.textContent = '← Close Album';
     this.albumView.classList.add('hidden');
     this.albumsSlider?.classList.remove('hidden');
     document.body.classList.remove('album-open');
@@ -844,7 +1084,7 @@ class MainPortfolioManager {
         autoPlayText.textContent = 'Pause';
       } else {
         playIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h1m4 0h1m2-5a9 9 0 11-18 0 9 9 0 0118 0z"></path>';
-        autoPlayText.textContent = 'Auto-play';
+        autoPlayText.textContent = this.currentAlbumKey === 'videos' ? 'Slideshow' : 'Auto-play';
       }
     }
   }
@@ -858,6 +1098,17 @@ class MainPortfolioManager {
       "Wedding Photography": "Documenting love stories through artistic and emotional photography. Capturing every precious moment from intimate ceremonies to grand celebrations.",
       "Commercial Videos": "High-quality video production for businesses looking to engage their audience and promote their brand through compelling visual storytelling.",
       "Corporate Videos": "Professional video content tailored for corporate communications, training materials, and company presentations.",
+      "Documentaries": "Long-form documentary filmmaking that captures authentic stories with cinematic depth and narrative clarity.",
+      "Event Videography": "Dynamic event coverage that preserves energy, emotion, and key moments from corporate and social gatherings.",
+      "Live Event Coverage": "Multi-camera live event production with real-time storytelling and broadcast-ready delivery.",
+      "Wedding Videography": "Cinematic wedding films that blend artistry with emotion — from preparation to celebration.",
+      "Love Stories": "Intimate pre-wedding and love story films crafted for couples who want a cinematic keepsake.",
+      "Memory Lane Videos": "Nostalgic tribute films that celebrate milestones, legacies, and personal journeys.",
+      "Introduction Videos": "Polished introduction and profile videos for brands, teams, and public figures.",
+      "Music Videos": "Creative music video production with bold visuals, rhythm-driven editing, and artist-forward storytelling.",
+      "Promotional Videos": "High-conversion promotional films designed for campaigns, launches, and product storytelling.",
+      "Client Testimonials": "Trust-building testimonial films that put real voices and results at the center of your brand.",
+      "Training Videos": "Clear, engaging training content for teams, academies, and digital learning platforms.",
       "Social Media Reels": "Dynamic and engaging short-form video content optimized for social media platforms to boost engagement and reach.",
       "Brand Identity": "Comprehensive branding solutions including logo design, color schemes, and visual identity systems that make your brand memorable.",
       "Logo Designs": "Creative and meaningful logo designs that represent your brand's values and create lasting impressions with your target audience.",

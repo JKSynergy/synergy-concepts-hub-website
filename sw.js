@@ -1,10 +1,10 @@
 // Service Worker for Synergy Concepts Hub
 // Implements caching strategies for optimal performance
 
-const CACHE_NAME = 'sch-v1.5.0';
-const STATIC_CACHE = 'sch-static-v1.5.0';
-const DYNAMIC_CACHE = 'sch-dynamic-v1.5.0';
-const IMAGE_CACHE = 'sch-images-v1.5.0';
+const CACHE_NAME = 'sch-v1.5.1';
+const STATIC_CACHE = 'sch-static-v1.5.1';
+const DYNAMIC_CACHE = 'sch-dynamic-v1.5.1';
+const IMAGE_CACHE = 'sch-images-v1.5.1';
 
 // Resources to cache immediately
 const STATIC_ASSETS = [
@@ -12,13 +12,14 @@ const STATIC_ASSETS = [
   '/index.html',
   '/manifest.json',
   '/css/tailwind.css',
-  '/images/sch-logo-round.png',
+  '/images/Website%20Logo%202.png',
+  '/images/sch-logo-32.png',
+  '/images/sch-logo-192.png',
   '/js/pwa.js',
   '/js/site-config.js',
   '/js/analytics.js',
   '/js/academy-portfolio.js',
   '/js/main-portfolio.js',
-  'https://res.cloudinary.com/djr43ohnq/image/upload/f_auto,q_auto,w_512/v1759535769/SYNERGY_CONCEPTS_HUB_NEW_LOGO_ttw3o8.png'
 ];
 
 // Cache strategies

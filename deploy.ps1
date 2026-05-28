@@ -8,6 +8,6 @@ Write-Host "Building Tailwind CSS..." -ForegroundColor Cyan
 npm run build
 
 Write-Host "Deploying to Cloudflare Pages..." -ForegroundColor Cyan
-npx wrangler pages deploy . --project-name=synergy-concepts-hub-website --branch=master --commit-dirty=true
+npx wrangler pages deploy . --project-name=synergywebsite --branch=main --commit-dirty=true
 
 Write-Host "Done. Purge browser cache and unregister old service worker if needed." -ForegroundColor Green

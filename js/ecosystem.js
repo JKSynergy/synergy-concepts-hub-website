@@ -16,6 +16,8 @@
     initMagneticButtons();
     initParallax();
     initHeroPanels();
+    initNavHighlight();
+    initShowcaseFilters();
     initSmoothScroll();
     initCustomSelects();
     initQuoteForm();
@@ -84,7 +86,7 @@
   /* ─── Scroll Reveal ─── */
   function initScrollReveal() {
     const elements = document.querySelectorAll(
-      '.reveal, .reveal-left, .reveal-right, .reveal-scale'
+      '.reveal, .reveal-left, .reveal-right, .reveal-scale, .reveal-blur'
     );
 
     if (!elements.length) return;
@@ -193,6 +195,59 @@
       },
       { passive: true }
     );
+  }
+
+  /* ─── Active nav on scroll ─── */
+  function initNavHighlight() {
+    const sections = ['systems', 'media', 'clients', 'academy', 'case-studies', 'contact'];
+    const links = document.querySelectorAll('.nav-link[href^="#"]');
+    if (!links.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          const id = entry.target.id;
+          links.forEach((link) => {
+            link.classList.toggle('is-active', link.getAttribute('href') === `#${id}`);
+          });
+        });
+      },
+      { rootMargin: '-40% 0px -55% 0px', threshold: 0 }
+    );
+
+    sections.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+  }
+
+  /* ─── Showcase category filters ─── */
+  function initShowcaseFilters() {
+    const filters = document.getElementById('showcaseFilters');
+    const grid = document.getElementById('showcaseGrid');
+    if (!filters || !grid) return;
+
+    const buttons = filters.querySelectorAll('.showcase-filter');
+    const cards = grid.querySelectorAll('.showcase-card');
+
+    function applyFilter(category) {
+      buttons.forEach((btn) => {
+        const active = btn.dataset.filter === category;
+        btn.classList.toggle('is-active', active);
+        btn.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+
+      cards.forEach((card) => {
+        const cats = (card.dataset.categories || '').split(/\s+/);
+        const show = category === 'all' || cats.includes(category);
+        card.classList.toggle('is-hidden', !show);
+      });
+    }
+
+    buttons.forEach((btn) => {
+      btn.addEventListener('click', () => applyFilter(btn.dataset.filter || 'all'));
+    });
   }
 
   /* ─── Hero Panel Mouse Tracking ─── */

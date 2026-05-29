@@ -7,7 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="SCH"/>
-<meta name="theme-color" content="#0f0f0f"/>
+<meta name="apple-mobile-web-app-orientation" content="portrait"/>
+<meta name="theme-color" content="#0B0F19"/>
 <title>Synergy Concepts Hub — Creative Technology Ecosystem | Africa's Digital Future</title>
 
 <meta name="description" content="Synergy Concepts Hub is Africa's Creative Technology Company — building digital systems, fintech software, media production, education platforms, and automation for modern businesses."/>
@@ -34,7 +35,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link rel="preconnect" href="https://res.cloudinary.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet"/>
 
 <link rel="stylesheet" href="/css/tailwind.css"/>
 <link rel="stylesheet" href="/css/ecosystem.css"/>
@@ -91,7 +92,7 @@
     <nav class="hidden lg:flex items-center gap-8" aria-label="Main navigation">
       <a href="#systems" class="nav-link">Systems</a>
       <a href="#media" class="nav-link">Media</a>
-      <a href="#clients" class="nav-link">Clients</a>
+      <a href="#clients" class="nav-link">Work</a>
       <a href="#academy" class="nav-link">Academy</a>
       <a href="#case-studies" class="nav-link">Case Studies</a>
       <a href="#contact" class="btn btn-primary btn-magnetic text-sm py-2.5 px-5">Start a Project</a>
@@ -112,7 +113,7 @@
     <nav class="space-y-2">
       <a href="#systems" class="mobile-nav-link">Systems</a>
       <a href="#media" class="mobile-nav-link">Media</a>
-      <a href="#clients" class="mobile-nav-link">Clients</a>
+      <a href="#clients" class="mobile-nav-link">Work</a>
       <a href="#academy" class="mobile-nav-link">Academy</a>
       <a href="#case-studies" class="mobile-nav-link">Case Studies</a>
       <a href="#contact" class="mobile-nav-link text-sch-blue">Contact</a>
@@ -124,30 +125,31 @@
 
 <!-- ═══════════════════ HERO ═══════════════════ -->
 <section id="home" class="hero-section relative z-10">
+  <div class="hero-orb hero-orb--primary" aria-hidden="true"></div>
+  <div class="hero-orb hero-orb--secondary" aria-hidden="true"></div>
   <div class="hero-glow top-1/4 right-0 translate-x-1/3" aria-hidden="true"></div>
 
   <div class="max-w-content mx-auto px-4 sm:px-6 lg:px-8 w-full">
-    <div class="hero-grid grid lg:grid-cols-2 gap-12 lg:gap-8 items-center min-h-[calc(100vh-72px)] min-h-[calc(100dvh-72px)] py-16 lg:py-0">
+    <div class="hero-grid grid lg:grid-cols-[1.05fr_0.95fr] gap-14 lg:gap-10 items-center min-h-[calc(100vh-72px)] min-h-[calc(100dvh-72px)] py-20 lg:py-0">
 
       <!-- Left: Typography -->
       <div class="relative z-10">
-        <div class="reveal flex flex-wrap gap-2 mb-8">
+        <div class="reveal flex flex-wrap gap-2 mb-10">
           <span class="ecosystem-pill"><span class="pill-dot"></span>Creative Technology</span>
           <span class="ecosystem-pill">Digital Infrastructure</span>
         </div>
 
-        <h1 class="font-display font-extrabold text-[clamp(2.5rem,6vw,4.5rem)] leading-[1.02] tracking-tight reveal stagger-1">
+        <h1 class="hero-headline font-display font-extrabold reveal stagger-1">
           Building Africa's<br/>
           <span class="text-gradient-blue">Next Digital</span><br/>
           Experiences
         </h1>
 
-        <p class="mt-6 text-lg text-white/60 max-w-md leading-relaxed reveal stagger-2">
-          Media. Systems. Education. Innovation.<br/>
-          Engineering digital growth for modern businesses.
+        <p class="hero-subline mt-8 reveal stagger-2">
+          Media. Systems. Education. Innovation.
         </p>
 
-        <div class="hero-cta-row mt-10 flex flex-wrap gap-4 reveal stagger-3">
+        <div class="hero-cta-row mt-12 flex flex-wrap gap-4 reveal stagger-3">
           <a href="#systems" class="btn btn-primary btn-magnetic w-full sm:w-auto">
             Explore Systems
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M13 6l6 6-6 6"/></svg>
@@ -155,25 +157,25 @@
           <a href="#media" class="btn btn-ghost btn-magnetic w-full sm:w-auto">View Our Work</a>
         </div>
 
-        <!-- Hero stats -->
-        <div class="mt-16 grid grid-cols-3 gap-6 reveal stagger-4">
+        <div class="hero-stat-row grid grid-cols-3 gap-8 reveal stagger-4">
           <div>
             <div class="stat-number text-2xl lg:text-3xl" data-count="150" data-suffix="+">0</div>
-            <div class="text-xs text-white/40 mt-1">Projects Delivered</div>
+            <div class="text-xs text-sch-muted mt-1.5 font-mono-label">Projects</div>
           </div>
           <div>
             <div class="stat-number text-2xl lg:text-3xl" data-count="40" data-suffix="+">0</div>
-            <div class="text-xs text-white/40 mt-1">Systems Built</div>
+            <div class="text-xs text-sch-muted mt-1.5 font-mono-label">Systems</div>
           </div>
           <div>
             <div class="stat-number text-2xl lg:text-3xl" data-count="500" data-suffix="+">0</div>
-            <div class="text-xs text-white/40 mt-1">Students Trained</div>
+            <div class="text-xs text-sch-muted mt-1.5 font-mono-label">Students</div>
           </div>
         </div>
       </div>
 
       <!-- Right: Immersive Visual -->
       <div id="heroVisual" class="hero-visual reveal-right" aria-hidden="true">
+        <div class="hero-visual-stage">
         <!-- Main Dashboard Panel -->
         <div class="ui-panel ui-panel-main">
           <div class="ui-panel-header">
@@ -204,11 +206,11 @@
             </div>
             <!-- Line Chart -->
             <svg class="w-full h-16" viewBox="0 0 280 60" fill="none">
-              <path class="line-chart-path" d="M0 50 L40 42 L80 38 L120 28 L160 32 L200 18 L240 22 L280 8" stroke="#0288D1" stroke-width="2" fill="none"/>
+              <path class="line-chart-path" d="M0 50 L40 42 L80 38 L120 28 L160 32 L200 18 L240 22 L280 8" stroke="#0EA5E9" stroke-width="2" fill="none"/>
               <path d="M0 50 L40 42 L80 38 L120 28 L160 32 L200 18 L240 22 L280 8 L280 60 L0 60Z" fill="url(#lineGrad)" opacity="0.15"/>
               <defs>
                 <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="#0288D1"/>
+                  <stop offset="0%" stop-color="#0EA5E9"/>
                   <stop offset="100%" stop-color="transparent"/>
                 </linearGradient>
               </defs>
@@ -260,12 +262,29 @@
 
         <!-- Accent: Media Preview -->
         <div class="ui-panel ui-panel-accent" style="top: 15%; left: 5%;">
-          <div class="aspect-video bg-gradient-to-br from-sch-blue/20 to-purple-500/20 flex items-center justify-center">
+          <div class="aspect-video bg-gradient-to-br from-sch-blue/25 to-sch-navy-light flex items-center justify-center">
             <div class="play-btn w-10 h-10">
               <svg width="14" height="14" fill="white" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
             </div>
           </div>
-          <div class="p-2 text-[9px] text-white/50">Brand Film — 2:34</div>
+          <div class="p-2 text-[9px] text-sch-muted font-mono-label">Brand Film — 2:34</div>
+        </div>
+
+        <!-- Client Portal Preview -->
+        <div class="ui-panel ui-panel-portal">
+          <div class="p-3">
+            <div class="flex items-center justify-between mb-2">
+              <span class="product-chip">Portal</span>
+              <span class="live-dot"></span>
+            </div>
+            <div class="text-[10px] text-sch-muted">Client Dashboard</div>
+            <div class="mt-2 flex gap-1">
+              <div class="h-8 flex-1 rounded-md bg-sch-blue/20 border border-sch-blue/30"></div>
+              <div class="h-8 flex-1 rounded-md bg-white/5"></div>
+              <div class="h-8 flex-1 rounded-md bg-white/5"></div>
+            </div>
+          </div>
+        </div>
         </div>
       </div>
     </div>
@@ -273,153 +292,309 @@
 </section>
 
 <!-- ═══════════════════ ECOSYSTEM OVERVIEW ═══════════════════ -->
-<section class="relative z-10 py-24 border-t border-white/5">
+<section class="relative z-10 section-immersive border-t border-white/5">
   <div class="max-w-content mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="text-center mb-16 reveal">
+    <div class="max-w-3xl mb-20 reveal-blur">
       <span class="section-label">The Ecosystem</span>
-      <h2 class="section-title mt-4">One Hub. Infinite Possibilities.</h2>
-      <p class="mt-4 text-white/50 max-w-2xl mx-auto">A unified creative technology ecosystem powering Africa's digital transformation across systems, media, education, and innovation.</p>
+      <h2 class="section-title section-title--xl mt-5">One Hub.<br/>Infinite Possibilities.</h2>
+      <p class="mt-6 text-sch-muted text-lg max-w-lg">Systems. Media. Academy. Automation. One creative technology platform.</p>
     </div>
 
-    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="glass-card p-6 reveal stagger-1">
-        <div class="text-sch-blue mb-3">
-          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h7"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>
-        </div>
-        <h3 class="font-display font-semibold text-lg">Digital Systems</h3>
-        <p class="text-sm text-white/45 mt-2">Fintech, CRM, analytics & automation platforms</p>
+    <div class="ecosystem-bento">
+      <div class="bento-featured reveal stagger-1">
+        <span class="section-label relative z-10">Flagship</span>
+        <h3 class="mt-auto relative z-10">Digital Systems</h3>
+        <p class="text-sm text-sch-muted mt-2 relative z-10 max-w-xs">Fintech · CRM · Analytics · Automation</p>
       </div>
       <div class="glass-card p-6 reveal stagger-2">
         <div class="text-sch-orange mb-3">
           <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
         </div>
-        <h3 class="font-display font-semibold text-lg">Media Production</h3>
-        <p class="text-sm text-white/45 mt-2">Film, photography, branding & content campaigns</p>
+        <h3 class="font-display font-semibold text-lg">Media</h3>
+        <p class="text-sm text-sch-muted mt-2">Film · Photo · Brand</p>
       </div>
-      <a href="https://synergymultimediaacademy.com/" target="_blank" rel="noopener noreferrer" class="glass-card p-6 reveal stagger-3 block no-underline text-inherit hover:border-sch-blue/30 transition-colors">
+      <a href="https://synergymultimediaacademy.com/" target="_blank" rel="noopener noreferrer" class="glass-card p-6 reveal stagger-3 block no-underline text-inherit">
         <div class="text-sch-blue mb-3">
           <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M12 14l9-5-9-5-9 5 9 5z"/><path stroke-linecap="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg>
         </div>
         <h3 class="font-display font-semibold text-lg">Academy</h3>
-        <p class="text-sm text-white/45 mt-2">Digital courses, certifications & skill development</p>
+        <p class="text-sm text-sch-muted mt-2">Courses · Certs · Skills</p>
       </a>
-      <div class="glass-card p-6 reveal stagger-4">
-        <div class="text-sch-orange mb-3">
-          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      <div class="glass-card p-6 reveal stagger-4 bento-wide">
+        <div class="flex flex-wrap gap-2 mb-3">
+          <span class="product-chip">Automation</span>
+          <span class="product-chip" style="background:rgba(245,158,11,0.12);color:var(--sch-orange);border-color:rgba(245,158,11,0.25)">Portal</span>
         </div>
-        <h3 class="font-display font-semibold text-lg">Innovation</h3>
-        <p class="text-sm text-white/45 mt-2">AI systems, cloud infrastructure & automation</p>
+        <h3 class="font-display font-semibold text-lg">Innovation Layer</h3>
+        <p class="text-sm text-sch-muted mt-2">AI · Cloud · Client portals · Rentals · Creative Hub</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ═══════════════════ CLIENTS ═══════════════════ -->
-<section id="clients" class="clients-section relative z-10 py-28 border-t border-white/5">
+<!-- ═══════════════════ DIGITAL SHOWCASE ═══════════════════ -->
+<section id="clients" class="showcase-section relative z-10 section-pause border-t border-white/5">
+  <div class="showcase-section-glow" aria-hidden="true"></div>
   <div class="max-w-content mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="text-center mb-14">
-      <span class="section-label">Our Clients</span>
-      <h2 class="section-title mt-4">Organizations We<br/>Build For</h2>
-      <p class="mt-4 text-white/50 max-w-xl mx-auto">From fintech and travel to manufacturing and creative studios — we partner with ambitious brands across Uganda, Kenya, and beyond.</p>
+    <div class="max-w-3xl mb-12 reveal-blur">
+      <span class="section-label">Selected Work</span>
+      <h2 class="section-title section-title--xl mt-5">Featured Digital<br/>Experiences</h2>
+      <p class="mt-5 text-sch-muted text-lg max-w-xl">Transformative systems, fintech platforms, and cinematic media — built for ambitious organizations across Africa.</p>
     </div>
 
-    <ul class="clients-roster reveal" role="list" aria-label="Client organizations">
-      <li class="clients-roster__item" data-accent="blue">
-        <span class="clients-roster__dot" aria-hidden="true"></span>
-        <span class="clients-roster__name">Elgon Bottling Company Ug</span>
-      </li>
-      <li class="clients-roster__item" data-accent="orange">
-        <span class="clients-roster__dot" aria-hidden="true"></span>
-        <span class="clients-roster__name">Destination Diani</span>
-      </li>
-      <li class="clients-roster__item" data-accent="green">
-        <span class="clients-roster__dot" aria-hidden="true"></span>
-        <span class="clients-roster__name">Diani Art Gallery</span>
-      </li>
-      <li class="clients-roster__item" data-accent="red">
-        <span class="clients-roster__dot" aria-hidden="true"></span>
-        <span class="clients-roster__name">Afrisites Tours & Travel</span>
-      </li>
-      <li class="clients-roster__item clients-roster__item--link" data-accent="blue">
-        <a href="https://bookings-solverscreations.com/" target="_blank" rel="noopener noreferrer" class="clients-roster__link">
-          <span class="clients-roster__dot" aria-hidden="true"></span>
-          <span class="clients-roster__name">Solverscreations Ug</span>
-          <span class="clients-roster__external" aria-hidden="true">
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 17L17 7M7 7h10v10"/></svg>
-          </span>
-        </a>
-      </li>
-      <li class="clients-roster__item clients-roster__item--link" data-accent="orange">
-        <a href="https://davycinematography.com/" target="_blank" rel="noopener noreferrer" class="clients-roster__link">
-          <span class="clients-roster__dot" aria-hidden="true"></span>
-          <span class="clients-roster__name">Davy Cinematography</span>
-          <span class="clients-roster__external" aria-hidden="true">
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 17L17 7M7 7h10v10"/></svg>
-          </span>
-        </a>
-      </li>
-      <li class="clients-roster__item clients-roster__item--link" data-accent="green">
-        <a href="https://synergymultimediaacademy.com/" target="_blank" rel="noopener noreferrer" class="clients-roster__link">
-          <span class="clients-roster__dot" aria-hidden="true"></span>
-          <span class="clients-roster__name">Synergy Multimedia Academy</span>
-          <span class="clients-roster__external" aria-hidden="true">
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 17L17 7M7 7h10v10"/></svg>
-          </span>
-        </a>
-      </li>
-      <li class="clients-roster__item" data-accent="red">
-        <span class="clients-roster__dot" aria-hidden="true"></span>
-        <span class="clients-roster__name">QuickCredit Ug</span>
-      </li>
-    </ul>
+    <div id="showcaseFilters" class="showcase-filters reveal" role="tablist" aria-label="Filter projects by category">
+      <button type="button" class="showcase-filter is-active" data-filter="all" role="tab" aria-selected="true">All</button>
+      <button type="button" class="showcase-filter" data-filter="systems" role="tab" aria-selected="false">Systems</button>
+      <button type="button" class="showcase-filter" data-filter="fintech" role="tab" aria-selected="false">Fintech</button>
+      <button type="button" class="showcase-filter" data-filter="media" role="tab" aria-selected="false">Media</button>
+      <button type="button" class="showcase-filter" data-filter="branding" role="tab" aria-selected="false">Branding</button>
+      <button type="button" class="showcase-filter" data-filter="automation" role="tab" aria-selected="false">Automation</button>
+      <button type="button" class="showcase-filter" data-filter="academy" role="tab" aria-selected="false">Academy</button>
+    </div>
+
+    <div id="showcaseGrid" class="showcase-grid">
+
+      <!-- Featured: QuickCredit -->
+      <article class="showcase-card showcase-card--featured glow-blue" data-categories="fintech systems automation">
+        <div class="showcase-card__bg showcase-card__bg--fintech" aria-hidden="true"></div>
+        <div class="showcase-card__overlay" aria-hidden="true"></div>
+        <div class="showcase-card__inner">
+          <div class="showcase-card__copy">
+            <div class="showcase-card__logo">
+              <img src="/images/clients/quickcredit.webp" alt="QuickCredit Uganda" width="200" height="64" loading="lazy" decoding="async"/>
+            </div>
+            <h3 class="showcase-card__title">QuickCredit System</h3>
+            <div class="showcase-tags">
+              <span class="showcase-tag">Fintech</span>
+              <span class="showcase-tag">Dashboard</span>
+              <span class="showcase-tag">Automation</span>
+            </div>
+            <p class="showcase-card__desc">Enterprise lending platform with mobile money, credit scoring, and real-time analytics.</p>
+            <div class="showcase-metrics">
+              <span class="showcase-metric"><strong>40%</strong> Conversion ↑</span>
+              <span class="showcase-metric"><strong>3×</strong> Revenue</span>
+              <span class="showcase-metric"><strong>10K+</strong> Loans</span>
+            </div>
+            <div class="showcase-card__links">
+              <a href="https://quickcreditclientportal.netlify.app/home" target="_blank" rel="noopener noreferrer" class="showcase-card__link">Open live platform →</a>
+              <a href="#case-studies" class="showcase-card__link showcase-card__link--secondary">Case study</a>
+            </div>
+          </div>
+          <div class="showcase-featured-ui" aria-hidden="true">
+            <div class="showcase-ui-panel">
+              <div class="showcase-ui-header">
+                <span class="ui-dot ui-dot-red"></span>
+                <span class="ui-dot ui-dot-yellow"></span>
+                <span class="ui-dot ui-dot-green"></span>
+                <span class="font-mono-label text-[9px] text-sch-muted ml-auto">Lending Analytics</span>
+              </div>
+              <div class="p-3">
+                <div class="text-[9px] text-sch-muted uppercase tracking-wider">Portfolio</div>
+                <div class="text-lg font-semibold mt-0.5">UGX 320M</div>
+                <div class="flex items-end gap-1 h-16 mt-3">
+                  <div class="chart-bar flex-1 h-[35%]"></div>
+                  <div class="chart-bar flex-1 h-[55%]"></div>
+                  <div class="chart-bar flex-1 h-[48%]"></div>
+                  <div class="chart-bar flex-1 h-[72%]"></div>
+                  <div class="chart-bar flex-1 h-[88%]"></div>
+                </div>
+              </div>
+            </div>
+            <div class="showcase-ui-float">
+              <span class="live-dot"></span>
+              <span class="text-[9px] text-sch-muted">Live approvals</span>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Afrisites -->
+      <a href="https://afri-sites.vercel.app/" target="_blank" rel="noopener noreferrer" class="showcase-card showcase-card--medium glow-red" data-categories="systems automation" aria-label="Afrisites Tours &amp; Travel — visit live platform">
+        <div class="showcase-card__bg showcase-card__bg--travel" aria-hidden="true"></div>
+        <div class="showcase-card__overlay" aria-hidden="true"></div>
+        <div class="showcase-card__content">
+          <div class="showcase-card__logo">
+            <img src="/images/clients/afrisites.webp" alt="Afrisites Tours &amp; Travel" width="160" height="56" loading="lazy" decoding="async"/>
+          </div>
+          <h3 class="showcase-card__title">Afrisites Platform</h3>
+          <div class="showcase-tags">
+            <span class="showcase-tag">Booking</span>
+            <span class="showcase-tag">Systems</span>
+          </div>
+          <p class="showcase-card__desc">Digital tourism booking infrastructure across East Africa.</p>
+          <div class="showcase-metrics">
+            <span class="showcase-metric"><strong>200%</strong> Bookings ↑</span>
+            <span class="showcase-metric"><strong>12K</strong> Customers</span>
+          </div>
+        </div>
+      </a>
+
+      <!-- Octagon Africa -->
+      <a href="https://www.octagonafrica.com/" target="_blank" rel="noopener noreferrer" class="showcase-card showcase-card--medium glow-blue" data-categories="systems branding">
+        <div class="showcase-card__bg showcase-card__bg--corporate" aria-hidden="true"></div>
+        <div class="showcase-card__overlay" aria-hidden="true"></div>
+        <div class="showcase-card__content">
+          <div class="showcase-card__logo">
+            <img src="/images/clients/octagon.webp" alt="Octagon Africa" width="160" height="56" loading="lazy" decoding="async"/>
+          </div>
+          <h3 class="showcase-card__title">Octagon Africa</h3>
+          <div class="showcase-tags">
+            <span class="showcase-tag">Systems</span>
+            <span class="showcase-tag">Branding</span>
+          </div>
+          <p class="showcase-card__desc">Corporate digital presence and enterprise web infrastructure.</p>
+        </div>
+      </a>
+
+      <!-- Solverscreations -->
+      <a href="https://bookings-solverscreations.com/" target="_blank" rel="noopener noreferrer" class="showcase-card showcase-card--small glow-blue" data-categories="systems automation">
+        <div class="showcase-card__bg showcase-card__bg--booking" aria-hidden="true"></div>
+        <div class="showcase-card__overlay" aria-hidden="true"></div>
+        <div class="showcase-card__content">
+          <div class="showcase-card__logo">
+            <img src="/images/clients/solvers.webp" alt="Solverscreations Uganda" width="140" height="48" loading="lazy" decoding="async"/>
+          </div>
+          <h3 class="showcase-card__title">Solverscreations</h3>
+          <div class="showcase-tags"><span class="showcase-tag">Booking</span><span class="showcase-tag">Automation</span></div>
+          <p class="showcase-card__desc">Creative booking and client workflow platform.</p>
+        </div>
+      </a>
+
+      <!-- Destination Diani -->
+      <div class="showcase-card showcase-card--small glow-gold" data-categories="media branding">
+        <div class="showcase-card__bg showcase-card__bg--media" aria-hidden="true"></div>
+        <div class="showcase-card__overlay" aria-hidden="true"></div>
+        <div class="showcase-card__content">
+          <div class="showcase-card__logo">
+            <img src="/images/clients/destination-diani.webp" alt="Destination Diani" width="140" height="48" loading="lazy" decoding="async"/>
+          </div>
+          <h3 class="showcase-card__title">Destination Diani</h3>
+          <div class="showcase-tags"><span class="showcase-tag">Media</span><span class="showcase-tag">Branding</span></div>
+          <p class="showcase-card__desc">Luxury tourism brand and digital destination experience.</p>
+        </div>
+      </div>
+
+      <!-- Diani Art Gallery -->
+      <a href="https://diani-art-gallery-prod.vercel.app/" target="_blank" rel="noopener noreferrer" class="showcase-card showcase-card--small glow-red" data-categories="media branding" aria-label="Diani Art Gallery — visit live site">
+        <div class="showcase-card__bg showcase-card__bg--gallery" aria-hidden="true"></div>
+        <div class="showcase-card__overlay" aria-hidden="true"></div>
+        <div class="showcase-card__content">
+          <div class="showcase-card__logo">
+            <img src="/images/clients/diani-art-gallery.webp" alt="Diani Art Gallery" width="140" height="48" loading="lazy" decoding="async"/>
+          </div>
+          <h3 class="showcase-card__title">Diani Art Gallery</h3>
+          <div class="showcase-tags"><span class="showcase-tag">Media</span><span class="showcase-tag">Branding</span></div>
+          <p class="showcase-card__desc">Cinematic gallery branding and cultural showcase.</p>
+        </div>
+      </a>
+
+      <!-- Elgon -->
+      <a href="https://elgon-bottling.vercel.app/" target="_blank" rel="noopener noreferrer" class="showcase-card showcase-card--small glow-green" data-categories="branding automation" aria-label="Elgon Bottling — visit live site">
+        <div class="showcase-card__bg showcase-card__bg--industrial" aria-hidden="true"></div>
+        <div class="showcase-card__overlay" aria-hidden="true"></div>
+        <div class="showcase-card__content">
+          <div class="showcase-card__logo">
+            <img src="/images/clients/elgon.webp" alt="Elgon Bottling Company Uganda" width="140" height="48" loading="lazy" decoding="async"/>
+          </div>
+          <h3 class="showcase-card__title">Elgon Bottling</h3>
+          <div class="showcase-tags"><span class="showcase-tag">Branding</span><span class="showcase-tag">Operations</span></div>
+          <p class="showcase-card__desc">Enterprise brand systems for manufacturing operations.</p>
+        </div>
+      </a>
+
+      <!-- Davy Cinematography -->
+      <a href="https://davycinematography.com/" target="_blank" rel="noopener noreferrer" class="showcase-card showcase-card--medium glow-red" data-categories="media">
+        <div class="showcase-card__bg showcase-card__bg--cinema" aria-hidden="true"></div>
+        <div class="showcase-card__overlay" aria-hidden="true"></div>
+        <div class="showcase-card__content">
+          <div class="showcase-card__logo">
+            <img src="/images/clients/davy.webp" alt="Davy Cinematography" width="160" height="56" loading="lazy" decoding="async"/>
+          </div>
+          <h3 class="showcase-card__title">Davy Cinematography</h3>
+          <div class="showcase-tags"><span class="showcase-tag">Film</span><span class="showcase-tag">Media</span></div>
+          <p class="showcase-card__desc">Cinematic production and premium visual storytelling.</p>
+        </div>
+      </a>
+
+      <!-- Synergy Academy -->
+      <a href="https://synergymultimediaacademy.com/" target="_blank" rel="noopener noreferrer" class="showcase-card showcase-card--medium glow-gold" data-categories="academy media">
+        <div class="showcase-card__bg showcase-card__bg--academy" aria-hidden="true"></div>
+        <div class="showcase-card__overlay" aria-hidden="true"></div>
+        <div class="showcase-card__content">
+          <div class="showcase-card__logo">
+            <img src="/images/clients/synergy-academy.webp" alt="Synergy Multimedia Academy" width="160" height="56" loading="lazy" decoding="async"/>
+          </div>
+          <h3 class="showcase-card__title">Synergy Academy</h3>
+          <div class="showcase-tags"><span class="showcase-tag">Academy</span><span class="showcase-tag">LMS</span></div>
+          <p class="showcase-card__desc">Digital skills platform for photography, film, and design.</p>
+          <div class="showcase-metrics">
+            <span class="showcase-metric"><strong>500+</strong> Students</span>
+          </div>
+        </div>
+      </a>
+
+    </div>
   </div>
 </section>
 
 <!-- ═══════════════════ DIGITAL SYSTEMS ═══════════════════ -->
-<section id="systems" class="relative z-10 py-32">
+<section id="systems" class="relative z-10 section-pause">
   <div class="max-w-content mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="grid lg:grid-cols-2 gap-16 items-start">
+    <div class="grid lg:grid-cols-2 gap-20 items-center">
       <div class="reveal-left">
         <span class="section-label">Digital Systems</span>
-        <h2 class="section-title mt-4">Systems for<br/>Modern Businesses</h2>
-        <p class="mt-6 text-white/50 leading-relaxed max-w-md">
-          Enterprise-grade digital infrastructure — from fintech dashboards and CRM platforms to workflow automation and AI-powered business operating systems.
+        <h2 class="section-title section-title--xl mt-5">Systems for<br/>Modern Businesses</h2>
+        <p class="mt-6 text-sch-muted text-lg max-w-md">
+          Enterprise-grade infrastructure. Fintech. CRM. Automation. AI.
         </p>
 
-        <div class="mt-10 grid sm:grid-cols-2 gap-4">
+        <div class="mt-12 grid sm:grid-cols-2 gap-4">
           <div class="system-card glass-card">
             <div class="system-icon">
               <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
             </div>
             <h4 class="font-semibold">Fintech Platforms</h4>
-            <p class="text-sm text-white/40 mt-1">Mobile money, payments & financial dashboards</p>
+            <p class="text-sm text-sch-muted mt-1">Mobile money & payments</p>
           </div>
           <div class="system-card glass-card">
             <div class="system-icon">
               <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
             </div>
             <h4 class="font-semibold">CRM & Analytics</h4>
-            <p class="text-sm text-white/40 mt-1">Customer intelligence & data visualization</p>
+            <p class="text-sm text-sch-muted mt-1">Intelligence & analytics</p>
           </div>
           <div class="system-card glass-card">
             <div class="system-icon">
               <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
             </div>
             <h4 class="font-semibold">Workflow Automation</h4>
-            <p class="text-sm text-white/40 mt-1">Process optimization & intelligent routing</p>
+            <p class="text-sm text-sch-muted mt-1">Process automation</p>
           </div>
           <div class="system-card glass-card">
             <div class="system-icon">
               <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
             </div>
             <h4 class="font-semibold">AI Systems</h4>
-            <p class="text-sm text-white/40 mt-1">Machine learning & intelligent automation</p>
+            <p class="text-sm text-sch-muted mt-1">ML & intelligent ops</p>
           </div>
         </div>
       </div>
 
       <!-- Dashboard Preview -->
-      <div class="reveal-right" data-parallax="0.05">
+      <div class="systems-showcase reveal-right" data-parallax="0.04">
+        <div class="dashboard-float-card dashboard-float-card--workflow">
+          <span class="product-chip">Workflow</span>
+          <div class="mt-2 space-y-1.5">
+            <div class="h-1 rounded-full bg-sch-blue/40 w-full"></div>
+            <div class="h-1 rounded-full bg-white/10 w-4/5"></div>
+            <div class="h-1 rounded-full bg-sch-orange/40 w-2/3"></div>
+          </div>
+        </div>
+        <div class="dashboard-float-card dashboard-float-card--mobile">
+          <div class="text-[9px] text-sch-muted font-mono-label">MoMo</div>
+          <div class="text-sm font-semibold mt-1">UGX 1.2M</div>
+          <div class="text-[9px] text-sch-green mt-0.5">+12% today</div>
+        </div>
         <div class="dashboard-preview">
           <div class="flex">
             <div class="dashboard-sidebar hidden sm:flex">
@@ -482,15 +657,15 @@
 </section>
 
 <!-- ═══════════════════ MEDIA & CREATIVE ═══════════════════ -->
-<section id="media" class="relative z-10 py-32 border-t border-white/5">
+<section id="media" class="relative z-10 section-pause border-t border-white/5">
   <div class="max-w-content mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-16 reveal">
+    <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8 mb-20 reveal-blur">
       <div>
         <span class="section-label">Media & Creative</span>
-        <h2 class="section-title mt-4">Cinematic<br/>Storytelling</h2>
+        <h2 class="section-title section-title--xl mt-5">Cinematic<br/>Storytelling</h2>
       </div>
-      <p class="text-white/50 max-w-md lg:text-right">
-        From brand films and photography to content campaigns and motion design — we craft visual narratives that move audiences and drive results.
+      <p class="media-section-lead lg:text-right">
+        Visual narratives that move audiences.
       </p>
     </div>
 
@@ -501,7 +676,7 @@
         <div class="media-overlay">
           <span class="media-tag mb-3">Film Production</span>
           <h3 class="font-display text-2xl font-bold">Brand Documentary Series</h3>
-          <p class="text-sm text-white/60 mt-2">Cinematic storytelling for enterprise brands</p>
+          <p class="text-sm text-sch-muted mt-2">Enterprise brand films</p>
         </div>
       </div>
       <div class="media-showcase reveal-scale stagger-1" data-album="graphics" data-subalbum="logos" role="button" tabindex="0" aria-label="Open Brand Identity album">
@@ -509,7 +684,7 @@
         <div class="media-overlay">
           <span class="media-tag mb-3">Brand Identity</span>
           <h3 class="font-display text-2xl font-bold">Visual Identity Systems</h3>
-          <p class="text-sm text-white/60 mt-2">Complete brand ecosystems from concept to launch</p>
+          <p class="text-sm text-sch-muted mt-2">Concept to launch</p>
         </div>
       </div>
     </div>
@@ -552,13 +727,13 @@
 </section>
 
 <!-- ═══════════════════ ACADEMY ═══════════════════ -->
-<section id="academy" class="relative z-10 py-24">
+<section id="academy" class="relative z-10 section-compact">
   <div class="max-w-content mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="academy-minimal reveal">
+    <div class="academy-minimal reveal-blur">
       <span class="section-label">Academy</span>
       <h2 class="section-title mt-4 max-w-lg">Engineering Digital Talent</h2>
-      <p class="mt-4 text-white/50 max-w-md leading-relaxed">
-        Industry-ready courses in photography, videography, design, and multimedia — powered by our dedicated academy platform.
+      <p class="mt-4 text-sch-muted max-w-md">
+        Photography · Videography · Design · Multimedia
       </p>
 
       <div class="academy-tags">
@@ -575,12 +750,12 @@
 </section>
 
 <!-- ═══════════════════ CASE STUDIES ═══════════════════ -->
-<section id="case-studies" class="relative z-10 py-32 border-t border-white/5">
+<section id="case-studies" class="relative z-10 section-pause border-t border-white/5">
   <div class="max-w-content mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="text-center mb-20 reveal">
+    <div class="max-w-2xl mb-24 reveal-blur">
       <span class="section-label">Case Studies</span>
-      <h2 class="section-title mt-4">Transformation<br/>Stories</h2>
-      <p class="mt-4 text-white/50 max-w-xl mx-auto">Real business outcomes. Measurable impact. Problem → Solution → Result.</p>
+      <h2 class="section-title section-title--xl mt-5">Transformation<br/>Stories</h2>
+      <p class="mt-5 text-sch-muted text-lg">Measurable impact. Real outcomes.</p>
     </div>
 
     <!-- Case Study 1 -->
@@ -589,11 +764,11 @@
         <div>
           <span class="text-xs uppercase tracking-wider text-sch-blue font-medium">Fintech · Lending</span>
           <h3 class="font-display text-2xl lg:text-3xl font-bold mt-3">QuickCredit Ug</h3>
-          <p class="text-white/50 mt-4 leading-relaxed">
-            <strong class="text-white/80">Problem:</strong> Manual loan processing and fragmented customer data causing slow approvals and high drop-off rates.<br/><br/>
-            <strong class="text-white/80">Solution:</strong> Custom fintech platform with automated credit scoring, mobile money integration, and real-time analytics dashboard.<br/><br/>
-            <strong class="text-white/80">Result:</strong> Complete lending operations transformation in 90 days.
-          </p>
+          <div class="case-study-compact mt-4 space-y-4">
+            <p><strong>Challenge</strong> — Manual lending, fragmented data, slow approvals.</p>
+            <p><strong>Build</strong> — Fintech platform with MoMo, credit scoring, live analytics.</p>
+            <p><strong>Outcome</strong> — Full operations transformation in 90 days.</p>
+          </div>
 
           <div class="timeline mt-10">
             <div class="timeline-step">
@@ -688,11 +863,11 @@
         <div class="order-1 lg:order-2">
           <span class="text-xs uppercase tracking-wider text-sch-orange font-medium">Travel · Digital Platform</span>
           <h3 class="font-display text-2xl lg:text-3xl font-bold mt-3">Afrisites Tours & Travel</h3>
-          <p class="text-white/50 mt-4 leading-relaxed">
-            <strong class="text-white/80">Problem:</strong> Outdated web presence and no digital booking infrastructure limiting reach across East Africa.<br/><br/>
-            <strong class="text-white/80">Solution:</strong> Modern travel platform with booking management, campaign tracking, and mobile-optimized customer experience.<br/><br/>
-            <strong class="text-white/80">Result:</strong> 200% increase in online bookings within 6 months.
-          </p>
+          <div class="case-study-compact mt-4 space-y-4">
+            <p><strong>Challenge</strong> — No digital booking infrastructure.</p>
+            <p><strong>Build</strong> — Travel platform with bookings, payments, campaigns.</p>
+            <p><strong>Outcome</strong> — 200% online bookings in 6 months.</p>
+          </div>
         </div>
       </div>
     </div>
@@ -700,39 +875,39 @@
 </section>
 
 <!-- ═══════════════════ STATS BANNER ═══════════════════ -->
-<section class="relative z-10 py-20 border-y border-white/5">
+<section class="relative z-10 section-compact border-y border-white/5">
   <div class="max-w-content mx-auto px-4 sm:px-6 lg:px-8">
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-8">
       <div class="stat-block reveal">
         <div class="stat-number" data-count="150" data-suffix="+">0</div>
-        <div class="text-sm text-white/40 mt-2">Projects Delivered</div>
+        <div class="text-sm text-sch-muted mt-2">Projects Delivered</div>
       </div>
       <div class="stat-block reveal stagger-1">
         <div class="stat-number" data-count="98" data-suffix="%">0</div>
-        <div class="text-sm text-white/40 mt-2">Client Satisfaction</div>
+        <div class="text-sm text-sch-muted mt-2">Client Satisfaction</div>
       </div>
       <div class="stat-block reveal stagger-2">
         <div class="stat-number" data-count="500" data-suffix="+">0</div>
-        <div class="text-sm text-white/40 mt-2">Students Trained</div>
+        <div class="text-sm text-sch-muted mt-2">Students Trained</div>
       </div>
       <div class="stat-block reveal stagger-3">
         <div class="stat-number" data-count="8" data-suffix="+">0</div>
-        <div class="text-sm text-white/40 mt-2">Years of Innovation</div>
+        <div class="text-sm text-sch-muted mt-2">Years of Innovation</div>
       </div>
     </div>
   </div>
 </section>
 
 <!-- ═══════════════════ CONTACT ═══════════════════ -->
-<section id="contact" class="contact-section relative z-10 py-32">
+<section id="contact" class="contact-section relative z-10 section-pause">
   <div class="contact-glow" aria-hidden="true"></div>
   <div class="max-w-content mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="grid lg:grid-cols-2 gap-16">
+    <div class="grid lg:grid-cols-2 gap-20">
       <div class="reveal-left">
         <span class="section-label">Contact</span>
-        <h2 class="section-title mt-4">Let's Build<br/>Something Extraordinary</h2>
-        <p class="mt-6 text-white/50 max-w-md leading-relaxed">
-          Ready to transform your business with creative technology? Tell us about your project and we'll respond within 24 hours.
+        <h2 class="section-title section-title--xl mt-5">Let's Build<br/>Something Extraordinary</h2>
+        <p class="mt-6 text-sch-muted text-lg max-w-md">
+          Share your vision. We respond within 24 hours.
         </p>
 
         <div class="mt-10 space-y-4">
@@ -807,7 +982,7 @@
         <nav class="space-y-2">
           <a href="#systems" class="block text-sm text-white/50 hover:text-white transition-colors">Digital Systems</a>
           <a href="#media" class="block text-sm text-white/50 hover:text-white transition-colors">Media & Creative</a>
-          <a href="#clients" class="block text-sm text-white/50 hover:text-white transition-colors">Clients</a>
+          <a href="#clients" class="block text-sm text-white/50 hover:text-white transition-colors">Selected Work</a>
           <a href="https://synergymultimediaacademy.com/" target="_blank" rel="noopener noreferrer" class="block text-sm text-white/50 hover:text-white transition-colors">Academy</a>
           <a href="#case-studies" class="block text-sm text-white/50 hover:text-white transition-colors">Case Studies</a>
         </nav>

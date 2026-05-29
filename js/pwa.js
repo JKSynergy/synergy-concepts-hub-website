@@ -96,8 +96,21 @@
     removeBanner();
   });
 
+  function lockPortraitOrientation() {
+    if (!isStandalone()) return;
+    try {
+      if (screen.orientation && typeof screen.orientation.lock === 'function') {
+        screen.orientation.lock('portrait').catch(function () {});
+      }
+    } catch (err) { /* unsupported browser */ }
+  }
+
   window.addEventListener('load', function () {
-    if (isStandalone()) return;
+    if (isStandalone()) {
+      lockPortraitOrientation();
+      document.documentElement.classList.add('pwa-standalone');
+      return;
+    }
 
     if (isIos() && !localStorage.getItem(IOS_HINT_DISMISS_KEY)) {
       setTimeout(showIosInstallHint, 3000);

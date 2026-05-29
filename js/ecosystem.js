@@ -12,16 +12,21 @@
     initPageLoader();
     initNavigation();
     initScrollReveal();
+    initStaggerGroups();
     initCounters();
     initMagneticButtons();
+    initMagneticSurfaces();
     initParallax();
     initHeroPanels();
+    initHeroParticles();
+    initLiveMetrics();
     initNavHighlight();
     initShowcaseFilters();
     initSmoothScroll();
     initCustomSelects();
     initQuoteForm();
     initProgressBars();
+    initMediaPillars();
   }
 
   /* ─── Page Loader ─── */
@@ -44,8 +49,14 @@
     const mobileMenu = document.getElementById('mobileMenu');
 
     if (nav) {
+      const scrollProgress = document.getElementById('scrollProgress');
       const onScroll = () => {
         nav.classList.toggle('scrolled', window.scrollY > 40);
+        if (scrollProgress) {
+          const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+          const progress = docHeight > 0 ? window.scrollY / docHeight : 0;
+          scrollProgress.style.transform = `scaleX(${progress})`;
+        }
       };
       window.addEventListener('scroll', onScroll, { passive: true });
       onScroll();
@@ -104,6 +115,158 @@
     );
 
     elements.forEach((el) => observer.observe(el));
+  }
+
+  /* ─── Stagger Group Reveals ─── */
+  function initStaggerGroups() {
+    const groups = document.querySelectorAll('.stagger-group');
+    if (!groups.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.15, rootMargin: '0px 0px -30px 0px' }
+    );
+
+    groups.forEach((group) => observer.observe(group));
+  }
+
+  /* ─── Magnetic Surfaces (cards, panels) ─── */
+  function initMagneticSurfaces() {
+    if (
+      window.matchMedia('(pointer: coarse)').matches ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      return;
+    }
+
+    document.querySelectorAll('.magnetic-surface').forEach((surface) => {
+      surface.addEventListener('mousemove', (e) => {
+        const rect = surface.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / rect.width - 0.5;
+        const y = (e.clientY - rect.top) / rect.height - 0.5;
+        const intensity = surface.classList.contains('hero-visual') ? 3 : 5;
+        surface.style.transform = `perspective(1200px) rotateY(${x * intensity}deg) rotateX(${-y * intensity}deg) translateZ(0)`;
+      });
+
+      surface.addEventListener('mouseleave', () => {
+        surface.style.transform = '';
+      });
+    });
+  }
+
+  /* ─── Hero Particle Field ─── */
+  function initHeroParticles() {
+    const canvas = document.getElementById('heroParticles');
+    if (
+      !canvas ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+      window.matchMedia('(max-width: 1023px)').matches
+    ) {
+      return;
+    }
+
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    let animId;
+    let w;
+    let h;
+
+    function resize() {
+      const section = canvas.closest('.hero-section');
+      w = canvas.width = section ? section.offsetWidth : window.innerWidth;
+      h = canvas.height = section ? section.offsetHeight : window.innerHeight;
+    }
+
+    function createParticles() {
+      const count = Math.min(48, Math.floor((w * h) / 22000));
+      particles = Array.from({ length: count }, () => ({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        r: Math.random() * 1.5 + 0.5,
+        vx: (Math.random() - 0.5) * 0.15,
+        vy: (Math.random() - 0.5) * 0.15,
+        alpha: Math.random() * 0.4 + 0.1,
+      }));
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, w, h);
+
+      particles.forEach((p, i) => {
+        p.x += p.vx;
+        p.y += p.vy;
+
+        if (p.x < 0) p.x = w;
+        if (p.x > w) p.x = 0;
+        if (p.y < 0) p.y = h;
+        if (p.y > h) p.y = 0;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(14, 165, 233, ${p.alpha})`;
+        ctx.fill();
+
+        for (let j = i + 1; j < particles.length; j++) {
+          const q = particles[j];
+          const dx = p.x - q.x;
+          const dy = p.y - q.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 100) {
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(q.x, q.y);
+            ctx.strokeStyle = `rgba(14, 165, 233, ${0.06 * (1 - dist / 100)})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        }
+      });
+
+      animId = requestAnimationFrame(draw);
+    }
+
+    resize();
+    createParticles();
+    draw();
+
+    window.addEventListener('resize', () => {
+      resize();
+      createParticles();
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        cancelAnimationFrame(animId);
+      } else {
+        draw();
+      }
+    });
+  }
+
+  /* ─── Live Metric Ticker ─── */
+  function initLiveMetrics() {
+    const metrics = document.querySelectorAll('[data-live]');
+    if (!metrics.length) return;
+
+    metrics.forEach((el) => {
+      const base = parseInt(el.dataset.live, 10);
+      if (!base) return;
+
+      setInterval(() => {
+        const variance = Math.floor(base * 0.002 * (Math.random() - 0.4));
+        const value = base + variance;
+        el.textContent = 'UGX ' + (value >= 1000000
+          ? (value / 1000000).toFixed(1) + 'M'
+          : value.toLocaleString());
+      }, 4000);
+    });
   }
 
   /* ─── Animated Counters ─── */
@@ -259,7 +422,7 @@
       const rect = visual.getBoundingClientRect();
       const x = (e.clientX - rect.left) / rect.width - 0.5;
       const y = (e.clientY - rect.top) / rect.height - 0.5;
-      visual.style.transform = `perspective(1200px) rotateY(${x * 4}deg) rotateX(${-y * 4}deg)`;
+      visual.style.transform = `perspective(1200px) rotateY(${x * 5}deg) rotateX(${-y * 5}deg)`;
     });
 
     visual.addEventListener('mouseleave', () => {
@@ -452,6 +615,28 @@
           select.dispatchEvent(new Event('change', { bubbles: true }));
         });
       }, 1200);
+    });
+  }
+
+  /* ─── Cinematic showcase pillar motion ─── */
+  function initMediaPillars() {
+    const pillars = document.querySelectorAll('.showcase-pillar');
+    if (!pillars.length || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    pillars.forEach((pillar) => {
+      const media = pillar.querySelector('.showcase-pillar__media img');
+      if (!media) return;
+
+      pillar.addEventListener('mousemove', (e) => {
+        const rect = pillar.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / rect.width - 0.5;
+        const y = (e.clientY - rect.top) / rect.height - 0.5;
+        media.style.transform = `scale(1.06) translate(${x * 8}px, ${y * 8}px)`;
+      });
+
+      pillar.addEventListener('mouseleave', () => {
+        media.style.transform = '';
+      });
     });
   }
 

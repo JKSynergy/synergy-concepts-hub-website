@@ -83,6 +83,7 @@
 
 <!-- Navigation -->
 <header id="siteNav" class="site-nav" role="banner">
+  <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
   <div class="max-w-content mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between">
     <a href="#home" class="flex items-center gap-3" aria-label="Synergy Concepts Hub — Home">
       <img src="/images/Website%20Logo%202.png" alt="" width="36" height="36" class="site-logo" decoding="async"/>
@@ -125,12 +126,14 @@
 
 <!-- ═══════════════════ HERO ═══════════════════ -->
 <section id="home" class="hero-section relative z-10">
+  <canvas id="heroParticles" class="hero-particles" aria-hidden="true"></canvas>
   <div class="hero-orb hero-orb--primary" aria-hidden="true"></div>
   <div class="hero-orb hero-orb--secondary" aria-hidden="true"></div>
   <div class="hero-glow top-1/4 right-0 translate-x-1/3" aria-hidden="true"></div>
+  <div class="hero-cinematic-vignette" aria-hidden="true"></div>
 
   <div class="max-w-content mx-auto px-4 sm:px-6 lg:px-8 w-full">
-    <div class="hero-grid grid lg:grid-cols-[1.05fr_0.95fr] gap-14 lg:gap-10 items-center min-h-[calc(100vh-72px)] min-h-[calc(100dvh-72px)] py-20 lg:py-0">
+    <div class="hero-grid grid lg:grid-cols-[1.08fr_0.92fr] gap-14 lg:gap-12 items-center min-h-[calc(100vh-72px)] min-h-[calc(100dvh-72px)] py-20 lg:py-0">
 
       <!-- Left: Typography -->
       <div class="relative z-10">
@@ -175,6 +178,7 @@
 
       <!-- Right: Immersive Visual -->
       <div id="heroVisual" class="hero-visual reveal-right" aria-hidden="true">
+        <div class="hero-visual-hologram" aria-hidden="true"></div>
         <div class="hero-visual-stage">
         <!-- Main Dashboard Panel -->
         <div class="ui-panel ui-panel-main">
@@ -285,6 +289,38 @@
             </div>
           </div>
         </div>
+
+        <!-- Automation Flow -->
+        <div class="ui-panel ui-panel-automation">
+          <div class="p-3">
+            <div class="text-[9px] text-sch-muted font-mono-label mb-2">Automation</div>
+            <div class="flex items-center gap-1.5">
+              <div class="w-5 h-5 rounded-md bg-sch-blue/25 border border-sch-blue/40 flex items-center justify-center">
+                <svg width="8" height="8" fill="currentColor" class="text-sch-blue" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/></svg>
+              </div>
+              <div class="flex-1 h-px bg-gradient-to-r from-sch-blue/50 to-transparent"></div>
+              <div class="w-5 h-5 rounded-md bg-sch-orange/20 border border-sch-orange/30"></div>
+              <div class="flex-1 h-px bg-gradient-to-r from-sch-orange/40 to-transparent"></div>
+              <div class="w-5 h-5 rounded-md bg-sch-green/20 border border-sch-green/30 flex items-center justify-center">
+                <svg width="8" height="8" fill="none" stroke="currentColor" stroke-width="2" class="text-sch-green" viewBox="0 0 24 24"><path stroke-linecap="round" d="M5 13l4 4L19 7"/></svg>
+              </div>
+            </div>
+            <div class="text-[8px] text-white/30 mt-2">3 workflows active</div>
+          </div>
+        </div>
+
+        <!-- Live Notification -->
+        <div class="ui-panel ui-panel-notify">
+          <div class="p-2.5 flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-sch-green/15 flex items-center justify-center shrink-0">
+              <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" class="text-sch-green" viewBox="0 0 24 24"><path stroke-linecap="round" d="M5 13l4 4L19 7"/></svg>
+            </div>
+            <div>
+              <div class="text-[9px] font-medium">Loan Approved</div>
+              <div class="text-[8px] text-white/35">Just now · UGX 1.5M</div>
+            </div>
+          </div>
+        </div>
         </div>
       </div>
     </div>
@@ -292,15 +328,16 @@
 </section>
 
 <!-- ═══════════════════ ECOSYSTEM OVERVIEW ═══════════════════ -->
-<section class="relative z-10 section-immersive border-t border-white/5">
+<section class="relative z-10 section-immersive border-t border-white/5 section-sequence">
+  <div class="section-mesh section-mesh--blue" aria-hidden="true"></div>
   <div class="max-w-content mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="max-w-3xl mb-20 reveal-blur">
+    <div class="ecosystem-header ecosystem-header--offset max-w-3xl mb-20 reveal-blur">
       <span class="section-label">The Ecosystem</span>
       <h2 class="section-title section-title--xl mt-5">One Hub.<br/>Infinite Possibilities.</h2>
-      <p class="mt-6 text-sch-muted text-lg max-w-lg">Systems. Media. Academy. Automation. One creative technology platform.</p>
+      <p class="mt-6 text-sch-muted text-lg max-w-lg">Systems. Media. Academy. Automation.</p>
     </div>
 
-    <div class="ecosystem-bento">
+    <div class="ecosystem-bento ecosystem-bento--asymmetric stagger-group">
       <div class="bento-featured reveal stagger-1">
         <span class="section-label relative z-10">Flagship</span>
         <h3 class="mt-auto relative z-10">Digital Systems</h3>
@@ -538,39 +575,40 @@
 </section>
 
 <!-- ═══════════════════ DIGITAL SYSTEMS ═══════════════════ -->
-<section id="systems" class="relative z-10 section-pause">
+<section id="systems" class="relative z-10 section-pause section-sequence">
+  <div class="section-mesh section-mesh--systems" aria-hidden="true"></div>
   <div class="max-w-content mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="grid lg:grid-cols-2 gap-20 items-center">
-      <div class="reveal-left">
+    <div class="grid lg:grid-cols-2 gap-20 items-center systems-layout">
+      <div class="reveal-left systems-copy">
         <span class="section-label">Digital Systems</span>
         <h2 class="section-title section-title--xl mt-5">Systems for<br/>Modern Businesses</h2>
         <p class="mt-6 text-sch-muted text-lg max-w-md">
           Enterprise-grade infrastructure. Fintech. CRM. Automation. AI.
         </p>
 
-        <div class="mt-12 grid sm:grid-cols-2 gap-4">
-          <div class="system-card glass-card">
+        <div class="mt-12 grid sm:grid-cols-2 gap-4 stagger-group">
+          <div class="system-card glass-card magnetic-surface">
             <div class="system-icon">
               <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
             </div>
             <h4 class="font-semibold">Fintech Platforms</h4>
             <p class="text-sm text-sch-muted mt-1">Mobile money & payments</p>
           </div>
-          <div class="system-card glass-card">
+          <div class="system-card glass-card magnetic-surface">
             <div class="system-icon">
               <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
             </div>
             <h4 class="font-semibold">CRM & Analytics</h4>
             <p class="text-sm text-sch-muted mt-1">Intelligence & analytics</p>
           </div>
-          <div class="system-card glass-card">
+          <div class="system-card glass-card magnetic-surface">
             <div class="system-icon">
               <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
             </div>
             <h4 class="font-semibold">Workflow Automation</h4>
             <p class="text-sm text-sch-muted mt-1">Process automation</p>
           </div>
-          <div class="system-card glass-card">
+          <div class="system-card glass-card magnetic-surface">
             <div class="system-icon">
               <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
             </div>
@@ -581,7 +619,7 @@
       </div>
 
       <!-- Dashboard Preview -->
-      <div class="systems-showcase reveal-right" data-parallax="0.04">
+      <div class="systems-showcase reveal-right magnetic-surface" data-parallax="0.04">
         <div class="dashboard-float-card dashboard-float-card--workflow">
           <span class="product-chip">Workflow</span>
           <div class="mt-2 space-y-1.5">
@@ -592,8 +630,27 @@
         </div>
         <div class="dashboard-float-card dashboard-float-card--mobile">
           <div class="text-[9px] text-sch-muted font-mono-label">MoMo</div>
-          <div class="text-sm font-semibold mt-1">UGX 1.2M</div>
+          <div class="text-sm font-semibold mt-1 metric-live" data-live="1240000">UGX 1.2M</div>
           <div class="text-[9px] text-sch-green mt-0.5">+12% today</div>
+        </div>
+        <div class="dashboard-float-card dashboard-float-card--sparkline">
+          <div class="text-[9px] text-sch-muted font-mono-label">Live Traffic</div>
+          <div class="flex items-end gap-0.5 h-8 mt-2">
+            <div class="spark-bar h-[40%]"></div>
+            <div class="spark-bar h-[65%]"></div>
+            <div class="spark-bar h-[55%]"></div>
+            <div class="spark-bar h-[80%]"></div>
+            <div class="spark-bar h-[72%]"></div>
+            <div class="spark-bar h-[95%]"></div>
+          </div>
+          <div class="text-[9px] text-sch-blue mt-1.5">2.4K sessions/hr</div>
+        </div>
+        <div class="dashboard-float-card dashboard-float-card--notify">
+          <div class="flex items-center gap-2">
+            <span class="live-dot"></span>
+            <span class="text-[9px] text-sch-muted">API Status</span>
+          </div>
+          <div class="text-xs font-medium mt-1 text-sch-green">All systems operational</div>
         </div>
         <div class="dashboard-preview">
           <div class="flex">
@@ -656,112 +713,143 @@
   </div>
 </section>
 
-<!-- ═══════════════════ MEDIA & CREATIVE ═══════════════════ -->
-<section id="media" class="relative z-10 section-pause border-t border-white/5">
+<!-- ═══════════════════ CINEMATIC SHOWCASE ═══════════════════ -->
+<section id="media" class="relative z-10 section-pause border-t border-white/5 section-sequence showcase-cinema">
+  <div class="showcase-cinema-glow" aria-hidden="true"></div>
   <div class="max-w-content mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8 mb-20 reveal-blur">
+    <div class="media-header flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8 mb-16 reveal-blur">
       <div>
-        <span class="section-label">Media & Creative</span>
-        <h2 class="section-title section-title--xl mt-5">Cinematic<br/>Storytelling</h2>
+        <span class="section-label">Creative Showcase</span>
+        <h2 class="section-title section-title--xl mt-5">A Curated<br/>Cinematic Museum</h2>
       </div>
-      <p class="media-section-lead lg:text-right">
-        Visual narratives that move audiences.
+      <p class="media-section-lead lg:text-right max-w-sm">
+        Four pillars of creativity — film, photography, brand, and the academy. Immersive. Editorial. Intentional.
       </p>
     </div>
 
-    <!-- Featured Showcase -->
-    <div class="grid lg:grid-cols-2 gap-6 mb-8">
-      <div class="media-showcase reveal-scale" data-album="videos" role="button" tabindex="0" aria-label="Open Film Production albums">
-        <img src="https://res.cloudinary.com/djr43ohnq/image/upload/f_auto,q_auto:good,w_800/v1759536578/2149729052_dznia5.jpg" alt="Film production showcase" loading="lazy" width="800" height="500"/>
-        <div class="media-overlay">
-          <span class="media-tag mb-3">Film Production</span>
-          <h3 class="font-display text-2xl font-bold">Brand Documentary Series</h3>
-          <p class="text-sm text-sch-muted mt-2">Enterprise brand films</p>
+    <!-- Four Cinematic Pillars -->
+    <div class="showcase-pillars reveal">
+      <article class="showcase-pillar showcase-pillar--film reveal-scale" data-album="film" role="button" tabindex="0" aria-label="Open Film Production showcase">
+        <div class="showcase-pillar__media">
+          <img src="https://res.cloudinary.com/djr43ohnq/image/upload/f_auto,q_auto:good,w_900/v1759536578/2149729052_dznia5.jpg" alt="Film production" loading="lazy" width="900" height="560"/>
+          <span class="showcase-pillar__play" aria-hidden="true"><svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
         </div>
-      </div>
-      <div class="media-showcase reveal-scale stagger-1" data-album="graphics" data-subalbum="logos" role="button" tabindex="0" aria-label="Open Brand Identity album">
-        <img src="https://res.cloudinary.com/djr43ohnq/image/upload/f_auto,q_auto:good,w_800/v1759536582/18697_q1ptuz.jpg" alt="Creative campaign showcase" loading="lazy" width="800" height="500"/>
-        <div class="media-overlay">
-          <span class="media-tag mb-3">Brand Identity</span>
-          <h3 class="font-display text-2xl font-bold">Visual Identity Systems</h3>
-          <p class="text-sm text-sch-muted mt-2">Concept to launch</p>
+        <div class="showcase-pillar__body">
+          <span class="showcase-pillar__index">01</span>
+          <span class="showcase-pillar__tag">Film Production</span>
+          <h3 class="showcase-pillar__title">Motion That Moves People</h3>
+          <p class="showcase-pillar__desc">Commercial films · Events · BTS · Motion storytelling</p>
         </div>
-      </div>
+      </article>
+
+      <article class="showcase-pillar showcase-pillar--photo reveal-scale stagger-1" data-album="photography" role="button" tabindex="0" aria-label="Open Photography showcase">
+        <div class="showcase-pillar__media">
+          <img src="https://res.cloudinary.com/djr43ohnq/image/upload/f_auto,q_auto:good,w_700/v1759536578/2149729052_dznia5.jpg" alt="Photography" loading="lazy" width="700" height="480"/>
+        </div>
+        <div class="showcase-pillar__body">
+          <span class="showcase-pillar__index">02</span>
+          <span class="showcase-pillar__tag">Photography</span>
+          <h3 class="showcase-pillar__title">Visual Stories in Still Light</h3>
+          <p class="showcase-pillar__desc">Portraits · Events · Editorial · Lifestyle</p>
+        </div>
+      </article>
+
+      <article class="showcase-pillar showcase-pillar--brand reveal-scale stagger-2" data-album="brand" data-subalbum="brandSystems" role="button" tabindex="0" aria-label="Open Brand Identity showcase">
+        <div class="showcase-pillar__media">
+          <img src="https://res.cloudinary.com/djr43ohnq/image/upload/f_auto,q_auto:good,w_700/v1759536582/18697_q1ptuz.jpg" alt="Brand identity design" loading="lazy" width="700" height="480"/>
+        </div>
+        <div class="showcase-pillar__body">
+          <span class="showcase-pillar__index">03</span>
+          <span class="showcase-pillar__tag">Brand Identity</span>
+          <h3 class="showcase-pillar__title">Design That Defines Presence</h3>
+          <p class="showcase-pillar__desc">Systems · Campaigns · Identity · Marketing</p>
+        </div>
+      </article>
+
+      <article class="showcase-pillar showcase-pillar--academy reveal-scale stagger-3" data-album="academy" role="button" tabindex="0" aria-label="Open Multimedia Academy showcase">
+        <div class="showcase-pillar__media showcase-pillar__media--academy">
+          <img src="https://res.cloudinary.com/djr43ohnq/image/upload/f_auto,q_auto:good,w_700/v1759536578/2149729052_dznia5.jpg" alt="Multimedia Academy" loading="lazy" width="700" height="480"/>
+        </div>
+        <div class="showcase-pillar__body">
+          <span class="showcase-pillar__index">04</span>
+          <span class="showcase-pillar__tag">Academy</span>
+          <h3 class="showcase-pillar__title">Future Creators</h3>
+        </div>
+      </article>
     </div>
 
-    <!-- Cinematic Strip -->
-    <div class="cinematic-strip reveal">
-      <div class="cinematic-item">
-        <div class="media-showcase aspect-[4/3]" data-album="photos" role="button" tabindex="0" aria-label="Open Photography albums">
-          <img src="https://res.cloudinary.com/djr43ohnq/image/upload/f_auto,q_auto:good,w_600/v1759536578/2149729052_dznia5.jpg" alt="Photography" loading="lazy"/>
-          <div class="media-overlay">
-            <span class="media-tag">Photography</span>
-            <h4 class="font-display font-semibold mt-2">Commercial Photography</h4>
-          </div>
+    <!-- Academy showcase (replaces legacy Social Reels / Motion card) -->
+    <article class="media-showcase media-showcase--academy reveal-scale mt-8" data-album="academy" role="button" tabindex="0" aria-label="Open Multimedia Academy showcase">
+      <div class="media-showcase__visual media-showcase__visual--academy">
+        <img src="https://res.cloudinary.com/djr43ohnq/image/upload/f_auto,q_auto:good,w_1200/v1759536578/2149729052_dznia5.jpg" alt="Multimedia Academy learning showcase" loading="lazy" width="1200" height="400"/>
+        <div class="play-btn" aria-hidden="true">
+          <svg width="20" height="20" fill="white" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
         </div>
       </div>
-      <div class="cinematic-item">
-        <div class="media-showcase aspect-[4/3]" data-album="videos" data-subalbum="reels" role="button" tabindex="0" aria-label="Open Animation and reels album">
-          <div class="w-full h-full bg-gradient-to-br from-sch-navy to-sch-blue/30 flex items-center justify-center">
-            <div class="play-btn">
-              <svg width="20" height="20" fill="white" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-            </div>
-          </div>
-          <div class="media-overlay">
-            <span class="media-tag">Animation</span>
-            <h4 class="font-display font-semibold mt-2">Motion Graphics Reel</h4>
-          </div>
-        </div>
+      <div class="media-overlay">
+        <span class="media-tag">Academy</span>
+        <h4 class="font-display font-semibold mt-2">Academy Showcase</h4>
       </div>
-      <div class="cinematic-item">
-        <div class="media-showcase aspect-[4/3]" data-album="graphics" data-subalbum="eflyers" role="button" tabindex="0" aria-label="Open Campaigns album">
-          <img src="https://res.cloudinary.com/djr43ohnq/image/upload/f_auto,q_auto:good,w_600/v1759536582/18697_q1ptuz.jpg" alt="Content campaigns" loading="lazy"/>
-          <div class="media-overlay">
-            <span class="media-tag">Campaigns</span>
-            <h4 class="font-display font-semibold mt-2">Digital Content Strategy</h4>
-          </div>
-        </div>
-      </div>
-    </div>
+    </article>
   </div>
 </section>
 
-<!-- ═══════════════════ ACADEMY ═══════════════════ -->
-<section id="academy" class="relative z-10 section-compact">
+<!-- ═══════════════════ MULTIMEDIA ACADEMY ═══════════════════ -->
+<section id="academy" class="relative z-10 section-pause border-t border-white/5 academy-cinematic">
+  <div class="academy-cinematic-glow" aria-hidden="true"></div>
   <div class="max-w-content mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="academy-minimal reveal-blur">
-      <span class="section-label">Academy</span>
-      <h2 class="section-title mt-4 max-w-lg">Engineering Digital Talent</h2>
-      <p class="mt-4 text-sch-muted max-w-md">
-        Photography · Videography · Design · Multimedia
-      </p>
-
-      <div class="academy-tags">
-        <span class="academy-tag tag-blue">Photography</span>
-        <span class="academy-tag tag-orange">Videography</span>
-        <span class="academy-tag tag-green">Design & Animation</span>
+    <div class="academy-immersive reveal-blur">
+      <div class="academy-immersive__copy">
+        <span class="section-label">Multimedia Academy</span>
+        <h2 class="section-title section-title--xl mt-5 max-w-xl">Training Future Storytellers</h2>
+        <p class="academy-immersive__lead mt-5 max-w-lg">
+          A creative learning ecosystem — growth, craft, and innovation.
+        </p>
+        <p class="academy-immersive__story mt-4 max-w-md">
+          From beginner to pro. Photography, film, design, and multimedia.
+        </p>
+        <div class="academy-immersive__tags mt-6">
+          <span class="academy-tag tag-blue">Creative Training</span>
+          <span class="academy-tag tag-orange">Student Showcase</span>
+          <span class="academy-tag tag-green">Workshops</span>
+          <span class="academy-tag tag-gold">Future Creators</span>
+        </div>
+        <div class="academy-immersive__actions mt-8 flex flex-wrap gap-4">
+          <button type="button" class="btn btn-primary btn-magnetic" data-album="academy" aria-label="Explore Academy showcase">
+            Explore Academy Showcase
+          </button>
+          <a href="https://synergymultimediaacademy.com/" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-magnetic btn-external">
+            Enroll at Academy
+          </a>
+        </div>
       </div>
-
-      <a href="https://synergymultimediaacademy.com/" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-magnetic btn-external mt-8">
-        Enroll in Academy
-      </a>
+      <div class="academy-immersive__visual reveal-scale" data-album="academy" role="button" tabindex="0" aria-label="Open Academy learning showcase">
+        <div class="academy-visual-card">
+          <img src="https://res.cloudinary.com/djr43ohnq/image/upload/f_auto,q_auto:good,w_800/v1759536578/2149729052_dznia5.jpg" alt="Academy learning in action" loading="lazy" width="800" height="520"/>
+          <div class="academy-visual-card__overlay">
+            <span class="academy-visual-card__label">Learning In Action</span>
+            <span class="academy-visual-card__cta">Enter the experience →</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
 
 <!-- ═══════════════════ CASE STUDIES ═══════════════════ -->
-<section id="case-studies" class="relative z-10 section-pause border-t border-white/5">
+<section id="case-studies" class="relative z-10 section-pause border-t border-white/5 section-sequence">
+  <div class="section-mesh section-mesh--gold" aria-hidden="true"></div>
   <div class="max-w-content mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="max-w-2xl mb-24 reveal-blur">
+    <div class="case-studies-header max-w-2xl mb-24 reveal-blur">
       <span class="section-label">Case Studies</span>
       <h2 class="section-title section-title--xl mt-5">Transformation<br/>Stories</h2>
       <p class="mt-5 text-sch-muted text-lg">Measurable impact. Real outcomes.</p>
     </div>
 
     <!-- Case Study 1 -->
-    <div class="case-study reveal">
-      <div class="grid lg:grid-cols-2 gap-12 items-center">
-        <div>
+    <div class="case-study case-study--cinematic reveal">
+      <div class="grid lg:grid-cols-[1fr_1.1fr] gap-12 lg:gap-16 items-center">
+        <div class="case-study-narrative">
           <span class="text-xs uppercase tracking-wider text-sch-blue font-medium">Fintech · Lending</span>
           <h3 class="font-display text-2xl lg:text-3xl font-bold mt-3">QuickCredit Ug</h3>
           <div class="case-study-compact mt-4 space-y-4">
@@ -789,8 +877,40 @@
           </div>
         </div>
 
-        <div>
-          <div class="grid grid-cols-3 gap-4 mb-6">
+        <div class="case-study-visual">
+          <div class="case-ui-preview magnetic-surface" aria-hidden="true">
+            <div class="case-ui-preview__header">
+              <span class="ui-dot ui-dot-red"></span>
+              <span class="ui-dot ui-dot-yellow"></span>
+              <span class="ui-dot ui-dot-green"></span>
+              <span class="font-mono-label text-[9px] text-sch-muted ml-auto">QuickCredit Dashboard</span>
+            </div>
+            <div class="case-ui-preview__body">
+              <div class="grid grid-cols-2 gap-2 mb-3">
+                <div class="case-ui-stat">
+                  <div class="text-[8px] text-sch-muted uppercase">Portfolio</div>
+                  <div class="text-sm font-semibold">UGX 320M</div>
+                </div>
+                <div class="case-ui-stat">
+                  <div class="text-[8px] text-sch-muted uppercase">Approval Rate</div>
+                  <div class="text-sm font-semibold text-sch-green">94.2%</div>
+                </div>
+              </div>
+              <div class="flex items-end gap-1 h-20">
+                <div class="chart-bar flex-1 h-[35%]"></div>
+                <div class="chart-bar flex-1 h-[55%]"></div>
+                <div class="chart-bar flex-1 h-[48%]"></div>
+                <div class="chart-bar flex-1 h-[72%]"></div>
+                <div class="chart-bar flex-1 h-[88%]"></div>
+              </div>
+              <div class="case-ui-preview__float">
+                <span class="live-dot"></span>
+                <span class="text-[8px] text-sch-muted">Live approvals</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-4 mb-6 case-study-metrics">
             <div class="case-metric glass-card">
               <div class="case-metric-value" data-count="40" data-suffix="%">0</div>
               <div class="case-metric-label">Lead Conversion ↑</div>
@@ -830,10 +950,46 @@
     </div>
 
     <!-- Case Study 2 -->
-    <div class="case-study reveal">
-      <div class="grid lg:grid-cols-2 gap-12 items-center">
-        <div class="order-2 lg:order-1">
-          <div class="grid grid-cols-3 gap-4 mb-6">
+    <div class="case-study case-study--cinematic case-study--reverse reveal">
+      <div class="grid lg:grid-cols-[1.1fr_1fr] gap-12 lg:gap-16 items-center">
+        <div class="case-study-visual order-2 lg:order-1">
+          <div class="case-ui-preview case-ui-preview--travel magnetic-surface" aria-hidden="true">
+            <div class="case-ui-preview__header">
+              <span class="ui-dot ui-dot-red"></span>
+              <span class="ui-dot ui-dot-yellow"></span>
+              <span class="ui-dot ui-dot-green"></span>
+              <span class="font-mono-label text-[9px] text-sch-muted ml-auto">Afrisites Booking</span>
+            </div>
+            <div class="case-ui-preview__body">
+              <div class="case-ui-booking">
+                <div class="case-ui-booking__item">
+                  <div class="w-8 h-8 rounded-lg bg-sch-orange/15"></div>
+                  <div class="flex-1">
+                    <div class="text-[9px] font-medium">Safari Package</div>
+                    <div class="text-[8px] text-sch-muted">Confirmed · 4 guests</div>
+                  </div>
+                  <span class="text-[8px] text-sch-green">Paid</span>
+                </div>
+                <div class="case-ui-booking__item">
+                  <div class="w-8 h-8 rounded-lg bg-sch-blue/15"></div>
+                  <div class="flex-1">
+                    <div class="text-[9px] font-medium">Coastal Tour</div>
+                    <div class="text-[8px] text-sch-muted">Pending · 2 guests</div>
+                  </div>
+                  <span class="text-[8px] text-sch-orange">Review</span>
+                </div>
+              </div>
+              <div class="flex items-end gap-1 h-12 mt-3">
+                <div class="spark-bar h-[45%]"></div>
+                <div class="spark-bar h-[70%]"></div>
+                <div class="spark-bar h-[60%]"></div>
+                <div class="spark-bar h-[85%]"></div>
+                <div class="spark-bar h-[95%]"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-4 mb-6 case-study-metrics">
             <div class="case-metric glass-card">
               <div class="case-metric-value" data-count="200" data-suffix="%">0</div>
               <div class="case-metric-label">Online Bookings ↑</div>
@@ -860,7 +1016,7 @@
           </div>
         </div>
 
-        <div class="order-1 lg:order-2">
+        <div class="case-study-narrative order-1 lg:order-2">
           <span class="text-xs uppercase tracking-wider text-sch-orange font-medium">Travel · Digital Platform</span>
           <h3 class="font-display text-2xl lg:text-3xl font-bold mt-3">Afrisites Tours & Travel</h3>
           <div class="case-study-compact mt-4 space-y-4">
@@ -1016,10 +1172,11 @@
 <div id="albumsSlider" class="hidden" aria-hidden="true"></div>
 
 <!-- Album Viewer -->
-<div id="albumView" class="album-view hidden fixed inset-0 z-[300] flex flex-col" role="dialog" aria-modal="true" aria-label="Portfolio album viewer">
+<div id="albumView" class="album-view album-view--cinematic hidden fixed inset-0 z-[300] flex flex-col" role="dialog" aria-modal="true" aria-label="Portfolio gallery">
+  <div class="album-view-glow" aria-hidden="true"></div>
   <div class="album-view-header flex items-center justify-between gap-4 px-6 py-4">
     <div class="flex items-center gap-3 min-w-0">
-      <button id="albumBack" type="button" class="btn btn-ghost text-sm py-2 px-4 shrink-0">← Close Album</button>
+      <button id="albumBack" type="button" class="btn btn-ghost text-sm py-2 px-4 shrink-0">← Back</button>
       <div id="albumViewBreadcrumb" class="album-view-breadcrumb hidden min-w-0" aria-live="polite"></div>
     </div>
     <div id="imageCounter" class="text-sm text-white/50 font-medium shrink-0"></div>
@@ -1049,13 +1206,26 @@
   </div>
 </div>
 
-<!-- Lightbox -->
-<div id="lightbox" class="lightbox-view hidden fixed inset-0 z-[310] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Full size image">
-  <img id="lightboxImage" class="rounded-lg" alt="" decoding="async"/>
-  <button id="lightboxClose" type="button" aria-label="Close lightbox" class="absolute top-6 right-6 w-12 h-12 rounded-full glass flex items-center justify-center hover:border-sch-blue/40 transition-colors">
-    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg>
+<!-- Cinematic Lightbox -->
+<div id="lightbox" class="lightbox-view lightbox-view--cinematic hidden fixed inset-0 z-[310]" role="dialog" aria-modal="true" aria-label="Full size image">
+  <div class="lightbox-backdrop" aria-hidden="true"></div>
+  <div class="lightbox-glow" aria-hidden="true"></div>
+  <button id="lightboxClose" type="button" aria-label="Close lightbox" class="lightbox-control lightbox-control--close touch-target">
+    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg>
   </button>
-  <div id="lightboxCounter" class="absolute bottom-6 left-1/2 -translate-x-1/2 text-sm text-white/60 glass px-4 py-2 rounded-full"></div>
+  <button id="lightboxPrev" type="button" aria-label="Previous image" class="lightbox-control lightbox-control--prev touch-target">
+    <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M15 18l-6-6 6-6"/></svg>
+  </button>
+  <button id="lightboxNext" type="button" aria-label="Next image" class="lightbox-control lightbox-control--next touch-target">
+    <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M9 6l6 6-6 6"/></svg>
+  </button>
+  <div class="lightbox-stage">
+    <img id="lightboxImage" class="lightbox-image" alt="" decoding="async"/>
+  </div>
+  <div class="lightbox-footer">
+    <p id="lightboxCaption" class="lightbox-caption"></p>
+    <div id="lightboxCounter" class="lightbox-counter"></div>
+  </div>
 </div>
 
 <script src="/js/site-config.js" defer></script>

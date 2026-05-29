@@ -1698,20 +1698,22 @@ a.showcase-card { cursor: pointer; }
   min-height: 56px;
   display: flex;
   align-items: center;
+  background: transparent;
 }
 
 .showcase-card__logo img {
-  max-height: 64px;
-  max-width: min(200px, 85%);
+  max-height: 72px;
+  max-width: min(220px, 90%);
   width: auto;
   height: auto;
   object-fit: contain;
+  background: transparent;
   transition: transform 0.45s var(--sch-ease);
 }
 
 .showcase-card--featured .showcase-card__logo img {
-  max-height: 72px;
-  max-width: min(220px, 90%);
+  max-height: 80px;
+  max-width: min(240px, 92%);
 }
 
 .showcase-card__title {

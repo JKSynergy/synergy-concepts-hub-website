@@ -5,10 +5,12 @@
     "build:css": "tailwindcss -i ./css/tailwind.input.css -o ./css/tailwind.css --minify",
     "build": "npm run build:css",
     "watch:css": "tailwindcss -i ./css/tailwind.input.css -o ./css/tailwind.css --watch",
-    "prepare:deploy": "node scripts/prepare-deploy.mjs",
+    "logos": "node scripts/process-client-logos.mjs",
+    "prepare:deploy": "node scripts/process-client-logos.mjs && node scripts/prepare-deploy.mjs",
     "deploy": "npm run prepare:deploy && wrangler pages deploy _deploy --project-name=synergywebsite --branch=main --commit-dirty=true"
   },
   "devDependencies": {
+    "sharp": "^0.33.5",
     "tailwindcss": "^3.4.17",
     "wrangler": "^4.95.0"
   }

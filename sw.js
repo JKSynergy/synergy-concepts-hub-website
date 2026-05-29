@@ -1,10 +1,10 @@
 // Service Worker for Synergy Concepts Hub
 // Implements caching strategies for optimal performance
 
-const CACHE_NAME = 'sch-v1.5.1';
-const STATIC_CACHE = 'sch-static-v1.5.1';
-const DYNAMIC_CACHE = 'sch-dynamic-v1.5.1';
-const IMAGE_CACHE = 'sch-images-v1.5.1';
+const CACHE_NAME = 'sch-v1.6.0';
+const STATIC_CACHE = 'sch-static-v1.6.0';
+const DYNAMIC_CACHE = 'sch-dynamic-v1.6.0';
+const IMAGE_CACHE = 'sch-images-v1.6.0';
 
 // Resources to cache immediately
 const STATIC_ASSETS = [
@@ -60,9 +60,12 @@ self.addEventListener('activate', (event) => {
       .then((cacheNames) => {
         return Promise.all(
           cacheNames.map((cacheName) => {
-            if (cacheName !== STATIC_CACHE && 
-                cacheName !== DYNAMIC_CACHE && 
-                cacheName !== IMAGE_CACHE) {
+            if (
+              cacheName !== STATIC_CACHE &&
+              cacheName !== DYNAMIC_CACHE &&
+              cacheName !== IMAGE_CACHE &&
+              cacheName.startsWith('sch-')
+            ) {
               console.log('Deleting old cache:', cacheName);
               return caches.delete(cacheName);
             }
@@ -113,8 +116,16 @@ function isStaticAsset(request) {
          STATIC_ASSETS.some(function (asset) { return url.href.includes(asset); });
 }
 
-// Handle image requests with stale-while-revalidate
+function isClientLogoRequest(request) {
+  return /\/images\/clients\//i.test(new URL(request.url).pathname);
+}
+
+// Handle image requests — client logos always network-first (fresh assets)
 async function handleImageRequest(request) {
+  if (isClientLogoRequest(request)) {
+    return handleClientLogoRequest(request);
+  }
+
   const cache = await caches.open(IMAGE_CACHE);
   const cachedResponse = await cache.match(request);
   
@@ -147,6 +158,21 @@ async function handleImageRequest(request) {
       '<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="#9ca3af">Image Offline</text></svg>',
       { headers: { 'Content-Type': 'image/svg+xml' } }
     );
+  }
+}
+
+async function handleClientLogoRequest(request) {
+  const cache = await caches.open(IMAGE_CACHE);
+  try {
+    const response = await fetch(request, { cache: 'no-store' });
+    if (response.ok) {
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch (error) {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    throw error;
   }
 }
 

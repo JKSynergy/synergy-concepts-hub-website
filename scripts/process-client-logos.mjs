@@ -49,6 +49,32 @@ function hasTransparency(data, channels, width, height) {
   return sampled > 0 && transparent / sampled > 0.08;
 }
 
+function isUserProvidedPng(inputPath, clientId) {
+  const expected = path.join(outDir, `${clientId}.png`);
+  return path.resolve(inputPath) === path.resolve(expected);
+}
+
+/** User-edited PNG in images/clients — preserve transparency, no matte stripping */
+async function processUserLogo(inputPath, outputPath) {
+  const tmp = `${outputPath}.tmp`;
+  const meta = await sharp(inputPath).metadata();
+  const stat = fs.statSync(inputPath);
+
+  let pipeline = sharp(inputPath).ensureAlpha();
+
+  if ((meta.width || 0) > 520 || stat.size > 350000) {
+    pipeline = pipeline.resize(520, 200, { fit: 'inside', withoutEnlargement: true });
+  }
+
+  await pipeline
+    .png({ compressionLevel: 9, adaptiveFiltering: true, effort: 10 })
+    .toFile(tmp);
+
+  fs.renameSync(tmp, outputPath);
+  return 'user-clean';
+}
+
+/** Legacy sources from client logos/ — matte removal only when needed */
 async function stripMatte(inputPath, outputPath) {
   const pipeline = sharp(inputPath).ensureAlpha().resize(560, 200, {
     fit: 'inside',
@@ -96,7 +122,9 @@ async function main() {
       continue;
     }
 
-    const mode = await stripMatte(input, output);
+    const mode = isUserProvidedPng(input, client.id)
+      ? await processUserLogo(input, output)
+      : await stripMatte(input, output);
     const stat = fs.statSync(output);
     console.log(`  ${client.id}.png ← ${path.basename(input)} (${mode}, ${Math.round(stat.size / 1024)} KB)`);
   }

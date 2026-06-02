@@ -3,12 +3,11 @@
 // Four pillars: Film · Photography · Brand · Academy
 // =================================================================
 
-const PLACEHOLDER_FILM =
-  'https://res.cloudinary.com/djr43ohnq/image/upload/f_auto,q_auto:good,w_1200/v1759536578/2149729052_dznia5.jpg';
-const PLACEHOLDER_BRAND =
-  'https://res.cloudinary.com/djr43ohnq/image/upload/f_auto,q_auto:good,w_1200/v1759536582/18697_q1ptuz.jpg';
-const PLACEHOLDER_ACADEMY =
-  'https://res.cloudinary.com/djr43ohnq/image/upload/f_auto,q_auto:good,w_1200/v1759536578/2149729052_dznia5.jpg';
+const PLACEHOLDER_FILM = '/images/showcase/film.png';
+const PLACEHOLDER_BRAND = '/images/showcase/brand.jpg';
+const PLACEHOLDER_PHOTO = '/images/showcase/photography.png';
+const PLACEHOLDER_ACADEMY = '/images/albums/academy/academy.jpg';
+const PLACEHOLDER_ACADEMY_PAGE = '/images/showcase/academy-page.jpg';
 
 /** @typedef {{ type?: string, poster?: string, src?: string, title?: string, comingSoon?: boolean }} MediaItem */
 
@@ -25,95 +24,143 @@ const MAIN_PORTFOLIO_ALBUMS = {
       { type: 'video', src: 'https://www.youtube.com/watch?v=-MOPHNwNPO0', title: 'Event Film III' },
       { type: 'video', src: 'https://www.youtube.com/watch?v=lGCvNB_iIVY', title: 'Event Film IV' }
     ],
-    behindTheScenes: [],
+    behindTheScenes: [
+      'images/albums/film/behind-the-scenes/Bts 1.jpg',
+      'images/albums/film/behind-the-scenes/Bts 2.jpg',
+      'images/albums/film/behind-the-scenes/Bts 3.jpg',
+      'images/albums/film/behind-the-scenes/Bts 4.jpg'
+    ],
     motionStorytelling: []
   },
   photography: {
-    portraitStories: {
-      'Katherine & Ron': [
-        'images/albums/photos/weddings/Katherine & Ron/Kath & Ron-49.jpg',
-        'images/albums/photos/weddings/Katherine & Ron/Kath & Ron-57.jpg',
-        'images/albums/photos/weddings/Katherine & Ron/Kath & Ron-58.jpg',
-        'images/albums/photos/weddings/Katherine & Ron/Kath & Ron-65.jpg',
-        'images/albums/photos/weddings/Katherine & Ron/Kath & Ron-68.jpg',
-        'images/albums/photos/weddings/Katherine & Ron/Kath & Ron-81.jpg'
-      ],
-      'Dan Kwanjula': [
-        'images/albums/photos/introductions/Dan Kwanjula/DSC_0580.jpg',
-        'images/albums/photos/introductions/Dan Kwanjula/DSC_0626.jpg',
-        'images/albums/photos/introductions/Dan Kwanjula/DSC_0719.jpg',
-        'images/albums/photos/introductions/Dan Kwanjula/DSC_0807.jpg',
-        'images/albums/photos/introductions/Dan Kwanjula/DSC_1263.jpg'
-      ]
-    },
+    portraitStories: [
+      'images/albums/photos/portrait-stories/2149152612.jpg',
+      'images/albums/photos/portrait-stories/DR. CHRISTINE (10).jpg',
+      'images/albums/photos/portrait-stories/DR. CHRISTINE (2).jpg',
+      'images/albums/photos/portrait-stories/DR. CHRISTINE (4).jpg',
+      'images/albums/photos/portrait-stories/DR. CHRISTINE (5).jpg',
+      'images/albums/photos/portrait-stories/DR. CHRISTINE (6).jpg',
+      'images/albums/photos/portrait-stories/DR. CHRISTINE (8).jpg',
+      'images/albums/photos/portrait-stories/DR. CHRISTINE (9).jpg',
+      'images/albums/photos/portrait-stories/Joseph.jpg',
+      'images/albums/photos/portrait-stories/Photo 1.jpg',
+      'images/albums/photos/portrait-stories/Photo 2.jpg',
+      'images/albums/photos/portrait-stories/Vianney 4.jpg',
+      'images/albums/photos/portrait-stories/Vianney.jpg'
+    ],
     eventExperiences: [],
-    editorialPhotography: [],
-    creativeSessions: [],
+    editorialPhotography: [
+      'images/albums/photos/studio/DSC_9904.jpg.jpg',
+      'images/albums/photos/studio/Exodus 13.jpg',
+      'images/albums/photos/studio/Exodus 14.jpg',
+      'images/albums/photos/studio/Exodus 2,.jpg',
+      'images/albums/photos/studio/Exodus 21.jpg',
+      'images/albums/photos/studio/Exodus 3.jpg',
+      'images/albums/photos/studio/Exodus 4.jpg',
+      'images/albums/photos/studio/Exodus.jpg',
+      'images/albums/photos/studio/IMG_9567.JPG.jpeg',
+      'images/albums/photos/studio/IMG_9568.JPG.jpeg',
+      'images/albums/photos/studio/IMG_9569.JPG.jpeg',
+      'images/albums/photos/studio/MUS_3529.jpg',
+      'images/albums/photos/studio/MUS_3545.jpg',
+      'images/albums/photos/studio/MUS_3586.jpg',
+      'images/albums/photos/studio/_MIC3537.jpg.jpg',
+      'images/albums/photos/studio/_MIC3548.jpg.jpg',
+      'images/albums/photos/studio/_MIC3617.jpg.jpg',
+      'images/albums/photos/studio/_MIC3721.jpg.jpeg'
+    ],
+    creativeSessions: [
+      'images/albums/photos/creative-sessions/1.jpg',
+      'images/albums/photos/creative-sessions/10.jpg',
+      'images/albums/photos/creative-sessions/2.jpg',
+      'images/albums/photos/creative-sessions/3.jpg',
+      'images/albums/photos/creative-sessions/4.jpg',
+      'images/albums/photos/creative-sessions/5.jpg',
+      'images/albums/photos/creative-sessions/6.jpg',
+      'images/albums/photos/creative-sessions/7.jpg',
+      'images/albums/photos/creative-sessions/8.jpg',
+      'images/albums/photos/creative-sessions/9.jpg'
+    ],
     lifestyleMoments: []
   },
   brand: {
     brandSystems: [
+      'images/albums/graphics/logos/CHILDREN OF VIRTUE ALTERNATIVE BLACK BG.jpg',
+      'images/albums/graphics/logos/Diani Art Gallery Logos-03.png',
+      'images/albums/graphics/logos/Diani Art Gallery Logos-05.png',
+      'images/albums/graphics/logos/EEE NEW LOGO MODIFIED GOLD.jpg',
+      'images/albums/graphics/logos/ERA Logo White.jpg',
+      'images/albums/graphics/logos/FRAMED REALITY STUDIO-05.png',
+      'images/albums/graphics/logos/GLOW ORGANICS LOGO-01.png',
+      'images/albums/graphics/logos/PM-MEDIAArtboard-2.png',
+      'images/albums/graphics/logos/Quick Credit lOGO.jpg',
       'images/albums/graphics/logos/RBS Logo copy.jpg',
+      'images/albums/graphics/logos/SCF Celestial Wedding copy.png',
       'images/albums/graphics/logos/SMA LOGO  VERSION 2-01.png',
-      'images/albums/graphics/logos/SYNERGY CREATIVE HUB NEW LOGOS-01.jpg'
+      'images/albums/graphics/logos/SYNERGY CREATIVE HUB NEW LOGOS-01.jpg',
+      'images/albums/graphics/logos/Trav Logo.png',
+      'images/albums/graphics/logos/World Vision Uganda SPF Logo Variants-01.png'
     ],
     digitalCampaigns: [
+      'images/albums/graphics/eflyers/GRADUATION -01.jpg',
+      'images/albums/graphics/eflyers/Kelly Card.jpg',
       'images/albums/graphics/eflyers/SMA COURSES-01.png',
       'images/albums/graphics/eflyers/SMA COURSES-02.png',
-      'images/albums/graphics/eflyers/SMA STUDY TIMES-02.jpg'
+      'images/albums/graphics/eflyers/SMA STUDY TIMES-02.jpg',
+      'images/albums/graphics/eflyers/WATCHES 2.png',
+      'images/albums/graphics/eflyers/WEDDINGS 2.png',
+      'images/albums/graphics/eflyers/WEDDINGS.png',
+      'images/albums/graphics/eflyers/Watches 1.png',
+      'images/albums/graphics/banners/SYNERGY STUDIOS 450CM X 100CM NEW-01.png'
     ],
-    creativeDesign: [],
-    visualIdentity: [],
+    creativeDesign: [
+      'images/albums/graphics/certificates/Certificate Of Attendance.png'
+    ],
+    visualIdentity: [
+      'images/albums/graphics/company-profiles/Matsen profile-01.png',
+      'images/albums/graphics/company-profiles/Matsen profile-02.png',
+      'images/albums/graphics/company-profiles/Matsen profile-03.png',
+      'images/albums/graphics/company-profiles/Matsen profile-04.png',
+      'images/albums/graphics/company-profiles/Matsen profile-05.png',
+      'images/albums/graphics/company-profiles/Matsen profile-06.png',
+      'images/albums/graphics/company-profiles/Matsen profile-07.png',
+      'images/albums/graphics/company-profiles/Matsen profile-08.png',
+      'images/albums/graphics/letterheads/WVU SPF.png'
+    ],
     marketingExperiences: []
   },
   academy: {
     creativeTrainingSessions: [
-      'academy images/photography-classes/IMG_0105.jpg',
-      'academy images/photography-classes/IMG_0106.jpg',
-      'academy images/photography-classes/IMG_0107.jpg',
-      'academy images/photography-classes/IMG_0110.jpg',
-      'academy images/classrooms/20250822_163612.jpg',
-      'academy images/classrooms/20250822_164554.jpg'
+      'images/albums/academy/creative-training-sessions/268A5754.JPG',
+      'images/albums/academy/creative-training-sessions/268A5756.JPG',
+      'images/albums/academy/creative-training-sessions/DSC02423.jpg'
     ],
     studentShowcase: [
-      'academy images/students-working/student 01 (1).jpg',
-      'academy images/students-working/student 01 (2).jpg',
-      'academy images/students-working/student 01 (3).jpg',
-      'academy images/students-working/student 01 (4).jpg',
-      'academy images/students-working/student 01 (5).jpg'
+      'images/albums/academy/academy.jpg'
     ],
     learningInAction: [
-      'academy images/classrooms/20250822_164609.jpg',
-      'academy images/classrooms/20250822_164614.jpg',
-      'academy images/classrooms/20250822_164638.jpg',
-      'academy images/classrooms/20250822_164713.jpg',
-      'academy images/classrooms/20250822_164726.jpg'
+      'images/albums/academy/class-rooms/20250822_163612.jpg',
+      'images/albums/academy/class-rooms/20250822_164638.jpg',
+      'images/albums/academy/class-rooms/20250822_164713.jpg',
+      'images/albums/academy/class-rooms/20250822_165220.jpg',
+      'images/albums/academy/learning-in-action/DSC02406 copy.jpg',
+      'images/albums/academy/learning-in-action/DSC02428 copy.jpg',
+      'images/albums/academy/learning-in-action/DSC02432 copy.jpg',
+      'images/albums/academy/learning-in-action/John.jpg'
     ],
     creativeTransformations: {
-      'From Beginner to Professional Creative': [
-        'academy images/students-working/student 01 (6).jpg',
-        'academy images/students-working/student 01 (7).jpg',
-        'academy images/classrooms/20250822_165039.jpg'
-      ],
       'Future Storytellers': [
-        'academy images/classrooms/20250822_165047.jpg',
-        'academy images/classrooms/20250822_165101.jpg',
-        'academy images/classrooms/20250822_165134.jpg'
+        'images/albums/academy/future-storytellers/Kelly  (1).jpeg',
+        'images/albums/academy/future-storytellers/Kelly  (2).jpeg'
       ]
     },
     multimediaWorkshops: [
-      'academy images/classrooms/20250822_164742.jpg',
-      'academy images/classrooms/20250822_165156.jpg',
-      'academy images/classrooms/20250822_165220.jpg',
-      'academy images/classrooms/20250822_165240.jpg',
-      'academy images/classrooms/20250822_165252.jpg',
-      'academy images/classrooms/20250822_165310.jpg'
+      'images/albums/academy/multimedia-workshops/DSC02424 copy.jpg',
+      'images/albums/academy/multimedia-workshops/DSC02588.jpg',
+      'images/albums/academy/multimedia-workshops/learn.jpg'
     ],
     futureCreators: [
-      'academy images/classrooms/20250822_165321.jpg',
-      'academy images/classrooms/20250822_165352.jpg',
-      'academy images/classrooms/20250822_165442.jpg',
-      'academy images/classrooms/20250822_165604.jpg'
+      'images/albums/academy/124414.jpg'
     ]
   }
 };
@@ -712,7 +759,7 @@ class MainPortfolioManager {
   getPillarPlaceholder(albumKey) {
     const map = {
       film: PLACEHOLDER_FILM,
-      photography: PLACEHOLDER_FILM,
+      photography: PLACEHOLDER_PHOTO,
       brand: PLACEHOLDER_BRAND,
       academy: PLACEHOLDER_ACADEMY
     };
@@ -742,13 +789,30 @@ class MainPortfolioManager {
 
     const mainImageContainer = document.getElementById('mainImageContainer');
     const pillarClass = `gallery-hub--${albumKey}`;
+    const heroImage = this.getPillarPlaceholder(albumKey);
+    
+    // Get first available image from any collection for hero
+    let firstCollectionImage = heroImage;
+    for (const collection of [...featured, ...standard]) {
+      if (collection.info.firstImage) {
+        firstCollectionImage = collection.info.firstImage;
+        break;
+      }
+    }
 
     mainImageContainer.innerHTML = `
       <div class="gallery-hub ${pillarClass}">
-        <header class="gallery-hub__hero">
-          <span class="gallery-hub__label">${meta.label}</span>
-          <h2 class="gallery-hub__title">${meta.title}</h2>
-          <p class="gallery-hub__subtitle">${meta.subtitle}</p>
+        <div class="editorial-hero">
+          <img class="editorial-hero__image" src="${firstCollectionImage}" alt="${meta.title}" loading="eager"/>
+          <div class="editorial-hero__overlay"></div>
+          <div class="editorial-hero__content">
+            <span class="gallery-hub__label">${meta.label}</span>
+            <h1 class="editorial-hero__title">${meta.title}</h1>
+            <p class="editorial-hero__subtitle">${meta.subtitle}</p>
+          </div>
+        </div>
+
+        <header class="gallery-hub__hero gallery-hub__hero--compact">
           <p class="gallery-hub__story">${meta.story}</p>
           ${
             albumKey === 'academy'
@@ -849,7 +913,7 @@ class MainPortfolioManager {
                data-action="${isEmpty ? 'none' : 'collection'}" data-album="${albumKey}" data-collection="${key}"
                data-empty="${isEmpty}" tabindex="${isEmpty ? '-1' : '0'}" role="button"
                aria-label="${colMeta.title || key}${isEmpty ? ', in production' : ''}">
-        <div class="gallery-collection-card__media" style="background-image:url('${cover}')">
+        <div class="gallery-collection-card__media" style="background-image:url('${cover}'); background-size: cover; background-position: center;">
           ${filmPreview}
           ${isEmpty ? '<span class="gallery-collection-card__soon">In Production</span>' : ''}
           ${isFilm && !isEmpty ? '<span class="gallery-collection-card__play" aria-hidden="true"><svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>' : ''}

@@ -784,69 +784,36 @@ class MainPortfolioManager {
       return { key, content, info, colMeta };
     });
 
-    const featured = collections.filter((c) => c.colMeta.featured && !c.info.isEmpty);
-    const standard = collections.filter((c) => !c.colMeta.featured);
-
-    const mainImageContainer = document.getElementById('mainImageContainer');
-    const pillarClass = `gallery-hub--${albumKey}`;
     const heroImage = this.getPillarPlaceholder(albumKey);
-    
-    // Get first available image from any collection for hero
     let firstCollectionImage = heroImage;
-    for (const collection of [...featured, ...standard]) {
+    for (const collection of collections) {
       if (collection.info.firstImage) {
         firstCollectionImage = collection.info.firstImage;
         break;
       }
     }
 
+    const mainImageContainer = document.getElementById('mainImageContainer');
+    const pillarClass = `gallery-hub--${albumKey}`;
+
+    const totalItems = collections.reduce((sum, c) => sum + (c.info.count || 0), 0);
     mainImageContainer.innerHTML = `
       <div class="gallery-hub ${pillarClass}">
-        <div class="editorial-hero">
-          <img class="editorial-hero__image" src="${firstCollectionImage}" alt="${meta.title}" loading="eager"/>
-          <div class="editorial-hero__overlay"></div>
-          <div class="editorial-hero__content">
-            <span class="gallery-hub__label">${meta.label}</span>
-            <h1 class="editorial-hero__title">${meta.title}</h1>
-            <p class="editorial-hero__subtitle">${meta.subtitle}</p>
+        <div class="album-layout-hero">
+          <div class="album-layout-hero__overlay"></div>
+          <div class="album-layout-hero__content">
+            <span class="album-layout-hero__label">${meta.label}</span>
+            <h1 class="album-layout-hero__title">${meta.title}</h1>
+            <p class="album-layout-hero__description">${meta.subtitle}</p>
+            <span class="album-layout-hero__meta">${collections.length} collections · ${totalItems} visuals</span>
           </div>
         </div>
 
-        <header class="gallery-hub__hero gallery-hub__hero--compact">
-          <p class="gallery-hub__story">${meta.story}</p>
-          ${
-            albumKey === 'academy'
-              ? `<p class="gallery-hub__manifesto">Future storytellers · Beginner to pro</p>`
-              : ''
-          }
-        </header>
-
-        ${
-          featured.length
-            ? `<section class="gallery-featured" aria-label="Featured">
-                <div class="gallery-featured__head">
-                  <span class="section-label">Featured</span>
-                  <h3 class="gallery-featured__title">${featured[0].colMeta.storyTitle || 'Curated Highlights'}</h3>
-                  <p class="gallery-featured__text">${featured[0].colMeta.storyText || ''}</p>
-                </div>
-                <div class="gallery-featured__grid gallery-featured__grid--${albumKey}">
-                  ${featured.map((c) => this.renderFeaturedCard(albumKey, c)).join('')}
-                </div>
-              </section>`
-            : ''
-        }
-
-        <section class="gallery-collections" aria-label="Collections">
-          <div class="gallery-collections__head">
-            <span class="section-label">Curated Collections</span>
-            <h3 class="gallery-collections__title">Explore the Experience</h3>
-          </div>
-          <div class="gallery-collections__grid gallery-collections__grid--${albumKey}">
-            ${[...featured, ...standard]
-              .filter((c, i, arr) => arr.findIndex((x) => x.key === c.key) === i)
-              .map((c) => this.renderCollectionCard(albumKey, c))
-              .join('')}
-          </div>
+        <section class="album-layout-grid" aria-label="Collections">
+          ${collections
+            .filter((c) => !c.info.isEmpty || albumKey !== 'film')
+            .map((c) => this.renderCollectionCard(albumKey, c))
+            .join('')}
         </section>
       </div>
     `;
@@ -858,43 +825,13 @@ class MainPortfolioManager {
   }
 
   renderFeaturedCard(albumKey, { key, content, info, colMeta }) {
-    const isNested = typeof content === 'object' && !Array.isArray(content);
-    const cover = info.firstImage || this.getPillarPlaceholder(albumKey);
-    const isEmpty = info.isEmpty || this.isFilmCollectionEmpty(albumKey, key, content);
-
-    if (isNested && !isEmpty) {
-      const stories = Object.entries(content).slice(0, 2);
-      return stories
-        .map(([storyName, images]) => {
-          const storyMeta = STORY_META[storyName] || {};
-          const thumb = this.normalizeMediaItem(images[0]).poster || cover;
-          return `
-            <article class="gallery-story-card gallery-story-card--${storyMeta.accent || colMeta.accent || 'blue'}"
-                     data-action="story" data-album="${albumKey}" data-collection="${key}" data-story="${storyName}"
-                     tabindex="0" role="button">
-              <div class="gallery-story-card__media" style="background-image:url('${thumb}')"></div>
-              <div class="gallery-story-card__overlay"></div>
-              <div class="gallery-story-card__body">
-                <span class="gallery-story-card__tag">${storyMeta.tag || 'Story'}</span>
-                <h4 class="gallery-story-card__name">${storyName}</h4>
-                <p class="gallery-story-card__desc">${storyMeta.subtitle || colMeta.subtitle || ''}</p>
-                <span class="gallery-story-card__cta">Experience story →</span>
-              </div>
-            </article>
-          `;
-        })
-        .join('');
-    }
-
-    return this.renderCollectionCard(albumKey, { key, content, info, colMeta }, true);
+    return this.renderCollectionCard(albumKey, { key, content, info, colMeta });
   }
 
-  renderCollectionCard(albumKey, { key, content, info, colMeta }, featured = false) {
+  renderCollectionCard(albumKey, { key, content, info, colMeta }) {
     const isEmpty = info.isEmpty || this.isFilmCollectionEmpty(albumKey, key, content);
     const cover = info.firstImage || this.getPillarPlaceholder(albumKey);
-    const cardClass = featured ? 'gallery-collection-card gallery-collection-card--featured' : 'gallery-collection-card';
     const isFilm = albumKey === 'film';
-    const isBrand = albumKey === 'brand';
     const countLabel = isEmpty
       ? 'In production'
       : isFilm
@@ -903,27 +840,29 @@ class MainPortfolioManager {
 
     const filmPreview =
       isFilm && !isEmpty && Array.isArray(content) && content[0]?.type === 'video'
-        ? `<video class="gallery-collection-card__video" muted loop playsinline preload="metadata" poster="${cover}" ${
+        ? `<video class="album-card__video" muted loop playsinline preload="metadata" poster="${cover}" ${
             content[0].src ? `data-src="${content[0].src}"` : ''
           }></video>`
         : '';
 
     return `
-      <article class="${cardClass} gallery-collection-card--${colMeta.accent || 'blue'} gallery-collection-card--pillar-${albumKey} ${isBrand ? 'gallery-collection-card--glass' : ''} ${isEmpty ? 'gallery-collection-card--empty' : ''}"
+      <article class="album-card album-card--${albumKey} ${isEmpty ? 'album-card--empty' : ''}"
                data-action="${isEmpty ? 'none' : 'collection'}" data-album="${albumKey}" data-collection="${key}"
                data-empty="${isEmpty}" tabindex="${isEmpty ? '-1' : '0'}" role="button"
                aria-label="${colMeta.title || key}${isEmpty ? ', in production' : ''}">
-        <div class="gallery-collection-card__media" style="background-image:url('${cover}'); background-size: cover; background-position: center;">
+        <div class="album-card__media">
+          <div class="album-card__media-bg" style="background-image:url('${cover}'); background-size: cover; background-position: center;"></div>
           ${filmPreview}
-          ${isEmpty ? '<span class="gallery-collection-card__soon">In Production</span>' : ''}
-          ${isFilm && !isEmpty ? '<span class="gallery-collection-card__play" aria-hidden="true"><svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>' : ''}
-          <div class="gallery-collection-card__grain"></div>
+          ${isEmpty ? '<span class="album-card__soon-badge">In Production</span>' : ''}
+          ${isFilm && !isEmpty ? '<span class="album-card__play" aria-hidden="true"><svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>' : ''}
+          <div class="album-card__overlay"></div>
+          <div class="album-card__grain"></div>
         </div>
-        <div class="gallery-collection-card__body">
-          <span class="gallery-collection-card__category">${colMeta.category || colMeta.title || key}</span>
-          <h4 class="gallery-collection-card__title">${colMeta.title || key}</h4>
-          <p class="gallery-collection-card__subtitle">${isEmpty ? 'New cinematic work arriving soon' : colMeta.subtitle || ''}</p>
-          <span class="gallery-collection-card__count">${countLabel}</span>
+        <div class="album-card__body">
+          <span class="album-card__category">${colMeta.category || colMeta.title || key}</span>
+          <h4 class="album-card__title">${colMeta.title || key}</h4>
+          <p class="album-card__desc">${isEmpty ? 'New cinematic work arriving soon' : colMeta.subtitle || ''}</p>
+          <span class="album-card__count">${countLabel}</span>
         </div>
       </article>
     `;
@@ -931,9 +870,9 @@ class MainPortfolioManager {
 
   initCollectionVideoPreviews(container) {
     this.cleanupHoverVideos();
-    container.querySelectorAll('.gallery-collection-card__video').forEach((video) => {
+    container.querySelectorAll('.album-card__video').forEach((video) => {
       const src = video.dataset.src;
-      const parent = video.closest('.gallery-collection-card');
+      const parent = video.closest('.album-card');
       if (!parent) return;
 
       parent.addEventListener('mouseenter', () => {
@@ -1014,28 +953,38 @@ class MainPortfolioManager {
     if (pushState) this.pushNav({ type: 'hub', albumKey });
 
     const mainImageContainer = document.getElementById('mainImageContainer');
+    const heroImage = this.getPillarPlaceholder(albumKey);
+
+    const totalPhotos = stories.reduce((sum, [, photos]) => sum + photos.length, 0);
     mainImageContainer.innerHTML = `
       <div class="gallery-hub gallery-hub--stories gallery-hub--${albumKey}">
-        <header class="gallery-hub__hero gallery-hub__hero--compact">
-          <span class="gallery-hub__label">${GALLERY_META[albumKey]?.label || albumKey}</span>
-          <h2 class="gallery-hub__title">${parentTitle}</h2>
-          <p class="gallery-hub__subtitle">${colMeta.subtitle || 'Select a story to explore'}</p>
-        </header>
-        <div class="gallery-stories-grid">
+        <div class="album-layout-hero">
+          <div class="album-layout-hero__overlay"></div>
+          <div class="album-layout-hero__content">
+            <span class="album-layout-hero__label">${GALLERY_META[albumKey]?.label || albumKey}</span>
+            <h1 class="album-layout-hero__title">${parentTitle}</h1>
+            <p class="album-layout-hero__description">${colMeta.subtitle || 'Select a story to explore'}</p>
+            <span class="album-layout-hero__meta">${stories.length} stories · ${totalPhotos} frames</span>
+          </div>
+        </div>
+
+        <div class="album-layout-grid">
           ${stories
             .map(([name, photos]) => {
               const storyMeta = STORY_META[name] || {};
               const thumb = this.normalizeMediaItem(photos[0]).poster;
               return `
-                <article class="gallery-story-card gallery-story-card--large gallery-story-card--${storyMeta.accent || 'blue'}"
-                         data-story="${name}" tabindex="0" role="button">
-                  <div class="gallery-story-card__media" style="background-image:url('${thumb}')"></div>
-                  <div class="gallery-story-card__overlay"></div>
-                  <div class="gallery-story-card__body">
-                    <span class="gallery-story-card__tag">${storyMeta.tag || 'Story'}</span>
-                    <h4 class="gallery-story-card__name">${name}</h4>
-                    <p class="gallery-story-card__desc">${storyMeta.subtitle || ''}</p>
-                    <span class="gallery-story-card__count">${photos.length} frames</span>
+                <article class="album-card album-card--${albumKey}" data-story="${name}" tabindex="0" role="button">
+                  <div class="album-card__media">
+                    <div class="album-card__media-bg" style="background-image:url('${thumb}')"></div>
+                    <div class="album-card__overlay"></div>
+                    <div class="album-card__grain"></div>
+                  </div>
+                  <div class="album-card__body">
+                    <span class="album-card__category">${storyMeta.tag || 'Story'}</span>
+                    <h4 class="album-card__title">${name}</h4>
+                    <p class="album-card__desc">${storyMeta.subtitle || ''}</p>
+                    <span class="album-card__count">${photos.length} frames</span>
                   </div>
                 </article>
               `;
@@ -1086,239 +1035,96 @@ class MainPortfolioManager {
     this.cleanupHoverVideos();
 
     const mainImageContainer = document.getElementById('mainImageContainer');
-    const isFilm = albumKey === 'film';
-    const isBrand = albumKey === 'brand';
     const normalized = this.currentAlbumItems;
 
-    let galleryBody = '';
+    // Get first image for hero
+    const heroImage = normalized[0]?.url || this.getPillarPlaceholder(albumKey);
 
-    if (isFilm && normalized.some((n) => n.type === 'video')) {
-      galleryBody = this.renderFilmGalleryGrid(normalized);
-    } else if (isBrand) {
-      galleryBody = this.renderBrandGalleryGrid(normalized, items.length);
-    } else {
-      galleryBody = this.renderMasonryGrid(normalized, items.length);
-    }
+    // Generate editorial gallery grid
+    const galleryGrid = normalized.map((item, index) => {
+      if (!item.url) return '';
+      return `
+        <button type="button" class="editorial-gallery__item"
+                data-index="${index}" aria-label="Open image ${index + 1} of ${normalized.length}">
+          <img src="${item.url}" alt="" loading="${index < 4 ? 'eager' : 'lazy'}" decoding="async" class="editorial-gallery__image"/>
+          <div class="editorial-gallery__overlay"></div>
+          <div class="editorial-gallery__zoom" aria-hidden="true">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"/>
+            </svg>
+          </div>
+        </button>`;
+    }).join('');
 
     mainImageContainer.innerHTML = `
-      <div class="gallery-view gallery-view--${albumKey}">
-        <header class="gallery-view__header">
-          <div>
-            <span class="gallery-view__label">${GALLERY_META[albumKey]?.label || 'Gallery'}</span>
-            <h2 class="gallery-view__title">${title}</h2>
-            <p class="gallery-view__desc">${this.currentAlbumDescription}</p>
+      <div class="editorial-album">
+        <div class="album-layout-hero">
+          <div class="album-layout-hero__overlay"></div>
+          <div class="album-layout-hero__content">
+            <span class="album-layout-hero__label">${GALLERY_META[albumKey]?.label || 'Gallery'}</span>
+            <h1 class="album-layout-hero__title">${title}</h1>
+            <p class="album-layout-hero__description">${this.currentAlbumDescription}</p>
+            <span class="album-layout-hero__meta">${normalized.length} ${normalized.length === 1 ? 'frame' : 'frames'}</span>
           </div>
-          <div class="gallery-view__actions">
-            <button type="button" id="gallerySlideshowBtn" class="gallery-view__mode-btn">
-              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M5 5l14 7-14 7V5z"/></svg>
-              Slideshow
-            </button>
-          </div>
-        </header>
-        <div id="galleryGrid" class="gallery-grid-wrap">${galleryBody}</div>
-        <div id="gallerySlideshow" class="gallery-slideshow hidden">
-          <div class="gallery-slideshow__frame">
-            <img id="mainImageEl" class="gallery-slideshow__image" alt="" decoding="async"/>
-          </div>
-          <div id="albumDescription" class="gallery-slideshow__hud">
-            <span class="gallery-slideshow__hud-label">Now Viewing</span>
-            <h3 class="gallery-slideshow__hud-title">${title}</h3>
-            <p class="gallery-slideshow__hud-desc">${this.currentAlbumDescription}</p>
-            <div class="gallery-slideshow__hud-footer">
-              <span id="slideshowCounter" class="gallery-slideshow__count">${items.length} visuals</span>
-              <button id="autoPlayToggle" type="button" class="gallery-slideshow__autoplay">
-                <span id="autoPlayText">Auto-play</span>
-              </button>
-            </div>
-          </div>
+        </div>
+
+        <div class="editorial-gallery">
+          ${galleryGrid}
         </div>
       </div>
     `;
 
+    // Bind gallery item clicks
     mainImageContainer.querySelectorAll('[data-index]').forEach((btn) => {
       const idx = parseInt(btn.dataset.index, 10);
-      if (btn.dataset.comingSoon === 'true') return;
-      const open = () => {
-        const item = this.currentAlbumItems[idx];
-        if (item) this.openLightboxForItem(item, idx);
-      };
-      btn.addEventListener('click', open);
-      if (btn.classList.contains('gallery-film-tile')) {
-        btn.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            open();
-          }
-        });
-      }
+      btn.addEventListener('click', () => this.openLightbox(idx));
     });
 
-    this.initFilmTileVideos(mainImageContainer);
-
-    document.getElementById('autoPlayToggle')?.addEventListener('click', () => this.toggleAutoPlay());
-
-    const slideshowBtn = document.getElementById('gallerySlideshowBtn');
-    if (slideshowBtn) {
-      slideshowBtn.onclick = () => this.setGalleryViewMode('slideshow');
-    }
-
-    this.buildThumbnailStrip(this.currentAlbumImages);
     this.showAlbumShell('gallery');
     this.updateAlbumBreadcrumb(GALLERY_META[albumKey]?.label || 'Gallery', title);
     this.pauseAutoPlay();
   }
 
-  renderMasonryGrid(normalized, total) {
-    return `<div class="gallery-masonry">${normalized
-      .map((item, index) => {
-        if (!item.url) return '';
-        return `
-        <button type="button" class="gallery-masonry__item gallery-masonry__item--${this.getMasonrySize(index, total)}"
-                data-index="${index}" aria-label="Open image ${index + 1} of ${total}">
-          <img src="${item.url}" alt="" loading="lazy" decoding="async"/>
-          <span class="gallery-masonry__overlay"></span>
-          <span class="gallery-masonry__zoom" aria-hidden="true">
-            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"/></svg>
-          </span>
-        </button>`;
-      })
-      .join('')}</div>`;
-  }
+  renderRelatedCollections(albumKey, currentCollectionKey) {
+    const albumData = MAIN_PORTFOLIO_ALBUMS[albumKey];
+    if (!albumData) return '';
 
-  renderBrandGalleryGrid(normalized, total) {
-    return `<div class="gallery-brand-grid">${normalized
-      .map((item, index) => {
-        if (!item.url) return '';
-        return `
-        <button type="button" class="gallery-brand-card" data-index="${index}"
-                aria-label="Open design ${index + 1} of ${total}">
-          <div class="gallery-brand-card__glass">
-            <img src="${item.url}" alt="" loading="lazy" decoding="async"/>
+    const collections = Object.entries(albumData)
+      .filter(([key]) => key !== currentCollectionKey)
+      .slice(0, 3);
+
+    return collections.map(([key, content]) => {
+      const info = this.getSubAlbumInfo(content, albumKey, key);
+      const colMeta = COLLECTION_META[albumKey]?.[key] || {};
+      const cover = info.firstImage || this.getPillarPlaceholder(albumKey);
+
+      return `
+        <article class="album-card album-card--${albumKey} ${info.isEmpty ? 'album-card--empty' : ''}"
+                 data-action="${info.isEmpty ? 'none' : 'collection'}" data-album="${albumKey}" data-collection="${key}"
+                 tabindex="${info.isEmpty ? '-1' : '0'}" role="button">
+          <div class="album-card__media">
+            <div class="album-card__media-bg" style="background-image:url('${cover}'); background-size: cover; background-position: center;"></div>
+            <div class="album-card__overlay"></div>
+            <div class="album-card__grain"></div>
           </div>
-          <span class="gallery-brand-card__shine" aria-hidden="true"></span>
-        </button>`;
-      })
-      .join('')}</div>`;
-  }
-
-  renderFilmGalleryGrid(normalized) {
-    return `<div class="gallery-film-grid">${normalized
-      .map((item, index) => {
-        const comingSoon = item.comingSoon || (!item.src && !item.youtubeId);
-        return `
-        <article class="gallery-film-tile ${comingSoon ? 'gallery-film-tile--soon' : ''}"
-                 ${comingSoon ? '' : `data-index="${index}"`} data-coming-soon="${comingSoon}"
-                 ${comingSoon ? '' : 'role="button" tabindex="0"'}>
-          <div class="gallery-film-tile__frame">
-            <img class="gallery-film-tile__poster" src="${item.poster}" alt="${item.title || ''}" loading="lazy"/>
-            ${
-              item.src
-                ? `<video class="gallery-film-tile__video" muted loop playsinline preload="metadata" poster="${item.poster}" data-src="${item.src}"></video>`
-                : ''
-            }
-            <div class="gallery-film-tile__vignette"></div>
-            <span class="gallery-film-tile__play" aria-hidden="true">
-              <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-            </span>
-            ${comingSoon ? '<span class="gallery-film-tile__badge">In Production</span>' : ''}
+          <div class="album-card__body">
+            <span class="album-card__category">${colMeta.category || colMeta.title || key}</span>
+            <h4 class="album-card__title">${colMeta.title || key}</h4>
+            <p class="album-card__desc">${colMeta.subtitle || ''}</p>
+            <span class="album-card__count">${info.count} visuals</span>
           </div>
-          ${item.title ? `<p class="gallery-film-tile__title">${item.title}</p>` : ''}
-        </article>`;
-      })
-      .join('')}</div>`;
+        </article>
+      `;
+    }).join('');
   }
 
-  initFilmTileVideos(container) {
-    container.querySelectorAll('.gallery-film-tile').forEach((tile) => {
-      const video = tile.querySelector('.gallery-film-tile__video');
-      if (!video) return;
-      const src = video.dataset.src;
-      tile.addEventListener('mouseenter', () => {
-        if (src && !video.src) video.src = src;
-        video.play().catch(() => {});
-      });
-      tile.addEventListener('mouseleave', () => {
-        video.pause();
-        if (src) {
-          video.removeAttribute('src');
-          video.load();
-        }
-      });
-    });
-  }
-
-  setGalleryViewMode(mode) {
-    this.viewMode = mode;
-    const grid = document.getElementById('galleryGrid');
-    const slideshow = document.getElementById('gallerySlideshow');
-    const btn = document.getElementById('gallerySlideshowBtn');
-    const thumbBar = document.getElementById('albumThumbBar');
-
-    if (mode === 'slideshow') {
-      grid?.classList.add('hidden');
-      slideshow?.classList.remove('hidden');
-      thumbBar?.classList.remove('hidden');
-      this.albumPrev?.classList.remove('hidden');
-      this.albumNext?.classList.remove('hidden');
-      if (btn) {
-        btn.innerHTML =
-          '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 6h7v7H4zM13 6h7v7h-7zM4 15h7v7H4zM13 15h7v7h-7z"/></svg> Grid view';
-        btn.onclick = () => this.setGalleryViewMode('grid');
-      }
-
-      const mainImageEl = document.getElementById('mainImageEl');
-      if (mainImageEl && this.currentAlbumImages.length) {
-        mainImageEl.src = this.currentAlbumImages[this.currentImageIndex];
-        mainImageEl.alt = `${this.currentAlbumTitle} — ${this.currentImageIndex + 1} of ${this.currentAlbumImages.length}`;
-        mainImageEl.onclick = () =>
-          this.openLightboxForItem(
-            this.currentAlbumItems[this.currentImageIndex],
-            this.currentImageIndex
-          );
-      }
-      this.updateImageCounter();
-      this.startAutoPlay();
-    } else {
-      grid?.classList.remove('hidden');
-      slideshow?.classList.add('hidden');
-      thumbBar?.classList.add('hidden');
-      this.albumPrev?.classList.add('hidden');
-      this.albumNext?.classList.add('hidden');
-      if (btn) {
-        btn.innerHTML =
-          '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M5 5l14 7-14 7V5z"/></svg> Slideshow';
-        btn.onclick = () => this.setGalleryViewMode('slideshow');
-      }
-      this.pauseAutoPlay();
-      this.imageCounter.textContent = `${this.currentAlbumImages.length} visuals`;
+  openLightbox(index) {
+    const item = this.currentAlbumItems[index];
+    if (item) {
+      this.openLightboxForItem(item, index);
     }
   }
 
-  getMasonrySize(index, total) {
-    if (total <= 3) return 'hero';
-    if (index === 0 || index === 3) return 'hero';
-    if (index % 5 === 2) return 'tall';
-    return 'standard';
-  }
-
-  buildThumbnailStrip(items) {
-    this.thumbnailContainer.innerHTML = items
-      .map(
-        (url, index) => `
-      <div class="album-thumb gallery-editorial-thumb ${index === 0 ? 'active' : ''}"
-           style="background-image:url('${url}')" data-index="${index}"
-           role="button" tabindex="0" aria-label="Frame ${index + 1}"></div>
-    `
-      )
-      .join('');
-
-    this.thumbnailContainer.querySelectorAll('[data-index]').forEach((thumb) => {
-      thumb.addEventListener('click', () => {
-        this.setCurrentImage(parseInt(thumb.dataset.index, 10));
-        this.pauseAutoPlay();
-      });
-    });
-  }
 
   showAlbumShell(mode) {
     this.setAlbumViewModeClass(mode);
@@ -1479,16 +1285,6 @@ class MainPortfolioManager {
       this.lightboxCaption.textContent = caption;
     }
     this.updateImageCounter();
-  }
-
-  openLightbox(imageUrl, index) {
-    const item = this.currentAlbumItems[index] || {
-      url: imageUrl,
-      poster: imageUrl,
-      embedUrl: null,
-      title: this.currentAlbumTitle
-    };
-    this.openLightboxForItem(item, index);
   }
 
   closeLightbox() {

@@ -4147,16 +4147,9 @@ select.form-input option[value=""] {
     padding-right: 0.5rem;
   }
 
-  #albumPrev {
-    left: 0.35rem;
-    width: 44px;
-    height: 44px;
-  }
-
+  #albumPrev,
   #albumNext {
-    right: 0.35rem;
-    width: 44px;
-    height: 44px;
+    display: none;
   }
 
   .album-main-stage img,

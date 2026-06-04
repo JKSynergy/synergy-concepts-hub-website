@@ -183,51 +183,23 @@ const MAIN_PORTFOLIO_ALBUMS = {
     lifestyleMoments: []
   },
   brand: {
-    brandSystems: {
-      'Children of Virtue': [
-        'images/brand identity/logos/CHILDREN OF VIRTUE ALTERNATIVE BLACK BG.jpg'
-      ],
-      'Diani Art Gallery': [
-        'images/brand identity/logos/Diani Art Gallery Logos-03.png',
-        'images/brand identity/logos/Diani Art Gallery Logos-05.png'
-      ],
-      'EEE': [
-        'images/brand identity/logos/EEE NEW LOGO MODIFIED GOLD.jpg'
-      ],
-      'ERA': [
-        'images/brand identity/logos/ERA Logo White.jpg'
-      ],
-      'Framed Reality Studio': [
-        'images/brand identity/logos/FRAMED REALITY STUDIO-05.png'
-      ],
-      'Glow Organics': [
-        'images/brand identity/logos/GLOW ORGANICS LOGO-01.png'
-      ],
-      'PM Media': [
-        'images/brand identity/logos/PM-MEDIAArtboard-2.png'
-      ],
-      'Quick Credit': [
-        'images/brand identity/logos/Quick Credit lOGO.jpg'
-      ],
-      'RBS': [
-        'images/brand identity/logos/RBS Logo copy.jpg'
-      ],
-      'SCF Celestial Wedding': [
-        'images/brand identity/logos/SCF Celestial Wedding copy.png'
-      ],
-      'SMA': [
-        'images/brand identity/logos/SMA LOGO  VERSION 2-01.png'
-      ],
-      'Synergy Creative Hub': [
-        'images/brand identity/logos/SYNERGY CREATIVE HUB NEW LOGOS-01.jpg'
-      ],
-      'Trav': [
-        'images/brand identity/logos/Trav Logo.png'
-      ],
-      'World Vision Uganda SPF': [
-        'images/brand identity/logos/World Vision Uganda SPF Logo Variants-01.png'
-      ]
-    },
+    brandSystems: [
+      'images/brand identity/logos/CHILDREN OF VIRTUE ALTERNATIVE BLACK BG.jpg',
+      'images/brand identity/logos/Diani Art Gallery Logos-03.png',
+      'images/brand identity/logos/Diani Art Gallery Logos-05.png',
+      'images/brand identity/logos/EEE NEW LOGO MODIFIED GOLD.jpg',
+      'images/brand identity/logos/ERA Logo White.jpg',
+      'images/brand identity/logos/FRAMED REALITY STUDIO-05.png',
+      'images/brand identity/logos/GLOW ORGANICS LOGO-01.png',
+      'images/brand identity/logos/PM-MEDIAArtboard-2.png',
+      'images/brand identity/logos/Quick Credit lOGO.jpg',
+      'images/brand identity/logos/RBS Logo copy.jpg',
+      'images/brand identity/logos/SCF Celestial Wedding copy.png',
+      'images/brand identity/logos/SMA LOGO  VERSION 2-01.png',
+      'images/brand identity/logos/SYNERGY CREATIVE HUB NEW LOGOS-01.jpg',
+      'images/brand identity/logos/Trav Logo.png',
+      'images/brand identity/logos/World Vision Uganda SPF Logo Variants-01.png'
+    ],
     digitalCampaigns: {
       'E-Flyers': [
         'images/brand identity/eflyers/GRADUATION -01.jpg',

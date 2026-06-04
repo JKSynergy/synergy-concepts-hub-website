@@ -6520,6 +6520,8 @@ select.form-input option[value=""] {
   height: 100%;
   object-fit: cover;
   object-position: center;
+  background-size: cover;
+  background-position: center;
   transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 

@@ -48,7 +48,106 @@ const MAIN_PORTFOLIO_ALBUMS = {
       'images/albums/photos/portrait-stories/Vianney 4.jpg',
       'images/albums/photos/portrait-stories/Vianney.jpg'
     ],
-    eventExperiences: [],
+    eventExperiences: {
+      'Brenda & Jan': [
+        'images/photography/event experiences/Brenda & Jan/DSC_8172.jpg',
+        'images/photography/event experiences/Brenda & Jan/DSC_6526.jpg',
+        'images/photography/event experiences/Brenda & Jan/DSC_6549.jpg',
+        'images/photography/event experiences/Brenda & Jan/DSC_6554.jpg',
+        'images/photography/event experiences/Brenda & Jan/DSC_6586.jpg',
+        'images/photography/event experiences/Brenda & Jan/DSC_6637.jpg',
+        'images/photography/event experiences/Brenda & Jan/DSC_6950.jpg',
+        'images/photography/event experiences/Brenda & Jan/DSC_7129.jpg',
+        'images/photography/event experiences/Brenda & Jan/DSC_7553.jpg',
+        'images/photography/event experiences/Brenda & Jan/DSC_7669.jpg',
+        'images/photography/event experiences/Brenda & Jan/DSC_7678.jpg',
+        'images/photography/event experiences/Brenda & Jan/DSC_7753.jpg',
+        'images/photography/event experiences/Brenda & Jan/DSC_8153.jpg',
+        'images/photography/event experiences/Brenda & Jan/DSC_8185.jpg',
+        'images/photography/event experiences/Brenda & Jan/KAY_3558.jpg'
+      ],
+      'Daniel & Daphne': [
+        'images/photography/event experiences/Daniel & Daphne/DSC_0719.jpg',
+        'images/photography/event experiences/Daniel & Daphne/DSC_0628.jpg',
+        'images/photography/event experiences/Daniel & Daphne/DSC_0726.jpg',
+        'images/photography/event experiences/Daniel & Daphne/DSC_0807.jpg',
+        'images/photography/event experiences/Daniel & Daphne/DSC_0886.jpg',
+        'images/photography/event experiences/Daniel & Daphne/DSC_1263.jpg'
+      ],
+      'Honest': [
+        'images/photography/event experiences/Honest/Honest.png',
+        'images/photography/event experiences/Honest/Honest 2.png',
+        'images/photography/event experiences/Honest/Honest 3.png',
+        'images/photography/event experiences/Honest/Honest 4.png',
+        'images/photography/event experiences/Honest/Honest 5.png',
+        'images/photography/event experiences/Honest/Honest 6.png',
+        'images/photography/event experiences/Honest/Honest 7.png',
+        'images/photography/event experiences/Honest/Honest 8.png',
+        'images/photography/event experiences/Honest/Honest 9.png',
+        'images/photography/event experiences/Honest/Honest 10.png',
+        'images/photography/event experiences/Honest/Honest 11.png',
+        'images/photography/event experiences/Honest/Honest 12.png',
+        'images/photography/event experiences/Honest/Honest 13.png',
+        'images/photography/event experiences/Honest/Honest 14.png',
+        'images/photography/event experiences/Honest/Honest Last.png'
+      ],
+      'Horrace & Vannesa': [
+        'images/photography/event experiences/Horrace & Vannesa/Vannie.png',
+        'images/photography/event experiences/Horrace & Vannesa/Vannie 1.png',
+        'images/photography/event experiences/Horrace & Vannesa/Vannie 2.png',
+        'images/photography/event experiences/Horrace & Vannesa/Vannie 3.png',
+        'images/photography/event experiences/Horrace & Vannesa/Vannie 4.png',
+        'images/photography/event experiences/Horrace & Vannesa/Vannie 5.png',
+        'images/photography/event experiences/Horrace & Vannesa/Vannie 6.png',
+        'images/photography/event experiences/Horrace & Vannesa/Vannie 7.png',
+        'images/photography/event experiences/Horrace & Vannesa/Vannie 8.png',
+        'images/photography/event experiences/Horrace & Vannesa/Vannie 9.png'
+      ],
+      'Intro': [
+        'images/photography/event experiences/Intro/IMG_7502.jpg',
+        'images/photography/event experiences/Intro/IMG_7439.jpg',
+        'images/photography/event experiences/Intro/IMG_7446.jpg',
+        'images/photography/event experiences/Intro/IMG_7467 2.jpg',
+        'images/photography/event experiences/Intro/IMG_7469.jpg',
+        'images/photography/event experiences/Intro/IMG_7476.jpg',
+        'images/photography/event experiences/Intro/IMG_7492.jpg',
+        'images/photography/event experiences/Intro/IMG_7499.jpg',
+        'images/photography/event experiences/Intro/IMG_7500.jpg'
+      ],
+      'Katherine & Ron': [
+        'images/photography/event experiences/Katherine & Ron/Kath & Ron-57.jpg',
+        'images/photography/event experiences/Katherine & Ron/Kath & Ron-49.jpg',
+        'images/photography/event experiences/Katherine & Ron/Kath & Ron-81.jpg',
+        'images/photography/event experiences/Katherine & Ron/Kath & Ron-58.jpg',
+        'images/photography/event experiences/Katherine & Ron/Kath & Ron-59.jpg',
+        'images/photography/event experiences/Katherine & Ron/Kath & Ron-65.jpg',
+        'images/photography/event experiences/Katherine & Ron/Kath & Ron-68.jpg',
+        'images/photography/event experiences/Katherine & Ron/Kath & Ron-69.jpg',
+        'images/photography/event experiences/Katherine & Ron/Kath & Ron-85.jpg'
+      ],
+      'Samantha': [
+        'images/photography/event experiences/samantha/Sam.png',
+        'images/photography/event experiences/samantha/Sam 2.png',
+        'images/photography/event experiences/samantha/Sam 3.png',
+        'images/photography/event experiences/samantha/Sam 4.png',
+        'images/photography/event experiences/samantha/Sam 5.png',
+        'images/photography/event experiences/samantha/Samantha.jpg',
+        'images/photography/event experiences/samantha/Samantha 2.jpg',
+        'images/photography/event experiences/samantha/Samantha 3.jpg',
+        'images/photography/event experiences/samantha/Samantha 4.jpg',
+        'images/photography/event experiences/samantha/Samantha 5.jpg'
+      ],
+      'Vivian': [
+        'images/photography/event experiences/vivian/Vivian (7).jpg',
+        'images/photography/event experiences/vivian/Vivian (1).jpg',
+        'images/photography/event experiences/vivian/Vivian (2).jpg',
+        'images/photography/event experiences/vivian/Vivian (3).jpg',
+        'images/photography/event experiences/vivian/Vivian (4).jpg',
+        'images/photography/event experiences/vivian/Vivian (5).jpg',
+        'images/photography/event experiences/vivian/Vivian (6).jpg',
+        'images/photography/event experiences/vivian/Vivian (8).jpg'
+      ]
+    },
     editorialPhotography: [
       'images/albums/photos/studio/DSC_9904.jpg.jpg',
       'images/albums/photos/studio/Exodus 13.jpg',
@@ -84,49 +183,97 @@ const MAIN_PORTFOLIO_ALBUMS = {
     lifestyleMoments: []
   },
   brand: {
-    brandSystems: [
-      'images/albums/graphics/logos/CHILDREN OF VIRTUE ALTERNATIVE BLACK BG.jpg',
-      'images/albums/graphics/logos/Diani Art Gallery Logos-03.png',
-      'images/albums/graphics/logos/Diani Art Gallery Logos-05.png',
-      'images/albums/graphics/logos/EEE NEW LOGO MODIFIED GOLD.jpg',
-      'images/albums/graphics/logos/ERA Logo White.jpg',
-      'images/albums/graphics/logos/FRAMED REALITY STUDIO-05.png',
-      'images/albums/graphics/logos/GLOW ORGANICS LOGO-01.png',
-      'images/albums/graphics/logos/PM-MEDIAArtboard-2.png',
-      'images/albums/graphics/logos/Quick Credit lOGO.jpg',
-      'images/albums/graphics/logos/RBS Logo copy.jpg',
-      'images/albums/graphics/logos/SCF Celestial Wedding copy.png',
-      'images/albums/graphics/logos/SMA LOGO  VERSION 2-01.png',
-      'images/albums/graphics/logos/SYNERGY CREATIVE HUB NEW LOGOS-01.jpg',
-      'images/albums/graphics/logos/Trav Logo.png',
-      'images/albums/graphics/logos/World Vision Uganda SPF Logo Variants-01.png'
-    ],
-    digitalCampaigns: [
-      'images/albums/graphics/eflyers/GRADUATION -01.jpg',
-      'images/albums/graphics/eflyers/Kelly Card.jpg',
-      'images/albums/graphics/eflyers/SMA COURSES-01.png',
-      'images/albums/graphics/eflyers/SMA COURSES-02.png',
-      'images/albums/graphics/eflyers/SMA STUDY TIMES-02.jpg',
-      'images/albums/graphics/eflyers/WATCHES 2.png',
-      'images/albums/graphics/eflyers/WEDDINGS 2.png',
-      'images/albums/graphics/eflyers/WEDDINGS.png',
-      'images/albums/graphics/eflyers/Watches 1.png',
-      'images/albums/graphics/banners/SYNERGY STUDIOS 450CM X 100CM NEW-01.png'
-    ],
+    brandSystems: {
+      'Children of Virtue': [
+        'images/brand identity/logos/CHILDREN OF VIRTUE ALTERNATIVE BLACK BG.jpg'
+      ],
+      'Diani Art Gallery': [
+        'images/brand identity/logos/Diani Art Gallery Logos-03.png',
+        'images/brand identity/logos/Diani Art Gallery Logos-05.png'
+      ],
+      'EEE': [
+        'images/brand identity/logos/EEE NEW LOGO MODIFIED GOLD.jpg'
+      ],
+      'ERA': [
+        'images/brand identity/logos/ERA Logo White.jpg'
+      ],
+      'Framed Reality Studio': [
+        'images/brand identity/logos/FRAMED REALITY STUDIO-05.png'
+      ],
+      'Glow Organics': [
+        'images/brand identity/logos/GLOW ORGANICS LOGO-01.png'
+      ],
+      'PM Media': [
+        'images/brand identity/logos/PM-MEDIAArtboard-2.png'
+      ],
+      'Quick Credit': [
+        'images/brand identity/logos/Quick Credit lOGO.jpg'
+      ],
+      'RBS': [
+        'images/brand identity/logos/RBS Logo copy.jpg'
+      ],
+      'SCF Celestial Wedding': [
+        'images/brand identity/logos/SCF Celestial Wedding copy.png'
+      ],
+      'SMA': [
+        'images/brand identity/logos/SMA LOGO  VERSION 2-01.png'
+      ],
+      'Synergy Creative Hub': [
+        'images/brand identity/logos/SYNERGY CREATIVE HUB NEW LOGOS-01.jpg'
+      ],
+      'Trav': [
+        'images/brand identity/logos/Trav Logo.png'
+      ],
+      'World Vision Uganda SPF': [
+        'images/brand identity/logos/World Vision Uganda SPF Logo Variants-01.png'
+      ]
+    },
+    digitalCampaigns: {
+      'E-Flyers': [
+        'images/brand identity/eflyers/GRADUATION -01.jpg',
+        'images/brand identity/eflyers/Kelly Card.jpg',
+        'images/brand identity/eflyers/SMA COUNTDOWN.jpg',
+        'images/brand identity/eflyers/SMA COURSES-01.png',
+        'images/brand identity/eflyers/SMA COURSES-02.png',
+        'images/brand identity/eflyers/SMA STUDY TIMES-02.jpg',
+        'images/brand identity/eflyers/Watches 1.png',
+        'images/brand identity/eflyers/WATCHES 2.png',
+        'images/brand identity/eflyers/WEDDINGS.png',
+        'images/brand identity/eflyers/WEDDINGS 2.png'
+      ],
+      'Banners': [
+        'images/brand identity/banners/SYNERGY STUDIOS 450CM X 100CM NEW-01.png'
+      ]
+    },
     creativeDesign: [
-      'images/albums/graphics/certificates/Certificate Of Attendance.png'
+      'images/brand identity/certificates/Certificate Of Attendance.png'
     ],
-    visualIdentity: [
-      'images/albums/graphics/company-profiles/Matsen profile-01.png',
-      'images/albums/graphics/company-profiles/Matsen profile-02.png',
-      'images/albums/graphics/company-profiles/Matsen profile-03.png',
-      'images/albums/graphics/company-profiles/Matsen profile-04.png',
-      'images/albums/graphics/company-profiles/Matsen profile-05.png',
-      'images/albums/graphics/company-profiles/Matsen profile-06.png',
-      'images/albums/graphics/company-profiles/Matsen profile-07.png',
-      'images/albums/graphics/company-profiles/Matsen profile-08.png',
-      'images/albums/graphics/letterheads/WVU SPF.png'
-    ],
+    visualIdentity: {
+      'Matsen': [
+        'images/brand identity/Matsen/Matsen profile-01.png',
+        'images/brand identity/Matsen/Matsen profile-02.png',
+        'images/brand identity/Matsen/Matsen profile-03.png',
+        'images/brand identity/Matsen/Matsen profile-04.png',
+        'images/brand identity/Matsen/Matsen profile-05.png',
+        'images/brand identity/Matsen/Matsen profile-06.png',
+        'images/brand identity/Matsen/Matsen profile-07.png',
+        'images/brand identity/Matsen/Matsen profile-08.png'
+      ],
+      'Letter Heads': [
+        'images/brand identity/letter heads/WVU SPF.png'
+      ],
+      'Rotary': [
+        'images/brand identity/Rotary/1.jpg',
+        'images/brand identity/Rotary/2.jpg',
+        'images/brand identity/Rotary/3.jpg',
+        'images/brand identity/Rotary/4.jpg',
+        'images/brand identity/Rotary/5.jpg',
+        'images/brand identity/Rotary/6.jpg',
+        'images/brand identity/Rotary/7.jpg',
+        'images/brand identity/Rotary/8.jpg',
+        'images/brand identity/Rotary/9.jpg'
+      ]
+    },
     marketingExperiences: []
   },
   academy: {
@@ -364,7 +511,61 @@ const STORY_META = {
     tag: 'Innovation',
     subtitle: 'Africa\'s next generation of creators',
     accent: 'green'
-  }
+  },
+  'Brenda & Jan': {
+    tag: 'Celebration',
+    subtitle: 'A beautiful celebration captured in cinematic detail',
+    accent: 'orange'
+  },
+  'Daniel & Daphne': {
+    tag: 'Celebration',
+    subtitle: 'Moments of love and joy, frame by frame',
+    accent: 'orange'
+  },
+  'Honest': {
+    tag: 'Event',
+    subtitle: 'Authentic moments from a memorable occasion',
+    accent: 'blue'
+  },
+  'Horrace & Vannesa': {
+    tag: 'Celebration',
+    subtitle: 'Elegance, emotion, and timeless memories',
+    accent: 'orange'
+  },
+  'Intro': {
+    tag: 'Event',
+    subtitle: 'An introduction session captured with editorial precision',
+    accent: 'blue'
+  },
+  'Samantha': {
+    tag: 'Portrait',
+    subtitle: 'A personal session full of personality and grace',
+    accent: 'gold'
+  },
+  'Vivian': {
+    tag: 'Portrait',
+    subtitle: 'Vibrant energy and refined presence in every frame',
+    accent: 'gold'
+  },
+  'Children of Virtue': { tag: 'Logo', subtitle: 'Brand identity for Children of Virtue', accent: 'blue' },
+  'Diani Art Gallery': { tag: 'Logo', subtitle: 'Visual identity for Diani Art Gallery', accent: 'gold' },
+  'EEE': { tag: 'Logo', subtitle: 'Brand mark for EEE', accent: 'blue' },
+  'ERA': { tag: 'Logo', subtitle: 'Clean brand identity for ERA', accent: 'blue' },
+  'Framed Reality Studio': { tag: 'Logo', subtitle: 'Identity for Framed Reality Studio', accent: 'blue' },
+  'Glow Organics': { tag: 'Logo', subtitle: 'Natural brand identity for Glow Organics', accent: 'green' },
+  'PM Media': { tag: 'Logo', subtitle: 'Brand mark for PM Media', accent: 'blue' },
+  'Quick Credit': { tag: 'Logo', subtitle: 'Bold identity for Quick Credit', accent: 'gold' },
+  'RBS': { tag: 'Logo', subtitle: 'Brand system for RBS', accent: 'blue' },
+  'SCF Celestial Wedding': { tag: 'Logo', subtitle: 'Elegant identity for SCF Celestial Wedding', accent: 'orange' },
+  'SMA': { tag: 'Logo', subtitle: 'Modern brand identity for SMA', accent: 'blue' },
+  'Synergy Creative Hub': { tag: 'Logo', subtitle: 'In-house brand system for Synergy Creative Hub', accent: 'gold' },
+  'Trav': { tag: 'Logo', subtitle: 'Travel brand identity for Trav', accent: 'blue' },
+  'World Vision Uganda SPF': { tag: 'Logo', subtitle: 'Identity for World Vision Uganda SPF', accent: 'blue' },
+  'E-Flyers': { tag: 'Digital Campaign', subtitle: 'E-flyers, announcements, and social creatives', accent: 'orange' },
+  'Banners': { tag: 'Print', subtitle: 'Large-format banners and print collateral', accent: 'blue' },
+  'Matsen': { tag: 'Company Profile', subtitle: 'Full company profile design for Matsen', accent: 'blue' },
+  'Letter Heads': { tag: 'Stationery', subtitle: 'Official branded letterheads and stationery', accent: 'blue' },
+  'Rotary': { tag: 'Brand Identity', subtitle: 'Visual identity work for Rotary', accent: 'gold' }
 };
 
 const LEGACY_ALBUM_MAP = {

@@ -819,33 +819,72 @@
   }
 
   /* ─── Quote Form ─── */
+  // Portal API endpoint. Override by setting data-quote-endpoint on the form.
+  // This pulls from window.SCH_CONFIG.portalUrl (site-config.js) so only one file needs updating.
+  const QUOTE_ENDPOINT =
+    (window.SCH_CONFIG?.portalUrl || 'https://portal.synergyconceptshub.com') + '/api/quote';
+
   function initQuoteForm() {
     const form = document.getElementById('quoteForm');
     if (!form) return;
 
-    form.addEventListener('submit', (e) => {
+    const endpoint = form.dataset.quoteEndpoint || QUOTE_ENDPOINT;
+
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const status = document.getElementById('quoteStatus');
       const btn = form.querySelector('[type="submit"]');
+
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+
       if (btn) {
         btn.disabled = true;
         btn.textContent = 'Sending...';
       }
-      setTimeout(() => {
+      if (status) {
+        status.textContent = '';
+        status.classList.remove('text-green-400', 'text-red-400');
+      }
+
+      const payload = {
+        name: form.elements['name']?.value?.trim(),
+        email: form.elements['email']?.value?.trim(),
+        service: form.elements['service']?.value || '',
+        brief: form.elements['brief']?.value?.trim(),
+      };
+
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) throw new Error('Request failed');
+
         if (status) {
-          status.textContent =
-            "Thank you! We'll respond within 24 hours.";
+          status.textContent = "Thank you! We'll respond within 24 hours.";
           status.classList.add('text-green-400');
-        }
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = 'Send Brief';
         }
         form.reset();
         form.querySelectorAll('select.form-select-native').forEach((select) => {
           select.dispatchEvent(new Event('change', { bubbles: true }));
         });
-      }, 1200);
+      } catch (err) {
+        if (status) {
+          status.textContent =
+            'Something went wrong. Please email synergyconceptshub@gmail.com.';
+          status.classList.add('text-red-400');
+        }
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Send Brief';
+        }
+      }
     });
   }
 

@@ -1,5 +1,11 @@
+// ── Deploy note ──
+// After first Vercel deploy, update `portalUrl` to your actual domain:
+//   - Custom domain:   'https://portal.synergyconceptshub.com'
+//   - Vercel default:  'https://<project-name>.vercel.app'
+// Then re-deploy the marketing site so the quote form hits the correct endpoint.
 window.SCH_CONFIG = {
   gaMeasurementId: '',
+  portalUrl: 'https://sch-portal-delta.vercel.app',
   academyUrl: 'https://synergymultimediaacademy.com/',
   clients: {
     quickCredit: 'https://quickcreditclientportal.netlify.app/home',

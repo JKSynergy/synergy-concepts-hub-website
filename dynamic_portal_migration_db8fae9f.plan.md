@@ -4,19 +4,19 @@ overview: "Transform the static SCH marketing site into a two-tier platform: kee
 todos:
   - id: phase1-foundation
     content: "Phase 1: Scaffold Next.js portal app, Supabase schema, auth (admin/client roles), client invite flow, deploy to portal.synergyconceptshub.com"
-    status: pending
+    status: completed
   - id: phase2-projects
     content: "Phase 2: Project/milestone/update CRUD, client progress dashboard, deliverable uploads, email notifications"
-    status: pending
+    status: completed
   - id: phase3-bookings
     content: "Phase 3: Service catalog, mixed booking flows (consultation, packages, custom request), admin calendar, wire marketing quote form to API"
-    status: pending
+    status: completed
   - id: phase4-finance
     content: "Phase 4: Invoice builder, PDF generation (invoice + receipt), Paystack payments, manual payment recording, client download/pay flows"
-    status: pending
+    status: completed
   - id: phase5-polish
     content: "Phase 5: Academy enrollment type, staff permissions, admin reports, link external client portals, marketing site Client Portal nav link"
-    status: pending
+    status: completed
 isProject: false
 ---
 
@@ -370,7 +370,7 @@ Recommend **option 1 + 2** initially to avoid scope explosion.
 
 | Service | Approx. cost |
 |---------|-------------|
-| Supabase (Pro) | $25 |
+| Supabase (Free tier) | $0 | Start here; monitor DB size (500MB limit) and bandwidth (2GB/mo) |
 | Vercel (Pro) | $20 |
 | Resend email | $0–20 |
 | Cloudflare Pages (marketing) | $0 |

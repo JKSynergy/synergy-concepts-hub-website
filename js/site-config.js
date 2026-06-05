@@ -5,7 +5,7 @@
 // Then re-deploy the marketing site so the quote form hits the correct endpoint.
 window.SCH_CONFIG = {
   gaMeasurementId: '',
-  portalUrl: 'https://sch-portal-delta.vercel.app',
+  portalUrl: 'https://portal.synergyconceptshub.com',
   academyUrl: 'https://synergymultimediaacademy.com/',
   clients: {
     quickCredit: 'https://quickcreditclientportal.netlify.app/home',

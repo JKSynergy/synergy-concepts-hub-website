@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import Link from "next/link";
+import { NavLink as Link } from "@/components/nav-link";
 import {
   INVOICE_STATUS_BADGE,
   type InvoiceStatus,
@@ -21,60 +21,62 @@ export default async function ClientInvoicesPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Invoices</h1>
+    <div>
+      <header className="mb-8">
+        <p className="section-title">Billing</p>
+        <h1 className="page-title mt-1">Invoices</h1>
+        <p className="page-subtitle">View and download your invoices and receipts.</p>
+      </header>
 
-      <div className="space-y-3">
-        {invoices && invoices.length > 0 ? (
-          invoices.map((inv) => (
-            <div
-              key={inv.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white p-5 shadow"
-            >
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-900">
-                    {inv.invoice_number ?? "—"}
-                  </span>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
-                      INVOICE_STATUS_BADGE[inv.status as InvoiceStatus]
-                    }`}
-                  >
-                    {inv.status}
-                  </span>
-                </div>
-                <p className="mt-1 text-sm text-gray-500">
-                  Total: UGX {Number(inv.total).toLocaleString()}
-                </p>
-                {inv.due_date && (
-                  <p className="text-xs text-gray-400">
-                    Due: {new Date(inv.due_date).toLocaleDateString()}
-                  </p>
-                )}
-              </div>
-              <div className="flex items-center gap-3">
-                <a
-                  href={`/api/invoices/${inv.id}/pdf`}
-                  className="rounded-md bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-200"
-                >
-                  PDF
-                </a>
-                <Link
-                  href={`/client/invoices/${inv.id}`}
-                  className="rounded-md bg-gray-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-800"
-                >
-                  View
-                </Link>
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="rounded-xl bg-white p-8 text-center text-sm text-gray-500 shadow">
-            No invoices yet.
-          </div>
-        )}
-      </div>
+      {invoices && invoices.length > 0 ? (
+        <div className="data-table-wrap">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Invoice</th>
+                <th>Status</th>
+                <th>Total</th>
+                <th>Due Date</th>
+                <th className="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {invoices.map((inv) => (
+                <tr key={inv.id}>
+                  <td>
+                    <span className="font-semibold" style={{ color: "var(--p-text-strong)" }}>
+                      {inv.invoice_number ?? "—"}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`badge ${INVOICE_STATUS_BADGE[inv.status as InvoiceStatus]}`}>
+                      {inv.status}
+                    </span>
+                  </td>
+                  <td>UGX {Number(inv.total).toLocaleString()}</td>
+                  <td style={{ color: "var(--p-muted)" }}>
+                    {inv.due_date ? new Date(inv.due_date).toLocaleDateString() : "—"}
+                  </td>
+                  <td>
+                    <div className="flex items-center justify-end gap-2">
+                      <a href={`/api/invoices/${inv.id}/pdf`} className="btn-ghost">
+                        PDF
+                      </a>
+                      <Link href={`/client/invoices/${inv.id}`} className="btn-primary">
+                        View
+                      </Link>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="glass-card p-10 text-center text-sm" style={{ color: "var(--p-muted)" }}>
+          No invoices yet.
+        </div>
+      )}
     </div>
   );
 }

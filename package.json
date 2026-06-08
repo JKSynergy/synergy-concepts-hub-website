@@ -17,6 +17,7 @@
   "dependencies": {
     "@react-pdf/renderer": "^4.5.1",
     "clsx": "^2.1.1",
+    "framer-motion": "^12.40.0",
     "lucide-react": "^1.17.0",
     "paystack-sdk": "^3.8.0",
     "tailwind-merge": "^3.6.0"

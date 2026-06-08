@@ -1,6 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import Link from "next/link";
+import { NavLink as Link } from "@/components/nav-link";
+import { KPICard } from "@/components/kpi-card";
+import { DashboardHero } from "@/components/dashboard-hero";
+import { TodayOverview } from "@/components/today-overview";
+import { FolderKanban, Users, CalendarDays, Receipt, ArrowUpRight, Clock, CalendarPlus, Inbox } from "lucide-react";
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
@@ -15,7 +19,7 @@ export default async function AdminDashboardPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, full_name")
     .eq("id", user.id)
     .single();
 
@@ -44,12 +48,18 @@ export default async function AdminDashboardPage() {
     }
   }
 
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
   const [
     { count: activeProjects },
     { count: clients },
     { count: pendingBookings },
     { count: unpaidInvoices },
     { data: recentBookings },
+    { count: newClientsThisMonth },
+    { data: revenueData },
+    { count: recentActivityCount },
   ] = await Promise.all([
     projectFilter,
     supabase
@@ -72,7 +82,28 @@ export default async function AdminDashboardPage() {
       .in("status", ["pending", "confirmed"])
       .order("scheduled_at", { ascending: true })
       .limit(5),
+    supabase
+      .from("profiles")
+      .select("*", { count: "exact", head: true })
+      .eq("role", "client")
+      .gte("created_at", startOfMonth),
+    isAdmin
+      ? supabase
+          .from("invoices")
+          .select("total")
+          .eq("status", "paid")
+          .gte("created_at", startOfMonth)
+      : Promise.resolve({ data: [], error: null }),
+    supabase
+      .from("bookings")
+      .select("*", { count: "exact", head: true })
+      .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
   ]);
+
+  const revenueThisMonth = (revenueData ?? []).reduce(
+    (sum: number, inv: { total?: number }) => sum + (inv.total ?? 0),
+    0
+  );
 
   const clientIds = [...new Set((recentBookings ?? []).map((b) => b.client_id))];
   const { data: clientProfiles } = clientIds.length
@@ -90,84 +121,140 @@ export default async function AdminDashboardPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-      <p className="mt-2 text-gray-600">Welcome, {user.email}</p>
+      <DashboardHero
+        name={profile.full_name || user.email || "Admin"}
+        role={isAdmin ? "Administrator" : "Staff"}
+        stats={{
+          activeProjects: activeProjects ?? 0,
+          pendingBookings: pendingBookings ?? 0,
+          outstandingInvoices: unpaidInvoices ?? 0,
+        }}
+        isAdmin={isAdmin}
+      />
 
-      <div className={`mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 ${isAdmin ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
-        <Link
+      <TodayOverview
+        stats={{
+          activeProjects: activeProjects ?? 0,
+          newClientsThisMonth: newClientsThisMonth ?? 0,
+          pendingBookings: pendingBookings ?? 0,
+          revenueThisMonth: revenueThisMonth,
+          recentActivityCount: recentActivityCount ?? 0,
+        }}
+      />
+
+      <div className={`mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 ${isAdmin ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
+        <KPICard
+          title="Active Projects"
+          value={activeProjects ?? 0}
           href="/admin/projects"
-          className="rounded-xl bg-white p-6 shadow transition hover:shadow-md"
-        >
-          <div className="text-sm font-medium text-gray-500">Active Projects</div>
-          <div className="mt-2 text-3xl font-bold text-gray-900">
-            {activeProjects ?? 0}
-          </div>
-        </Link>
-        <Link
+          icon={<FolderKanban size={20} strokeWidth={1.8} />}
+          trend={{ label: "In progress", dir: "up" }}
+          sparkData={[4, 5, 4, 6, 7, 6, 8]}
+          sparkColor="#22d3ee"
+          sparkId="ad-projects"
+          accent="cyan"
+        />
+        <KPICard
+          title="Clients"
+          value={clients ?? 0}
           href="/admin/clients"
-          className="rounded-xl bg-white p-6 shadow transition hover:shadow-md"
-        >
-          <div className="text-sm font-medium text-gray-500">Clients</div>
-          <div className="mt-2 text-3xl font-bold text-gray-900">
-            {clients ?? 0}
-          </div>
-        </Link>
-        <Link
+          icon={<Users size={20} strokeWidth={1.8} />}
+          trend={{ label: "Total", dir: "up" }}
+          sparkData={[2, 3, 4, 4, 5, 6, 7]}
+          sparkColor="#2dd4bf"
+          sparkId="ad-clients"
+          accent="teal"
+        />
+        <KPICard
+          title="Pending Bookings"
+          value={pendingBookings ?? 0}
           href="/admin/bookings"
-          className="rounded-xl bg-white p-6 shadow transition hover:shadow-md"
-        >
-          <div className="text-sm font-medium text-gray-500">Pending Bookings</div>
-          <div className="mt-2 text-3xl font-bold text-gray-900">
-            {pendingBookings ?? 0}
-          </div>
-        </Link>
+          icon={<CalendarDays size={20} strokeWidth={1.8} />}
+          trend={{ label: "Awaiting", dir: "flat" }}
+          sparkData={[3, 2, 4, 3, 5, 4, 5]}
+          sparkColor="#fbbf24"
+          sparkId="ad-bookings"
+          accent="amber"
+        />
         {isAdmin && (
-          <Link
+          <KPICard
+            title="Unpaid Invoices"
+            value={unpaidInvoices ?? 0}
             href="/admin/invoices"
-            className="rounded-xl bg-white p-6 shadow transition hover:shadow-md"
-          >
-            <div className="text-sm font-medium text-gray-500">Unpaid Invoices</div>
-            <div className="mt-2 text-3xl font-bold text-gray-900">
-              {unpaidInvoices ?? 0}
-            </div>
-          </Link>
+            icon={<Receipt size={20} strokeWidth={1.8} />}
+            trend={{ label: "Outstanding", dir: unpaidInvoices ? "down" : "flat" }}
+            sparkData={[6, 5, 5, 4, 4, 3, 3]}
+            sparkColor="#fb7185"
+            sparkId="ad-invoices"
+            accent="coral"
+          />
         )}
       </div>
 
-      <div className="mt-8">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
-          Upcoming Bookings
-        </h2>
-        <div className="space-y-3">
-          {recentBookings && recentBookings.length > 0 ? (
-            recentBookings.map((b) => (
+      <section className="mt-10">
+        <h2 className="section-title mb-4">Upcoming Bookings</h2>
+        {recentBookings && recentBookings.length > 0 ? (
+          <div className="glass-card overflow-hidden">
+            {recentBookings.map((b, i) => (
               <div
                 key={b.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-100 bg-white p-4 shadow"
+                className="flex flex-wrap items-center justify-between gap-3 p-4"
+                style={{ borderTop: i === 0 ? "none" : "1px solid var(--p-border)" }}
               >
-                <div>
-                  <span className="font-medium text-gray-900">{b.title}</span>
-                  <p className="mt-1 text-sm text-gray-500">
-                    {clientMap.get(b.client_id) ?? "Unknown client"}
-                    {b.scheduled_at &&
-                      ` \u2022 ${new Date(b.scheduled_at).toLocaleString()}`}
-                  </p>
+                <div className="flex items-center gap-3">
+                  <span className="kpi-icon" style={{ width: 38, height: 38 }} aria-hidden>
+                    <Clock size={17} strokeWidth={1.8} />
+                  </span>
+                  <div>
+                    <span className="font-medium" style={{ color: "var(--p-text-strong)" }}>
+                      {b.title}
+                    </span>
+                    <p className="mt-0.5 text-sm" style={{ color: "var(--p-muted)" }}>
+                      {clientMap.get(b.client_id) ?? "Unknown client"}
+                      {b.scheduled_at &&
+                        ` \u2022 ${new Date(b.scheduled_at).toLocaleString()}`}
+                    </p>
+                  </div>
                 </div>
                 <Link
                   href={`/admin/bookings/${b.id}`}
-                  className="text-sm font-medium text-sch-blue hover:underline"
+                  className="btn-ghost"
                 >
-                  View
+                  View <ArrowUpRight size={14} />
                 </Link>
               </div>
-            ))
-          ) : (
-            <div className="rounded-xl bg-white p-6 text-center text-sm text-gray-500 shadow">
-              No upcoming bookings.
+            ))}
+          </div>
+        ) : (
+          <div className="glass-card flex flex-col items-center justify-center gap-4 p-8 text-center" style={{ minHeight: "200px" }}>
+            <div
+              className="flex h-14 w-14 items-center justify-center rounded-2xl"
+              style={{
+                background: "rgba(251, 191, 36, 0.1)",
+                border: "1px solid rgba(251, 191, 36, 0.2)",
+                color: "#fbbf24",
+              }}
+            >
+              <Inbox size={24} strokeWidth={1.8} />
             </div>
-          )}
-        </div>
-      </div>
+            <div>
+              <p className="text-sm font-medium" style={{ color: "var(--p-text-strong)" }}>
+                No upcoming bookings
+              </p>
+              <p className="mt-1 text-sm" style={{ color: "var(--p-muted)" }}>
+                New bookings will automatically appear here.
+              </p>
+            </div>
+            <Link
+              href="/admin/bookings"
+              className="btn-primary mt-1 inline-flex items-center gap-2"
+            >
+              <CalendarPlus size={15} strokeWidth={2} />
+              Create Booking
+            </Link>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

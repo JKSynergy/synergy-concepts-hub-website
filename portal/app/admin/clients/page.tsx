@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import InviteForm from "./invite-form";
+import AddClientForm from "./add-client-form";
 
 export default async function ClientsPage() {
   const supabase = await createClient();
@@ -37,7 +38,10 @@ export default async function ClientsPage() {
         <h1 className="text-2xl font-bold text-gray-900">Clients</h1>
       </div>
 
-      <InviteForm />
+      <div className="flex flex-wrap gap-3">
+        <AddClientForm />
+        <InviteForm />
+      </div>
 
       <div className="overflow-hidden rounded-xl bg-white shadow">
         <table className="min-w-full divide-y divide-gray-200">

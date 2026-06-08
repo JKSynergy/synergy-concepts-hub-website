@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
-import Link from "next/link";
+import { NavLink as Link } from "@/components/nav-link";
 import EditProject from "./edit-project";
 import MilestonesSection from "./milestones-section";
 import UpdatesSection from "@/components/updates-section";

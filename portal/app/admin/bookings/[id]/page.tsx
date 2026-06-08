@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
-import Link from "next/link";
+import { NavLink as Link } from "@/components/nav-link";
 import BookingDetailActions from "./booking-detail-actions";
 import {
   BOOKING_STATUS_BADGE,

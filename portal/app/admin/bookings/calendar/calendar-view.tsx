@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { NavLink as Link } from "@/components/nav-link";
 import { useRouter } from "next/navigation";
 import type { BookingStatus, BookingType } from "@/lib/types";
 
@@ -64,7 +64,7 @@ export default function CalendarView({
 
   for (let i = 0; i < startWeekday; i++) {
     cells.push(
-      <div key={`empty-${i}`} className="min-h-[120px] bg-gray-50" />
+      <div key={`empty-${i}`} className="min-h-[120px] bg-gray-100" />
     );
   }
 
@@ -77,11 +77,19 @@ export default function CalendarView({
     cells.push(
       <div
         key={day}
-        className={`min-h-[120px] border border-gray-100 bg-white p-2 ${
-          isToday ? "ring-1 ring-sch-orange" : ""
+        className={`min-h-[120px] border border-gray-200 bg-white p-2 transition-shadow hover:shadow-sm ${
+          isToday ? "ring-2 ring-sch-orange" : ""
         }`}
       >
-        <div className="text-xs font-medium text-gray-500">{day}</div>
+        <div
+          className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-base font-bold ${
+            isToday
+              ? "bg-sch-orange text-white"
+              : "bg-gray-100 text-gray-900"
+          }`}
+        >
+          {day}
+        </div>
         <div className="mt-1 space-y-1">
           {dayEvents.map((e) => (
             <Link
@@ -141,7 +149,7 @@ export default function CalendarView({
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
           <div
             key={d}
-            className="bg-gray-50 px-2 py-2 text-center text-xs font-semibold uppercase tracking-wide text-gray-500"
+            className="bg-gray-300 px-2 py-3 text-center text-sm font-bold uppercase tracking-wide text-gray-900"
           >
             {d}
           </div>

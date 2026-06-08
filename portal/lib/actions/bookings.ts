@@ -134,6 +134,48 @@ export async function createBooking(formData: FormData): Promise<ActionResult> {
   return { success: true, id: data.id };
 }
 
+// Admin/staff manually create a booking on behalf of a client
+export async function createBookingForClient(
+  formData: FormData
+): Promise<ActionResult> {
+  const { supabase, isStaff } = await requireStaff();
+  if (!isStaff) return { error: "Forbidden" };
+
+  const clientId = (formData.get("client_id") as string)?.trim();
+  const title = (formData.get("title") as string)?.trim();
+  const type = formData.get("type") as BookingType;
+  if (!clientId) return { error: "Client is required" };
+  if (!title || !type) return { error: "Title and type are required" };
+
+  const statusRaw = (formData.get("status") as BookingStatus) || "confirmed";
+  const scheduledRaw = formData.get("scheduled_at") as string;
+  const courseId = (formData.get("course_id") as string) || null;
+
+  const metadata: Record<string, unknown> = {};
+  if (courseId) metadata.course_id = courseId;
+
+  const { data, error } = await supabase
+    .from("bookings")
+    .insert({
+      client_id: clientId,
+      type,
+      title,
+      description: (formData.get("description") as string) || null,
+      service_id: (formData.get("service_id") as string) || null,
+      scheduled_at: scheduledRaw ? new Date(scheduledRaw).toISOString() : null,
+      metadata: Object.keys(metadata).length > 0 ? metadata : {},
+      status: statusRaw,
+    })
+    .select("id")
+    .single();
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/bookings");
+  revalidatePath("/client/bookings");
+  return { success: true, id: data.id };
+}
+
 export async function setBookingStatus(
   bookingId: string,
   status: BookingStatus

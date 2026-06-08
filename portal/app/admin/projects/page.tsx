@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import Link from "next/link";
+import { NavLink as Link } from "@/components/nav-link";
 import NewProjectForm from "./new-project-form";
 import { ProgressBar } from "@/components/progress-bar";
 import { STATUS_BADGE, type ProjectStatus } from "@/lib/types";

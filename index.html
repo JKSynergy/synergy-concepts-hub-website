@@ -96,13 +96,21 @@
       <a href="#clients" class="nav-link">Work</a>
       <a href="#academy" class="nav-link">Academy</a>
       <a href="#case-studies" class="nav-link">Case Studies</a>
-      <a href="https://portal.synergyconceptshub.com" class="nav-link">Client Portal</a>
+      <a href="https://sch-portal-delta.vercel.app" class="btn btn-ghost btn-magnetic text-sm py-2.5 px-5 inline-flex items-center gap-2" data-portal-link aria-label="Log in to the client portal">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+        <span>Login</span>
+      </a>
       <a href="#contact" class="btn btn-primary btn-magnetic text-sm py-2.5 px-5">Start a Project</a>
     </nav>
 
-    <button id="menuToggle" class="touch-target lg:hidden -mr-1" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
-      <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
-    </button>
+    <div class="flex items-center gap-1 lg:hidden">
+      <a href="https://sch-portal-delta.vercel.app" class="touch-target inline-flex items-center justify-center" data-portal-link aria-label="Log in to the client portal">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+      </a>
+      <button id="menuToggle" class="touch-target -mr-1" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
   </div>
 </header>
 
@@ -185,7 +193,7 @@
             <span class="menu-link-line" aria-hidden="true"></span>
           </li>
           <li class="menu-nav-item" data-scene="portal">
-            <a href="https://portal.synergyconceptshub.com" class="mobile-nav-link" data-label="CLIENT PORTAL">
+            <a href="https://sch-portal-delta.vercel.app" class="mobile-nav-link" data-label="CLIENT PORTAL" data-portal-link>
               <span class="menu-link-index">06</span>
               <span class="menu-link-text">
                 <span class="menu-link-label">Client Portal</span>

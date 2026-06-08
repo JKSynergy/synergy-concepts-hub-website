@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
-import Link from "next/link";
+import { NavLink as Link } from "@/components/nav-link";
 import { ProgressBar } from "@/components/progress-bar";
 import ClientMilestones from "./client-milestones";
 import UpdatesSection from "@/components/updates-section";

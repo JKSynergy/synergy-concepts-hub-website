@@ -1,12 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import Link from "next/link";
+import { NavLink as Link } from "@/components/nav-link";
 import BookingActions from "./booking-actions";
+import NewBookingForm from "./new-booking-form";
 import {
   BOOKING_STATUS_BADGE,
   BOOKING_TYPE_LABEL,
   type BookingStatus,
   type BookingType,
+  type Service,
+  type AcademyCourse,
 } from "@/lib/types";
 
 export default async function AdminBookingsPage() {
@@ -27,10 +30,29 @@ export default async function AdminBookingsPage() {
     redirect("/client");
   }
 
-  const { data: bookings } = await supabase
-    .from("bookings")
-    .select("id, title, type, status, scheduled_at, created_at, client_id")
-    .order("created_at", { ascending: false });
+  const [{ data: bookings }, { data: services }, { data: courses }] =
+    await Promise.all([
+      supabase
+        .from("bookings")
+        .select("id, title, type, status, scheduled_at, created_at, client_id")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("service_catalog")
+        .select("*")
+        .eq("is_active", true)
+        .order("name"),
+      supabase
+        .from("academy_courses")
+        .select("*")
+        .eq("is_active", true)
+        .order("name"),
+    ]);
+
+  const { data: allClients } = await supabase
+    .from("profiles")
+    .select("id, full_name, company_name, email")
+    .eq("role", "client")
+    .order("company_name", { ascending: true });
 
   const clientIds = [...new Set((bookings ?? []).map((b) => b.client_id))];
   const { data: clients } = clientIds.length
@@ -110,6 +132,12 @@ export default async function AdminBookingsPage() {
           Calendar View
         </Link>
       </div>
+
+      <NewBookingForm
+        clients={allClients ?? []}
+        services={(services ?? []) as Service[]}
+        courses={(courses ?? []) as AcademyCourse[]}
+      />
 
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">

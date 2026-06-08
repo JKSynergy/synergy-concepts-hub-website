@@ -28,6 +28,18 @@
     initQuoteForm();
     initProgressBars();
     initMediaPillars();
+    initPortalLinks();
+  }
+
+  /* ─── Portal Links ─── */
+  // Keep every [data-portal-link] href in sync with SCH_CONFIG.portalUrl
+  // so the portal address only needs updating in site-config.js.
+  function initPortalLinks() {
+    const portalUrl = window.SCH_CONFIG?.portalUrl;
+    if (!portalUrl) return;
+    document.querySelectorAll('[data-portal-link]').forEach((link) => {
+      link.setAttribute('href', portalUrl);
+    });
   }
 
   /* ─── Page Loader ─── */
@@ -822,7 +834,7 @@
   // Portal API endpoint. Override by setting data-quote-endpoint on the form.
   // This pulls from window.SCH_CONFIG.portalUrl (site-config.js) so only one file needs updating.
   const QUOTE_ENDPOINT =
-    (window.SCH_CONFIG?.portalUrl || 'https://portal.synergyconceptshub.com') + '/api/quote';
+    (window.SCH_CONFIG?.portalUrl || 'https://sch-portal-delta.vercel.app') + '/api/quote';
 
   function initQuoteForm() {
     const form = document.getElementById('quoteForm');

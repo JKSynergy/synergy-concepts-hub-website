@@ -95,6 +95,24 @@ export function PortalSidebar({
     setMobileOpen(false);
   }, [pathname]);
 
+  // Lock body scroll + allow Escape to close while the mobile drawer is open
+  useEffect(() => {
+    if (!mobileOpen) return;
+
+    const { overflow } = document.body.style;
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.body.style.overflow = overflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [mobileOpen]);
+
   function toggleCollapse() {
     setCollapsed((c) => {
       const next = !c;
@@ -170,6 +188,7 @@ export function PortalSidebar({
                 key={item.href}
                 href={item.href}
                 title={item.label}
+                onClick={() => setMobileOpen(false)}
                 className={`portal-nav-item ${isActive(item) ? "is-active" : ""}`}
               >
                 <Icon strokeWidth={1.8} />
@@ -234,11 +253,16 @@ export function PortalSidebar({
           align-items: center;
           gap: 0.75rem;
           padding: 0.75rem 1rem;
-          position: sticky;
+          position: fixed;
           top: 0;
+          left: 0;
+          right: 0;
+          width: 100%;
+          height: 60px;
           z-index: 30;
           background: rgba(3, 7, 18, 0.8);
           backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
           border-bottom: 1px solid var(--p-border);
         }
         .portal-mobilebar__btn {

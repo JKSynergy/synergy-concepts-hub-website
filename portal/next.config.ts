@@ -1,8 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
-  outputFileTracingRoot: __dirname,
+  // Vercel handles output automatically; do not set output: "standalone"
 };
 
 export default nextConfig;

@@ -113,6 +113,16 @@ export default function LoginPage() {
   const [redirectTo, setRedirectTo] = useState<string | null>(null);
   const router = useRouter();
 
+  // Surface OAuth errors returned to /login?error=...
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const oauthErr = params.get("error");
+    if (oauthErr) {
+      setError(decodeURIComponent(oauthErr));
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
+
   // Navigate after the overlay has rendered so the spinner stays visible
   // until the destination page fully loads.
   useEffect(() => {
@@ -124,6 +134,20 @@ export default function LoginPage() {
       return () => clearTimeout(t);
     }
   }, [redirectTo, router]);
+
+  async function handleGoogleSignIn() {
+    setError("");
+    const supabase = createClient();
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+    if (oauthError) {
+      setError(oauthError.message);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -369,11 +393,11 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <label className="flex cursor-pointer items-center gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <label className="flex cursor-pointer items-center gap-2.5">
                 <input
                   type="checkbox"
-                  className="h-3.5 w-3.5 rounded border-sch-glass-border bg-white/5 text-sch-blue focus:ring-sch-blue/20"
+                  className="h-4 w-4 rounded border-sch-glass-border bg-white/5 text-sch-blue focus:ring-sch-blue/20"
                 />
                 <span className="text-xs text-sch-muted">Remember me</span>
               </label>
@@ -431,7 +455,7 @@ export default function LoginPage() {
 
           {/* Social / quick actions */}
           <div className="flex justify-center gap-3">
-            <button type="button" className="login-icon-btn" aria-label="Google sign in">
+            <button type="button" onClick={handleGoogleSignIn} className="login-icon-btn" aria-label="Google sign in">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.99.66-2.25 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>

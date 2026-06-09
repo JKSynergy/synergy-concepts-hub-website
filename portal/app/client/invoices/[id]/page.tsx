@@ -99,29 +99,31 @@ export default function ClientInvoiceDetailPage() {
           )}
         </div>
 
-        <table className="mt-6 min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Description</th>
-              <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Qty</th>
-              <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Unit Price</th>
-              <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Amount</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {lineItems.map((item) => (
-              <tr key={item.id}>
-                <td className="px-4 py-2 text-sm text-gray-900">{item.description}</td>
-                <td className="px-4 py-2 text-right text-sm text-gray-500">{Number(item.quantity).toLocaleString()}</td>
-                <td className="px-4 py-2 text-right text-sm text-gray-500">UGX {Number(item.unit_price).toLocaleString()}</td>
-                <td className="px-4 py-2 text-right text-sm text-gray-900">UGX {Number(item.amount).toLocaleString()}</td>
+        <div className="overflow-x-auto">
+          <table className="mt-6 min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Description</th>
+                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Qty</th>
+                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Unit Price</th>
+                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Amount</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {lineItems.map((item) => (
+                <tr key={item.id}>
+                  <td className="px-4 py-2 text-sm text-gray-900">{item.description}</td>
+                  <td className="px-4 py-2 text-right text-sm text-gray-500">{Number(item.quantity).toLocaleString()}</td>
+                  <td className="px-4 py-2 text-right text-sm text-gray-500">UGX {Number(item.unit_price).toLocaleString()}</td>
+                  <td className="px-4 py-2 text-right text-sm text-gray-900">UGX {Number(item.amount).toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
         <div className="mt-6 flex justify-end">
-          <div className="w-64 space-y-2 text-right">
+          <div className="w-full max-w-xs space-y-2 text-right sm:w-64">
             <div className="flex justify-between text-sm text-gray-500">
               <span>Subtotal</span>
               <span>UGX {Number(invoice.subtotal).toLocaleString()}</span>
@@ -156,42 +158,44 @@ export default function ClientInvoiceDetailPage() {
       {payments.length > 0 && (
         <div className="rounded-xl bg-white p-6 shadow">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Payments</h2>
-          <table className="mt-3 min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Date</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Method</th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Amount</th>
-                <th className="px-4 py-2" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {payments.map((p) => {
-                const receipt = receiptMap.get(p.id);
-                return (
-                  <tr key={p.id}>
-                    <td className="px-4 py-2 text-sm text-gray-500">
-                      {p.paid_at ? new Date(p.paid_at).toLocaleDateString() : "—"}
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-500 capitalize">{p.method.replace("_", " ")}</td>
-                    <td className="px-4 py-2 text-right text-sm font-medium text-gray-900">
-                      UGX {Number(p.amount).toLocaleString()}
-                    </td>
-                    <td className="px-4 py-2 text-right">
-                      {receipt && (
-                        <a
-                          href={`/api/receipts/${receipt.id}/pdf`}
-                          className="text-xs text-blue-600 hover:underline"
-                        >
-                          Receipt
-                        </a>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="mt-3 min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Date</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Method</th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Amount</th>
+                  <th className="px-4 py-2" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {payments.map((p) => {
+                  const receipt = receiptMap.get(p.id);
+                  return (
+                    <tr key={p.id}>
+                      <td className="px-4 py-2 text-sm text-gray-500">
+                        {p.paid_at ? new Date(p.paid_at).toLocaleDateString() : "—"}
+                      </td>
+                      <td className="px-4 py-2 text-sm text-gray-500 capitalize">{p.method.replace("_", " ")}</td>
+                      <td className="px-4 py-2 text-right text-sm font-medium text-gray-900">
+                        UGX {Number(p.amount).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-2 text-right">
+                        {receipt && (
+                          <a
+                            href={`/api/receipts/${receipt.id}/pdf`}
+                            className="text-xs text-blue-600 hover:underline"
+                          >
+                            Receipt
+                          </a>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

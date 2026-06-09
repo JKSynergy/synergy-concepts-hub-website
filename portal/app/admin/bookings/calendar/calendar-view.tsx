@@ -64,7 +64,7 @@ export default function CalendarView({
 
   for (let i = 0; i < startWeekday; i++) {
     cells.push(
-      <div key={`empty-${i}`} className="min-h-[120px] bg-gray-100" />
+      <div key={`empty-${i}`} className="min-h-[80px] bg-gray-100 sm:min-h-[120px]" />
     );
   }
 
@@ -77,12 +77,12 @@ export default function CalendarView({
     cells.push(
       <div
         key={day}
-        className={`min-h-[120px] border border-gray-200 bg-white p-2 transition-shadow hover:shadow-sm ${
+        className={`min-h-[80px] border border-gray-200 bg-white p-1 transition-shadow hover:shadow-sm sm:min-h-[120px] sm:p-2 ${
           isToday ? "ring-2 ring-sch-orange" : ""
         }`}
       >
         <div
-          className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-base font-bold ${
+          className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold sm:h-7 sm:w-7 sm:text-base ${
             isToday
               ? "bg-sch-orange text-white"
               : "bg-gray-100 text-gray-900"
@@ -90,22 +90,22 @@ export default function CalendarView({
         >
           {day}
         </div>
-        <div className="mt-1 space-y-1">
+        <div className="mt-0.5 space-y-0.5 sm:mt-1 sm:space-y-1">
           {dayEvents.map((e) => (
             <Link
               key={e.id}
               href={`/admin/bookings/${e.id}`}
-              className="block rounded px-1.5 py-1 text-xs leading-tight hover:bg-gray-50"
+              className="block rounded px-1 py-0.5 text-[10px] leading-tight hover:bg-gray-50 sm:px-1.5 sm:py-1 sm:text-xs"
             >
               <span
-                className={`inline-block rounded-full px-1.5 py-0.5 text-[10px] font-medium capitalize ${statusBadge[e.status]}`}
+                className={`inline-block rounded-full px-1 py-0 text-[8px] font-medium capitalize sm:px-1.5 sm:py-0.5 sm:text-[10px] ${statusBadge[e.status]}`}
               >
                 {typeLabel[e.type]}
               </span>
               <div className="mt-0.5 truncate font-medium text-gray-800">
                 {e.title}
               </div>
-              <div className="truncate text-[10px] text-gray-400">
+              <div className="truncate text-[8px] text-gray-400 sm:text-[10px]">
                 {e.client_name}
               </div>
             </Link>
@@ -118,7 +118,7 @@ export default function CalendarView({
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900">
+        <h2 className="text-base font-semibold text-gray-900 sm:text-lg">
           {MONTH_NAMES[month - 1]} {year}
         </h2>
         <div className="flex gap-2">
@@ -128,9 +128,9 @@ export default function CalendarView({
                 `/admin/bookings/calendar?month=${prevMonth}&year=${prevYear}`
               )
             }
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="rounded-md border border-gray-300 px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 sm:px-3 sm:text-sm"
           >
-            Previous
+            Prev
           </button>
           <button
             onClick={() =>
@@ -138,7 +138,7 @@ export default function CalendarView({
                 `/admin/bookings/calendar?month=${nextMonth}&year=${nextYear}`
               )
             }
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="rounded-md border border-gray-300 px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 sm:px-3 sm:text-sm"
           >
             Next
           </button>
@@ -146,12 +146,21 @@ export default function CalendarView({
       </div>
 
       <div className="grid grid-cols-7 gap-px overflow-hidden rounded-xl border border-gray-200 bg-gray-200">
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+        {[
+          { full: "Sun", abbr: "Su" },
+          { full: "Mon", abbr: "Mo" },
+          { full: "Tue", abbr: "Tu" },
+          { full: "Wed", abbr: "We" },
+          { full: "Thu", abbr: "Th" },
+          { full: "Fri", abbr: "Fr" },
+          { full: "Sat", abbr: "Sa" },
+        ].map((d) => (
           <div
-            key={d}
-            className="bg-gray-300 px-2 py-3 text-center text-sm font-bold uppercase tracking-wide text-gray-900"
+            key={d.full}
+            className="bg-gray-300 px-1 py-2 text-center text-[10px] font-bold uppercase tracking-wide text-gray-900 sm:px-2 sm:py-3 sm:text-sm"
           >
-            {d}
+            <span className="hidden sm:inline">{d.full}</span>
+            <span className="sm:hidden">{d.abbr}</span>
           </div>
         ))}
         {cells}

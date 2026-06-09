@@ -92,6 +92,7 @@ export async function POST(request: Request) {
     await admin
       .from("profiles")
       .update({
+        role: "client",
         full_name: fullName,
         company_name: companyName,
         phone,

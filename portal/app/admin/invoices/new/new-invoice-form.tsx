@@ -120,30 +120,32 @@ export default function NewInvoiceForm({
           <div className="rounded-xl bg-white p-6 shadow">
             <h2 className="text-lg font-semibold text-gray-900">Line Items</h2>
             {items.length > 0 && (
-              <table className="mt-4 min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Description</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Qty</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Unit Price</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Amount</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {items.map((it, i) => (
-                    <tr key={i}>
-                      <td className="px-4 py-2 text-sm text-gray-900">{it.description}</td>
-                      <td className="px-4 py-2 text-right text-sm text-gray-500">{it.quantity}</td>
-                      <td className="px-4 py-2 text-right text-sm text-gray-500">
-                        UGX {it.unit_price.toLocaleString()}
-                      </td>
-                      <td className="px-4 py-2 text-right text-sm text-gray-900">
-                        UGX {(it.quantity * it.unit_price).toLocaleString()}
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="mt-4 min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Description</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Qty</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Unit Price</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Amount</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {items.map((it, i) => (
+                      <tr key={i}>
+                        <td className="px-4 py-2 text-sm text-gray-900">{it.description}</td>
+                        <td className="px-4 py-2 text-right text-sm text-gray-500">{it.quantity}</td>
+                        <td className="px-4 py-2 text-right text-sm text-gray-500">
+                          UGX {it.unit_price.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-2 text-right text-sm text-gray-900">
+                          UGX {(it.quantity * it.unit_price).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
 
             <form action={handleAddItem} className="mt-4 flex flex-wrap gap-3">

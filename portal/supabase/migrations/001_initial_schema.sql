@@ -47,7 +47,7 @@ CREATE TABLE public.service_catalog (
 -- Bookings
 CREATE TABLE public.bookings (
   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  client_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  client_id uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
   type public.booking_type NOT NULL,
   status public.booking_status NOT NULL DEFAULT 'pending',
   service_id uuid REFERENCES public.service_catalog(id) ON DELETE SET NULL,

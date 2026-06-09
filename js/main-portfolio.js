@@ -92,16 +92,14 @@ const MAIN_PORTFOLIO_ALBUMS = {
         'images/photography/event experiences/Honest/Honest Last.png'
       ],
       'Horrace & Vannesa': [
-        'images/photography/event experiences/Horrace & Vannesa/Vannie.png',
-        'images/photography/event experiences/Horrace & Vannesa/Vannie 1.png',
-        'images/photography/event experiences/Horrace & Vannesa/Vannie 2.png',
-        'images/photography/event experiences/Horrace & Vannesa/Vannie 3.png',
-        'images/photography/event experiences/Horrace & Vannesa/Vannie 4.png',
-        'images/photography/event experiences/Horrace & Vannesa/Vannie 5.png',
-        'images/photography/event experiences/Horrace & Vannesa/Vannie 6.png',
-        'images/photography/event experiences/Horrace & Vannesa/Vannie 7.png',
-        'images/photography/event experiences/Horrace & Vannesa/Vannie 8.png',
-        'images/photography/event experiences/Horrace & Vannesa/Vannie 9.png'
+        'images/photography/event experiences/Horrace & Vannesa/Vannie 1.jpg',
+        'images/photography/event experiences/Horrace & Vannesa/Vannie 2.jpg',
+        'images/photography/event experiences/Horrace & Vannesa/Vannie 3.jpg',
+        'images/photography/event experiences/Horrace & Vannesa/Vannie 4.jpg',
+        'images/photography/event experiences/Horrace & Vannesa/Vannie 5.jpg',
+        'images/photography/event experiences/Horrace & Vannesa/Vannie 6.jpg',
+        'images/photography/event experiences/Horrace & Vannesa/Vannie 8.jpg',
+        'images/photography/event experiences/Horrace & Vannesa/Vannie 9.jpg'
       ],
       'Intro': [
         'images/photography/event experiences/Intro/IMG_7502.jpg',
@@ -126,11 +124,10 @@ const MAIN_PORTFOLIO_ALBUMS = {
         'images/photography/event experiences/Katherine & Ron/Kath & Ron-85.jpg'
       ],
       'Samantha': [
-        'images/photography/event experiences/samantha/Sam.png',
-        'images/photography/event experiences/samantha/Sam 2.png',
-        'images/photography/event experiences/samantha/Sam 3.png',
-        'images/photography/event experiences/samantha/Sam 4.png',
-        'images/photography/event experiences/samantha/Sam 5.png',
+        'images/photography/event experiences/samantha/Sam.jpg',
+        'images/photography/event experiences/samantha/Sam 2.jpg',
+        'images/photography/event experiences/samantha/Sam 4.jpg',
+        'images/photography/event experiences/samantha/Sam 5.jpg',
         'images/photography/event experiences/samantha/Samantha.jpg',
         'images/photography/event experiences/samantha/Samantha 2.jpg',
         'images/photography/event experiences/samantha/Samantha 3.jpg',

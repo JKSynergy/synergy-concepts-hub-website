@@ -132,7 +132,7 @@ export function PortalSidebar({
   }
 
   const isActive = (item: NavItem) =>
-    item.exact ? pathname === item.href : pathname.startsWith(item.href);
+    !pathname ? false : item.exact ? pathname === item.href : pathname.startsWith(item.href);
 
   const initials = userLabel.slice(0, 2).toUpperCase();
 

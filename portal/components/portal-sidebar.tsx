@@ -38,7 +38,8 @@ export type IconKey =
   | "leads"
   | "academy"
   | "reports"
-  | "finances";
+  | "finances"
+  | "users";
 
 const ICONS: Record<IconKey, LucideIcon> = {
   dashboard: LayoutDashboard,
@@ -53,6 +54,7 @@ const ICONS: Record<IconKey, LucideIcon> = {
   academy: GraduationCap,
   reports: BarChart3,
   finances: Wallet,
+  users: Users,
 };
 
 export interface NavItem {

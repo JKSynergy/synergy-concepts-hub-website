@@ -143,6 +143,28 @@ const MAIN_PORTFOLIO_ALBUMS = {
         'images/photography/event experiences/vivian/Vivian (5).jpg',
         'images/photography/event experiences/vivian/Vivian (6).jpg',
         'images/photography/event experiences/vivian/Vivian (8).jpg'
+      ],
+      'Jason': [
+        'images/photography/event experiences/Jason/DSC_0102.jpg',
+        'images/photography/event experiences/Jason/DSC_0105.jpg',
+        'images/photography/event experiences/Jason/DSC_0111.jpg',
+        'images/photography/event experiences/Jason/DSC_0455.jpg',
+        'images/photography/event experiences/Jason/DSC_0461.jpg',
+        'images/photography/event experiences/Jason/DSC_0474.jpg',
+        'images/photography/event experiences/Jason/DSC_0477.jpg',
+        'images/photography/event experiences/Jason/DSC_0509.jpg',
+        'images/photography/event experiences/Jason/DSC_0732.jpg',
+        'images/photography/event experiences/Jason/DSC_0741.jpg',
+        'images/photography/event experiences/Jason/DSC_0758.jpg',
+        'images/photography/event experiences/Jason/DSC_07581.jpg',
+        'images/photography/event experiences/Jason/DSC_0897.jpg'
+      ],
+      'Elizabeth and Richard': [
+        'images/photography/event experiences/Elizabeth and Richard/NAZ_0268.jpg',
+        'images/photography/event experiences/Elizabeth and Richard/NAZ_0339.jpg',
+        'images/photography/event experiences/Elizabeth and Richard/NAZ_0415.jpg',
+        'images/photography/event experiences/Elizabeth and Richard/NAZ_1275.jpg',
+        'images/photography/event experiences/Elizabeth and Richard/NAZ_1285.jpg'
       ]
     },
     editorialPhotography: [
@@ -515,6 +537,16 @@ const STORY_META = {
     tag: 'Portrait',
     subtitle: 'Vibrant energy and refined presence in every frame',
     accent: 'gold'
+  },
+  'Jason': {
+    tag: 'Portrait',
+    subtitle: 'Professional portrait session with character and depth',
+    accent: 'blue'
+  },
+  'Elizabeth and Richard': {
+    tag: 'Celebration',
+    subtitle: 'A beautiful union captured in timeless frames',
+    accent: 'orange'
   },
   'Children of Virtue': { tag: 'Logo', subtitle: 'Brand identity for Children of Virtue', accent: 'blue' },
   'Diani Art Gallery': { tag: 'Logo', subtitle: 'Visual identity for Diani Art Gallery', accent: 'gold' },

@@ -29,8 +29,10 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     { href: "/admin/leads", label: "Quote Requests", icon: "leads" },
     ...(isAdmin
       ? ([
+          { href: "/admin/staff", label: "Staff", icon: "users" },
           { href: "/admin/academy", label: "Academy", icon: "academy" },
           { href: "/admin/invoices", label: "Invoices", icon: "invoices" },
+          { href: "/admin/finances", label: "Finances", icon: "finances" },
           { href: "/admin/reports", label: "Reports", icon: "reports" },
         ] as NavItem[])
       : []),

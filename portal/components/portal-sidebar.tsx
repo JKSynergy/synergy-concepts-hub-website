@@ -22,6 +22,7 @@ import {
   X,
   LogOut,
   Settings,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 
@@ -36,7 +37,8 @@ export type IconKey =
   | "services"
   | "leads"
   | "academy"
-  | "reports";
+  | "reports"
+  | "finances";
 
 const ICONS: Record<IconKey, LucideIcon> = {
   dashboard: LayoutDashboard,
@@ -50,6 +52,7 @@ const ICONS: Record<IconKey, LucideIcon> = {
   leads: MessageSquare,
   academy: GraduationCap,
   reports: BarChart3,
+  finances: Wallet,
 };
 
 export interface NavItem {

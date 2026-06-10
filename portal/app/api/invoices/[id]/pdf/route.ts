@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { pdf } from "@react-pdf/renderer";
 import InvoicePDF from "@/lib/pdf/invoice-template";
+import { readFileSync } from "fs";
+import { join } from "path";
 
 export async function GET(
   _req: NextRequest,
@@ -40,8 +42,12 @@ export async function GET(
     .eq("id", invoice.client_id)
     .single();
 
+  const logoPath = join(process.cwd(), "public", "images", "Website Logo 2.png");
+  const logoBuffer = readFileSync(logoPath);
+  const logoSrc = `data:image/png;base64,${logoBuffer.toString("base64")}`;
+
   const blob = await pdf(
-    InvoicePDF({ invoice, lineItems: lineItems ?? [], client: client ?? { email: "" } })
+    InvoicePDF({ invoice, lineItems: lineItems ?? [], client: client ?? { email: "" }, logoSrc })
   ).toBlob();
 
   const buffer = Buffer.from(await blob.arrayBuffer());

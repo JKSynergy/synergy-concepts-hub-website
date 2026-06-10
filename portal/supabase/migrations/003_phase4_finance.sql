@@ -93,8 +93,8 @@ CREATE OR REPLACE FUNCTION public.recalculate_invoice_totals()
 RETURNS TRIGGER AS $$
 DECLARE
   inv_id uuid;
-  subtotal numeric(12,2);
-  tax_rate numeric(5,2);
+  new_subtotal numeric(12,2);
+  inv_tax_rate numeric(5,2);
 BEGIN
   IF TG_OP = 'DELETE' THEN
     inv_id := OLD.invoice_id;
@@ -102,18 +102,18 @@ BEGIN
     inv_id := NEW.invoice_id;
   END IF;
 
-  SELECT COALESCE(SUM(amount), 0) INTO subtotal
+  SELECT COALESCE(SUM(amount), 0) INTO new_subtotal
   FROM public.invoice_line_items
   WHERE invoice_id = inv_id;
 
-  SELECT COALESCE(i.tax_rate, 0) INTO tax_rate
+  SELECT COALESCE(i.tax_rate, 0) INTO inv_tax_rate
   FROM public.invoices i
   WHERE i.id = inv_id;
 
   UPDATE public.invoices
-  SET subtotal = subtotal,
-      tax_amount = ROUND(subtotal * tax_rate / 100, 2),
-      total = subtotal + ROUND(subtotal * tax_rate / 100, 2)
+  SET subtotal = new_subtotal,
+      tax_amount = ROUND(new_subtotal * inv_tax_rate / 100, 2),
+      total = new_subtotal + ROUND(new_subtotal * inv_tax_rate / 100, 2)
   WHERE id = inv_id;
 
   RETURN COALESCE(NEW, OLD);

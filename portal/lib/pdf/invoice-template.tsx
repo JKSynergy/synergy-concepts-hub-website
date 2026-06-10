@@ -3,13 +3,15 @@ import {
   Page,
   Text,
   View,
+  Image,
   StyleSheet,
 } from "@react-pdf/renderer";
 import type { Invoice, InvoiceLineItem } from "@/lib/types";
 
 const styles = StyleSheet.create({
   page: { padding: 40, fontSize: 11, fontFamily: "Helvetica" },
-  header: { marginBottom: 24 },
+  header: { marginBottom: 24, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  logo: { width: 80, height: 80, objectFit: "contain" },
   title: { fontSize: 24, fontWeight: "bold", color: "#ED8C22", marginBottom: 4 },
   subtitle: { fontSize: 12, color: "#1773B9", marginBottom: 16 },
   row: { flexDirection: "row", justifyContent: "space-between", marginBottom: 8 },
@@ -40,17 +42,22 @@ export default function InvoicePDF({
   invoice,
   lineItems,
   client,
+  logoSrc,
 }: {
   invoice: Invoice;
   lineItems: InvoiceLineItem[];
   client: { full_name?: string | null; company_name?: string | null; email: string; billing_address?: string | null };
+  logoSrc?: string;
 }) {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.title}>Synergy Concepts Hub</Text>
-          <Text style={styles.subtitle}>Invoice</Text>
+          <View>
+            <Text style={styles.title}>Synergy Concepts Hub</Text>
+            <Text style={styles.subtitle}>Invoice</Text>
+          </View>
+          {logoSrc && <Image style={styles.logo} src={logoSrc} />}
         </View>
 
         <View style={styles.row}>

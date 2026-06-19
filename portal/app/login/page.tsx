@@ -334,6 +334,10 @@ export default function LoginPage() {
             <p className="mt-1.5 text-sm text-sch-muted">
               Sign in to access your dashboard
             </p>
+            <p className="mt-3 rounded-lg border border-sch-glass-border bg-white/5 px-3 py-2 text-xs leading-relaxed text-sch-muted">
+              Invited to the portal? Use the link in your email first to create a
+              password, then sign in here.
+            </p>
           </div>
 
           {/* Error */}
@@ -402,7 +406,7 @@ export default function LoginPage() {
                 <span className="text-xs text-sch-muted">Remember me</span>
               </label>
               <a
-                href="#"
+                href="/forgot-password"
                 className="text-xs font-medium text-sch-blue transition-colors hover:text-sch-white"
               >
                 Forgot password?
@@ -471,7 +475,7 @@ export default function LoginPage() {
               <Mail size={16} strokeWidth={1.6} />
             </a>
             <a
-              href="https://synergyconceptshub.com"
+              href={process.env.NEXT_PUBLIC_WEBSITE_URL || "/"}
               className="login-icon-btn"
               aria-label="Back to website"
             >
@@ -482,7 +486,7 @@ export default function LoginPage() {
           {/* Back link */}
           <div className="mt-6 text-center">
             <a
-              href="https://synergyconceptshub.com"
+              href={process.env.NEXT_PUBLIC_WEBSITE_URL || "/"}
               className="login-link inline-flex items-center gap-1.5 text-xs"
             >
               <ArrowLeft size={13} strokeWidth={1.6} />

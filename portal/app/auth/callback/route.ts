@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
+  const type = searchParams.get("type");
   const error = searchParams.get("error_description") || searchParams.get("error");
 
   if (error) {
@@ -25,9 +26,19 @@ export async function GET(request: Request) {
     );
   }
 
+  // Invited users and password resets must choose a password before dashboard access.
+  if (type === "invite" || type === "recovery") {
+    return NextResponse.redirect(`${origin}/auth/set-password`);
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Invited accounts may not include ?type=invite; fall back to invited_at.
+  if (user?.invited_at) {
+    return NextResponse.redirect(`${origin}/auth/set-password`);
+  }
 
   let target = "/client";
   if (user) {

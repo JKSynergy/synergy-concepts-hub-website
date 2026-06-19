@@ -386,10 +386,10 @@ const COLLECTION_META = {
       category: 'Events'
     },
     editorialPhotography: {
-      title: 'Editorial Photography',
+      title: 'Studio Photography',
       subtitle: 'Magazine-quality compositions and visual essays',
       accent: 'gold',
-      category: 'Editorial'
+      category: 'Studio'
     },
     creativeSessions: {
       title: 'Creative Sessions',

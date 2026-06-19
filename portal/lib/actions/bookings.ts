@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getInviteRedirectUrlFromEnv } from "@/lib/portal-url";
 import { sendEmail } from "@/lib/email/notify";
 import type { BookingStatus, BookingType } from "@/lib/types";
 
@@ -285,7 +286,7 @@ export async function convertLead(leadId: string): Promise<ActionResult> {
   if (!lead) return { error: "Lead not found" };
 
   const admin = createAdminClient();
-  const base = process.env.NEXT_PUBLIC_PORTAL_URL ?? "http://localhost:3000";
+  const redirectTo = getInviteRedirectUrlFromEnv();
 
   const { data, error } = await admin.auth.admin.inviteUserByEmail(lead.email, {
     data: {
@@ -293,7 +294,7 @@ export async function convertLead(leadId: string): Promise<ActionResult> {
       full_name: lead.name,
       phone: lead.phone,
     },
-    redirectTo: `${base}/login`,
+    redirectTo,
   });
 
   if (error) return { error: error.message };

@@ -8,12 +8,15 @@
 
 /*.js
   Content-Type: application/javascript
+  Cache-Control: public, max-age=0, must-revalidate
 
 /*.css
   Content-Type: text/css
+  Cache-Control: public, max-age=0, must-revalidate
 
 /*.html
   Content-Type: text/html; charset=utf-8
+  Cache-Control: no-cache, no-store, must-revalidate
 
 /*.jpg
   Content-Type: image/jpeg

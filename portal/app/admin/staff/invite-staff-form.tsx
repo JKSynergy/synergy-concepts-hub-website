@@ -16,27 +16,44 @@ export default function InviteStaffForm() {
     setLoading(true);
     setMessage(null);
 
-    const res = await fetch("/api/admin/invite-staff", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email,
-        full_name: fullName,
-      }),
-    });
+    try {
+      const res = await fetch("/api/admin/invite-staff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          full_name: fullName,
+        }),
+        signal: AbortSignal.timeout(30_000),
+      });
 
-    const data = await res.json();
-    setLoading(false);
+      let data: { error?: string } = {};
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error("Unexpected server response. Please try again.");
+      }
 
-    if (!res.ok) {
-      setMessage({ type: "err", text: data.error ?? "Failed to send invite" });
-      return;
+      if (!res.ok) {
+        setMessage({ type: "err", text: data.error ?? "Failed to send invite" });
+        return;
+      }
+
+      setMessage({ type: "ok", text: `Invite sent to ${email}` });
+      setEmail("");
+      setFullName("");
+      router.refresh();
+    } catch (err) {
+      const text =
+        err instanceof DOMException && err.name === "TimeoutError"
+          ? "Request timed out. Check that Supabase is running and try again."
+          : err instanceof Error
+            ? err.message
+            : "Failed to send invite";
+      setMessage({ type: "err", text });
+    } finally {
+      setLoading(false);
     }
-
-    setMessage({ type: "ok", text: `Invite sent to ${email}` });
-    setEmail("");
-    setFullName("");
-    router.refresh();
   }
 
   if (!open) {

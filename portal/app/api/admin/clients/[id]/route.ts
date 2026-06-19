@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireStaffApi } from "@/lib/api/require-staff";
 import { getClientOrError } from "./get-client";
+import { deleteClientAccount } from "@/lib/admin/delete-client-account";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -95,10 +96,10 @@ export async function DELETE(_request: Request, context: RouteContext) {
   if ("error" in result && result.error) return result.error;
 
   const admin = result.admin!;
-  const { error } = await admin.auth.admin.deleteUser(id);
+  const { error } = await deleteClientAccount(admin, id);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ error }, { status: 400 });
   }
 
   return NextResponse.json({ success: true });

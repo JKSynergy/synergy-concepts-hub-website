@@ -8,6 +8,7 @@ import {
 import { setInvoiceStatus, updateInvoice } from "@/lib/actions/invoices";
 import { recordPayment } from "@/lib/actions/payments";
 import { deleteLineItem } from "@/lib/actions/invoices";
+import { InvoiceActions } from "@/components/invoice-actions";
 
 export default async function InvoiceDetailPage({
   params,
@@ -73,9 +74,9 @@ export default async function InvoiceDetailPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-gray-900">{invoice.invoice_number}</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span
             className={`rounded-full px-3 py-1 text-xs font-medium capitalize ${
               INVOICE_STATUS_BADGE[invoice.status as InvoiceStatus]
@@ -89,6 +90,7 @@ export default async function InvoiceDetailPage({
           >
             Download PDF
           </a>
+          <InvoiceActions invoiceId={id} redirectTo="/admin/invoices" />
         </div>
       </div>
 

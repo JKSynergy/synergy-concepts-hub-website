@@ -10,20 +10,23 @@ import type { Invoice, InvoiceLineItem, Payment } from "@/lib/types";
 
 const C = {
   primary: "#D97706",
-  secondary: "#2563EB",
-  neutral: "#111827",
-  gray: "#D1D5DB",
-  grayLight: "#F3F4F6",
-  grayText: "#6B7280",
+  primaryLight: "#FEF3C7",
+  primaryMid: "#FDE68A",
+  dark: "#0F172A",
+  body: "#374151",
+  muted: "#6B7280",
+  border: "#E5E7EB",
+  bgLight: "#F9FAFB",
+  bgStripe: "#F3F4F6",
   white: "#FFFFFF",
-  darkBg: "#1F2937",
+  tableHead: "#1E293B",
 };
 
 const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
   draft: { bg: "#F3F4F6", text: "#6B7280" },
-  sent: { bg: "#EFF6FF", text: "#1E73BE" },
-  paid: { bg: "#ECFDF5", text: "#059669" },
-  overdue: { bg: "#FEF2F2", text: "#DC2626" },
+  sent: { bg: "#EFF6FF", text: "#1E40AF" },
+  paid: { bg: "#ECFDF5", text: "#065F46" },
+  overdue: { bg: "#FEF2F2", text: "#991B1B" },
   cancelled: { bg: "#F3F4F6", text: "#9CA3AF" },
 };
 
@@ -36,97 +39,328 @@ const PAYMENT_LABEL: Record<string, string> = {
 
 const styles = StyleSheet.create({
   page: {
-    padding: 40,
-    paddingTop: 36,
     fontSize: 10,
     fontFamily: "Helvetica",
-    color: C.neutral,
-    lineHeight: 1.35,
+    color: C.dark,
+    backgroundColor: C.white,
     flexDirection: "column",
   },
-  content: { flex: 1 },
+  topBar: {
+    height: 5,
+    backgroundColor: C.primary,
+    width: "100%",
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 44,
+    paddingTop: 30,
+    paddingBottom: 24,
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 16,
+    marginBottom: 28,
   },
-  brandBlock: { flexDirection: "row", alignItems: "center" },
-  logo: { width: 56, height: 56, objectFit: "contain", marginRight: 14 },
-  brandName: { fontSize: 16, fontWeight: "bold", color: C.neutral, marginBottom: 3 },
-  brandTagline: { fontSize: 9, color: C.grayText, letterSpacing: 0.5 },
-  titleBlock: { alignItems: "flex-end" },
-  invoiceTitle: { fontSize: 28, fontWeight: "bold", color: C.neutral, letterSpacing: 3, marginBottom: 10 },
-  metaRow: { flexDirection: "row", alignItems: "center", marginBottom: 5 },
-  metaLabel: { width: 80, fontSize: 10, color: C.grayText, textAlign: "right", marginRight: 10 },
-  metaValue: { fontSize: 10, fontWeight: "bold", color: C.neutral, width: 90 },
-  badge: { marginTop: 6, paddingVertical: 4, paddingHorizontal: 12, borderRadius: 0 },
-  badgeText: { fontSize: 9, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 0.5 },
-  divider: { height: 2, backgroundColor: C.primary, marginBottom: 24 },
-  infoRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 32 },
-  infoBlock: { width: "48%" },
-  infoLabel: { fontSize: 9, color: C.grayText, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 10 },
-  infoValue: { fontSize: 12, fontWeight: "bold", color: C.neutral, marginBottom: 5 },
-  infoSub: { fontSize: 10, color: C.grayText, marginBottom: 3 },
-  projectCard: {
-    backgroundColor: C.grayLight,
-    borderRadius: 0,
-    padding: 16,
-    marginBottom: 32,
-    borderLeftWidth: 3,
-    borderLeftColor: C.secondary,
-  },
-  sectionLabel: { fontSize: 9, color: C.grayText, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 6 },
-  sectionTitle: { fontSize: 12, fontWeight: "bold", color: C.neutral, marginBottom: 4 },
-  sectionBody: { fontSize: 10, color: C.grayText, lineHeight: 1.5 },
-  table: { marginBottom: 28 },
-  tableHeader: {
+  brandBlock: {
     flexDirection: "row",
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    backgroundColor: C.darkBg,
-    borderRadius: 0,
-    marginBottom: 2,
+    alignItems: "center",
   },
-  tableHeaderCell: { fontSize: 9, fontWeight: "bold", color: C.white, textTransform: "uppercase", letterSpacing: 1.2 },
-  tableRow: { flexDirection: "row", paddingVertical: 12, paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: C.grayLight },
-  cellDesc: { flex: 3, fontSize: 11, paddingRight: 12 },
-  cellQty: { flex: 1, fontSize: 11, textAlign: "right", paddingRight: 12 },
-  cellPrice: { flex: 1.5, fontSize: 11, textAlign: "right", paddingRight: 12 },
-  cellAmount: { flex: 1.5, fontSize: 11, textAlign: "right", fontWeight: "bold", color: C.neutral },
-  totalsSection: { alignItems: "flex-end", marginBottom: 32 },
-  totalsCard: { width: 280, padding: 20, backgroundColor: C.grayLight, borderRadius: 0, borderLeftWidth: 3, borderLeftColor: C.primary },
-  totalRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 10 },
-  totalLabel: { fontSize: 11, color: C.grayText },
-  totalValue: { fontSize: 11, fontWeight: "bold", color: C.neutral },
-  totalDivider: { height: 1, backgroundColor: C.gray, marginVertical: 14 },
-  grandTotalRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  grandTotalLabel: { fontSize: 13, fontWeight: "bold", color: C.neutral },
-  grandTotalValue: { fontSize: 18, fontWeight: "bold", color: C.primary },
-  paymentSection: {
-    marginBottom: 32,
-    padding: 16,
-    backgroundColor: "#FFF7ED",
-    borderRadius: 0,
+  logo: {
+    width: 50,
+    height: 50,
+    objectFit: "contain",
+    marginRight: 12,
+  },
+  brandName: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: C.dark,
+    marginBottom: 3,
+  },
+  brandTagline: {
+    fontSize: 8.5,
+    color: C.muted,
+    letterSpacing: 0.4,
+  },
+  titleBlock: {
+    alignItems: "flex-end",
+  },
+  invoiceTitle: {
+    fontSize: 34,
+    fontWeight: "bold",
+    color: C.primary,
+    letterSpacing: 5,
+    marginBottom: 10,
+  },
+  metaRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  metaLabel: {
+    fontSize: 8.5,
+    color: C.muted,
+    marginRight: 8,
+    minWidth: 58,
+    textAlign: "right",
+  },
+  metaValue: {
+    fontSize: 8.5,
+    fontWeight: "bold",
+    color: C.dark,
+    minWidth: 80,
+    textAlign: "right",
+  },
+  badge: {
+    marginTop: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 3,
+    alignSelf: "flex-end",
+  },
+  badgeText: {
+    fontSize: 7.5,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: C.border,
+    marginBottom: 26,
+  },
+  infoRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 30,
+  },
+  infoBlock: {
+    width: "46%",
+  },
+  infoLabel: {
+    fontSize: 7.5,
+    color: C.primary,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+    letterSpacing: 1.8,
+    marginBottom: 8,
+  },
+  infoName: {
+    fontSize: 13,
+    fontWeight: "bold",
+    color: C.dark,
+    marginBottom: 5,
+    lineHeight: 1.3,
+  },
+  infoSub: {
+    fontSize: 9,
+    color: C.body,
+    marginBottom: 2,
+    lineHeight: 1.5,
+  },
+  projectCard: {
+    backgroundColor: C.bgLight,
+    padding: 14,
+    marginBottom: 26,
     borderLeftWidth: 3,
     borderLeftColor: C.primary,
   },
-  paymentTitle: { fontSize: 9, color: C.grayText, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 8 },
-  paymentRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4 },
-  paymentLabel: { fontSize: 9, color: C.grayText },
-  paymentValue: { fontSize: 10, fontWeight: "bold", color: C.neutral },
-  notesSection: { marginBottom: 20, padding: 16, borderRadius: 0, backgroundColor: C.grayLight },
-  notesTitle: { fontSize: 9, color: C.grayText, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 8 },
-  notesBody: { fontSize: 11, color: C.neutral, lineHeight: 1.6 },
+  sectionLabel: {
+    fontSize: 7.5,
+    color: C.primary,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+    letterSpacing: 1.5,
+    marginBottom: 5,
+  },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: "bold",
+    color: C.dark,
+    marginBottom: 3,
+  },
+  sectionBody: {
+    fontSize: 9.5,
+    color: C.body,
+    lineHeight: 1.5,
+  },
+  table: {
+    marginBottom: 26,
+  },
+  tableHeader: {
+    flexDirection: "row",
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    backgroundColor: C.tableHead,
+  },
+  tableHeaderCell: {
+    fontSize: 8,
+    fontWeight: "bold",
+    color: C.white,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  tableRow: {
+    flexDirection: "row",
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  tableRowAlt: {
+    backgroundColor: C.bgLight,
+  },
+  cellDesc: { flex: 3.2, paddingRight: 10 },
+  cellQty: { flex: 0.8, textAlign: "right", paddingRight: 10 },
+  cellPrice: { flex: 1.6, textAlign: "right", paddingRight: 10 },
+  cellAmount: { flex: 1.6, textAlign: "right" },
+  cellText: {
+    fontSize: 9.5,
+    color: C.body,
+  },
+  cellTextBold: {
+    fontSize: 9.5,
+    fontWeight: "bold",
+    color: C.dark,
+  },
+  cellDescText: {
+    fontSize: 9.5,
+    color: C.dark,
+  },
+  totalsSection: {
+    alignItems: "flex-end",
+    marginBottom: 28,
+  },
+  totalsCard: {
+    width: 268,
+    borderTopWidth: 2,
+    borderTopColor: C.primary,
+    paddingTop: 14,
+  },
+  totalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  totalLabel: {
+    fontSize: 9.5,
+    color: C.muted,
+  },
+  totalValue: {
+    fontSize: 9.5,
+    fontWeight: "bold",
+    color: C.dark,
+  },
+  grandTotalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  grandTotalLabel: {
+    fontSize: 11,
+    fontWeight: "bold",
+    color: C.dark,
+  },
+  grandTotalValue: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: C.primary,
+  },
+  paymentSection: {
+    marginBottom: 26,
+    padding: 16,
+    backgroundColor: C.bgLight,
+    borderLeftWidth: 3,
+    borderLeftColor: C.primary,
+  },
+  paymentTitle: {
+    fontSize: 7.5,
+    color: C.primary,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+    letterSpacing: 1.8,
+    marginBottom: 10,
+  },
+  paymentRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  paymentLabel: {
+    fontSize: 8.5,
+    color: C.muted,
+    marginTop: 2,
+  },
+  paymentValue: {
+    fontSize: 9.5,
+    fontWeight: "bold",
+    color: C.dark,
+  },
+  notesSection: {
+    marginBottom: 20,
+    padding: 14,
+    backgroundColor: C.bgLight,
+    borderLeftWidth: 3,
+    borderLeftColor: C.border,
+  },
+  notesTitle: {
+    fontSize: 7.5,
+    color: C.primary,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+    letterSpacing: 1.8,
+    marginBottom: 7,
+  },
+  notesBody: {
+    fontSize: 9.5,
+    color: C.body,
+    lineHeight: 1.6,
+  },
   footer: {
-    paddingTop: 16,
+    paddingHorizontal: 44,
+    paddingTop: 14,
+    paddingBottom: 20,
     borderTopWidth: 1,
-    borderTopColor: C.gray,
+    borderTopColor: C.border,
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
   },
-  footerBrand: { fontSize: 12, fontWeight: "bold", color: C.neutral, marginBottom: 2, textAlign: "center" },
-  footerTagline: { fontSize: 10, color: C.primary, marginBottom: 8, textAlign: "center", letterSpacing: 0.5 },
-  footerLinks: { fontSize: 10, color: C.grayText, textAlign: "center", marginBottom: 2 },
+  footerLeft: {},
+  footerBrand: {
+    fontSize: 11,
+    fontWeight: "bold",
+    color: C.dark,
+    marginBottom: 2,
+  },
+  footerTagline: {
+    fontSize: 8.5,
+    color: C.primary,
+    letterSpacing: 0.4,
+  },
+  footerRight: {
+    alignItems: "flex-end",
+  },
+  footerLink: {
+    fontSize: 8.5,
+    color: C.muted,
+    marginBottom: 2,
+    textAlign: "right",
+  },
+  bottomBar: {
+    height: 4,
+    backgroundColor: C.primary,
+    width: "100%",
+  },
 });
 
 export default function InvoicePDF({
@@ -157,6 +391,8 @@ export default function InvoicePDF({
   return (
     <Document>
       <Page size="A4" style={styles.page}>
+        <View style={styles.topBar} />
+
         <View style={styles.content}>
           <View style={styles.header}>
             <View style={styles.brandBlock}>
@@ -193,7 +429,7 @@ export default function InvoicePDF({
           <View style={styles.infoRow}>
             <View style={styles.infoBlock}>
               <Text style={styles.infoLabel}>Bill To</Text>
-              <Text style={styles.infoValue}>{client.company_name || client.full_name || client.email}</Text>
+              <Text style={styles.infoName}>{client.company_name || client.full_name || client.email}</Text>
               {client.billing_address && <Text style={styles.infoSub}>{client.billing_address}</Text>}
               <Text style={styles.infoSub}>{client.email}</Text>
               {client.phone && <Text style={styles.infoSub}>{client.phone}</Text>}
@@ -201,7 +437,7 @@ export default function InvoicePDF({
             </View>
             <View style={styles.infoBlock}>
               <Text style={styles.infoLabel}>From</Text>
-              <Text style={styles.infoValue}>Synergy Concepts Hub</Text>
+              <Text style={styles.infoName}>Synergy Concepts Hub</Text>
               <Text style={styles.infoSub}>info@synergyconceptshub.com</Text>
               <Text style={styles.infoSub}>www.synergyconceptshub.com</Text>
             </View>
@@ -222,12 +458,15 @@ export default function InvoicePDF({
               <Text style={[styles.cellPrice, styles.tableHeaderCell]}>Unit Price</Text>
               <Text style={[styles.cellAmount, styles.tableHeaderCell]}>Amount</Text>
             </View>
-            {lineItems.map((item) => (
-              <View style={styles.tableRow} key={item.id}>
-                <Text style={styles.cellDesc}>{item.description}</Text>
-                <Text style={styles.cellQty}>{Number(item.quantity).toLocaleString()}</Text>
-                <Text style={styles.cellPrice}>UGX {Number(item.unit_price).toLocaleString()}</Text>
-                <Text style={styles.cellAmount}>UGX {Number(item.amount).toLocaleString()}</Text>
+            {lineItems.map((item, index) => (
+              <View
+                style={[styles.tableRow, index % 2 !== 0 ? styles.tableRowAlt : {}]}
+                key={item.id}
+              >
+                <Text style={[styles.cellDesc, styles.cellDescText]}>{item.description}</Text>
+                <Text style={[styles.cellQty, styles.cellText]}>{Number(item.quantity).toLocaleString()}</Text>
+                <Text style={[styles.cellPrice, styles.cellText]}>UGX {Number(item.unit_price).toLocaleString()}</Text>
+                <Text style={[styles.cellAmount, styles.cellTextBold]}>UGX {Number(item.amount).toLocaleString()}</Text>
               </View>
             ))}
           </View>
@@ -247,12 +486,11 @@ export default function InvoicePDF({
               {discount > 0 && (
                 <View style={styles.totalRow}>
                   <Text style={styles.totalLabel}>Discount</Text>
-                  <Text style={styles.totalValue}>UGX {discount.toLocaleString()}</Text>
+                  <Text style={styles.totalValue}>− UGX {discount.toLocaleString()}</Text>
                 </View>
               )}
-              <View style={styles.totalDivider} />
               <View style={styles.grandTotalRow}>
-                <Text style={styles.grandTotalLabel}>Total</Text>
+                <Text style={styles.grandTotalLabel}>Total Due</Text>
                 <Text style={styles.grandTotalValue}>UGX {Number(invoice.total).toLocaleString()}</Text>
               </View>
             </View>
@@ -289,11 +527,17 @@ export default function InvoicePDF({
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerBrand}>Synergy Concepts Hub</Text>
-          <Text style={styles.footerTagline}>Where Ideas Come to Life</Text>
-          <Text style={styles.footerLinks}>www.synergyconceptshub.com</Text>
-          <Text style={styles.footerLinks}>info@synergyconceptshub.com</Text>
+          <View style={styles.footerLeft}>
+            <Text style={styles.footerBrand}>Synergy Concepts Hub</Text>
+            <Text style={styles.footerTagline}>Where Ideas Come to Life</Text>
+          </View>
+          <View style={styles.footerRight}>
+            <Text style={styles.footerLink}>www.synergyconceptshub.com</Text>
+            <Text style={styles.footerLink}>info@synergyconceptshub.com</Text>
+          </View>
         </View>
+
+        <View style={styles.bottomBar} />
       </Page>
     </Document>
   );

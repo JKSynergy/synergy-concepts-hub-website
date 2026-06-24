@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { NavLink as Link } from "@/components/nav-link";
+import { InvoiceActions } from "@/components/invoice-actions";
 import {
   INVOICE_STATUS_BADGE,
   type InvoiceStatus,
@@ -59,12 +60,14 @@ export default async function AdminInvoicesPage() {
       <div className="space-y-3">
         {invoices && invoices.length > 0 ? (
           invoices.map((inv) => (
-            <Link
+            <div
               key={inv.id}
-              href={`/admin/invoices/${inv.id}`}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white p-5 shadow hover:bg-gray-50"
+              className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-white p-5 shadow hover:bg-gray-50"
             >
-              <div>
+              <Link
+                href={`/admin/invoices/${inv.id}`}
+                className="flex flex-1 flex-wrap items-center gap-4 min-w-0"
+              >
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-gray-900">
                     {inv.invoice_number ?? "—"}
@@ -77,20 +80,28 @@ export default async function AdminInvoicesPage() {
                     {inv.status}
                   </span>
                 </div>
-                <p className="mt-1 text-sm text-gray-500">
-                  {clientMap.get(inv.client_id) ?? "Unknown client"} • UGX{" "}
-                  {Number(inv.total).toLocaleString()}
-                </p>
-                {inv.due_date && (
-                  <p className="text-xs text-gray-400">
-                    Due: {new Date(inv.due_date).toLocaleDateString()}
-                  </p>
-                )}
+                <div className="flex flex-col">
+                  <span className="text-sm text-gray-500">
+                    {clientMap.get(inv.client_id) ?? "Unknown client"}
+                  </span>
+                  {inv.due_date && (
+                    <span className="text-xs text-gray-400">
+                      Due: {new Date(inv.due_date).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+              </Link>
+
+              <div className="flex flex-wrap items-center gap-4">
+                <span className="text-sm font-medium text-gray-900">
+                  UGX {Number(inv.total).toLocaleString()}
+                </span>
+                <span className="text-xs text-gray-400">
+                  {new Date(inv.issue_date).toLocaleDateString()}
+                </span>
+                <InvoiceActions invoiceId={inv.id} />
               </div>
-              <span className="text-xs text-gray-400">
-                {new Date(inv.issue_date).toLocaleDateString()}
-              </span>
-            </Link>
+            </div>
           ))
         ) : (
           <div className="rounded-xl bg-white p-8 text-center text-sm text-gray-500 shadow">

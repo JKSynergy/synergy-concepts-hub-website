@@ -121,6 +121,24 @@ export async function setMilestoneStatus(
     .eq("id", milestoneId);
 
   if (error) return { error: error.message };
+
+  // Recalculate project progress from approved milestone weights
+  const { data: allMilestones } = await supabase
+    .from("project_milestones")
+    .select("weight_percent, status")
+    .eq("project_id", projectId);
+
+  if (allMilestones) {
+    const progress = allMilestones
+      .filter((m) => m.status === "approved")
+      .reduce((sum, m) => sum + (m.weight_percent ?? 0), 0);
+
+    await supabase
+      .from("projects")
+      .update({ progress_percent: Math.min(progress, 100) })
+      .eq("id", projectId);
+  }
+
   revalidatePath(`/admin/projects/${projectId}`);
   revalidatePath(`/client/projects/${projectId}`);
   return { success: true };

@@ -344,8 +344,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   footerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: "column",
+    justifyContent: "center",
     flex: 1,
   },
   footerIconCircle: {

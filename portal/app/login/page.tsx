@@ -123,6 +123,38 @@ export default function LoginPage() {
     }
   }, []);
 
+  // Handle Supabase implicit-flow invite/recovery links that land on /login
+  // with #access_token=... hash (happens when /auth/callback is not in the
+  // Supabase redirect allowlist and Supabase falls back to the Site URL).
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash || !hash.includes("access_token")) return;
+
+    const hashParams = new URLSearchParams(hash.slice(1));
+    const accessToken = hashParams.get("access_token");
+    const refreshToken = hashParams.get("refresh_token");
+    const type = hashParams.get("type");
+
+    if (!accessToken || !refreshToken) return;
+
+    window.history.replaceState({}, "", window.location.pathname);
+
+    const supabase = createClient();
+    supabase.auth
+      .setSession({ access_token: accessToken, refresh_token: refreshToken })
+      .then(({ error: sessionError }) => {
+        if (sessionError) {
+          setError(sessionError.message);
+          return;
+        }
+        if (type === "invite" || type === "recovery" || type === "signup") {
+          router.push("/auth/set-password");
+        } else {
+          router.push("/client");
+        }
+      });
+  }, [router]);
+
   // Navigate after the overlay has rendered so the spinner stays visible
   // until the destination page fully loads.
   useEffect(() => {

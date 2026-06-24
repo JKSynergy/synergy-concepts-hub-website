@@ -580,24 +580,13 @@ export default function InvoicePDF({
 
         <View style={styles.footer}>
           <View style={styles.footerLeft}>
-            <View style={styles.footerIconCircle}>
-              <Text style={styles.footerIconText}>o</Text>
-            </View>
-            <View>
-              <Text style={styles.footerBrand}>Synergy Concepts Hub</Text>
-              <Text style={styles.footerTagline}>Where Ideas Come to Life</Text>
-            </View>
+            <Text style={styles.footerBrand}>Synergy Concepts Hub</Text>
+            <Text style={styles.footerTagline}>Where Ideas Come to Life</Text>
           </View>
           <View style={styles.footerVerticalDivider} />
           <View style={styles.footerRight}>
-            <View style={styles.footerLinkRow}>
-              <Text style={styles.footerLinkIcon}>O</Text>
-              <Text style={styles.footerLink}>www.synergyconceptshub.com</Text>
-            </View>
-            <View style={styles.footerLinkRow}>
-              <Text style={styles.footerLinkIcon}>@</Text>
-              <Text style={styles.footerLink}>info@synergyconceptshub.com</Text>
-            </View>
+            <Text style={styles.footerLink}>www.synergyconceptshub.com</Text>
+            <Text style={styles.footerLink}>info@synergyconceptshub.com</Text>
           </View>
         </View>
       </Page>

@@ -386,7 +386,21 @@ export default function InvoicePDF({
   payments?: Payment[] | null;
 }) {
   const statusStyle = STATUS_STYLES[invoice.status] || STATUS_STYLES.draft;
-  const discount = Math.max(0, invoice.subtotal + invoice.tax_amount - invoice.total);
+
+  // Compute totals from line items directly — the stored invoice fields may be stale (0)
+  // if line items were added after the invoice was created without a recalc trigger.
+  const computedSubtotal = lineItems.reduce((sum, item) => sum + Number(item.amount), 0);
+  const displaySubtotal = invoice.subtotal > 0 ? Number(invoice.subtotal) : computedSubtotal;
+  const displayTaxRate = Number(invoice.tax_rate) || 0;
+  const displayTaxAmount =
+    displayTaxRate > 0
+      ? invoice.tax_amount > 0
+        ? Number(invoice.tax_amount)
+        : displaySubtotal * (displayTaxRate / 100)
+      : 0;
+  const displayTotal =
+    invoice.total > 0 ? Number(invoice.total) : displaySubtotal + displayTaxAmount;
+  const discount = Math.max(0, displaySubtotal + displayTaxAmount - displayTotal);
 
   return (
     <Document>
@@ -475,12 +489,12 @@ export default function InvoicePDF({
             <View style={styles.totalsCard}>
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Subtotal</Text>
-                <Text style={styles.totalValue}>UGX {Number(invoice.subtotal).toLocaleString()}</Text>
+                <Text style={styles.totalValue}>UGX {displaySubtotal.toLocaleString()}</Text>
               </View>
-              {invoice.tax_rate > 0 && (
+              {displayTaxRate > 0 && (
                 <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>Tax ({invoice.tax_rate}%)</Text>
-                  <Text style={styles.totalValue}>UGX {Number(invoice.tax_amount).toLocaleString()}</Text>
+                  <Text style={styles.totalLabel}>Tax ({displayTaxRate}%)</Text>
+                  <Text style={styles.totalValue}>UGX {displayTaxAmount.toLocaleString()}</Text>
                 </View>
               )}
               {discount > 0 && (
@@ -491,7 +505,7 @@ export default function InvoicePDF({
               )}
               <View style={styles.grandTotalRow}>
                 <Text style={styles.grandTotalLabel}>Total Due</Text>
-                <Text style={styles.grandTotalValue}>UGX {Number(invoice.total).toLocaleString()}</Text>
+                <Text style={styles.grandTotalValue}>UGX {displayTotal.toLocaleString()}</Text>
               </View>
             </View>
           </View>
@@ -518,10 +532,10 @@ export default function InvoicePDF({
             </View>
           )}
 
-          {invoice.notes && (
+          {invoice.notes?.trim() && (
             <View style={styles.notesSection}>
               <Text style={styles.notesTitle}>Notes</Text>
-              <Text style={styles.notesBody}>{invoice.notes}</Text>
+              <Text style={styles.notesBody}>{invoice.notes.trim()}</Text>
             </View>
           )}
         </View>

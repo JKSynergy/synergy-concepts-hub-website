@@ -6,6 +6,26 @@ import type { InvoiceStatus } from "@/lib/types";
 
 type ActionResult = { error?: string; success?: boolean; id?: string };
 
+async function recalcInvoiceTotals(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  invoiceId: string
+) {
+  const [{ data: items }, { data: inv }] = await Promise.all([
+    supabase.from("invoice_line_items").select("amount").eq("invoice_id", invoiceId),
+    supabase.from("invoices").select("tax_rate").eq("id", invoiceId).single(),
+  ]);
+
+  const subtotal = (items ?? []).reduce((sum, i) => sum + Number(i.amount), 0);
+  const taxRate = Number(inv?.tax_rate ?? 0);
+  const tax_amount = subtotal * (taxRate / 100);
+  const total = subtotal + tax_amount;
+
+  await supabase
+    .from("invoices")
+    .update({ subtotal, tax_amount, total })
+    .eq("id", invoiceId);
+}
+
 async function requireAdmin() {
   const supabase = await createClient();
   const {
@@ -110,6 +130,7 @@ export async function addLineItem(
   });
 
   if (error) return { error: error.message };
+  await recalcInvoiceTotals(supabase, invoiceId);
   revalidatePath(`/admin/invoices/${invoiceId}`);
   return { success: true };
 }
@@ -124,6 +145,7 @@ export async function deleteLineItem(lineItemId: string, invoiceId: string): Pro
     .eq("id", lineItemId);
 
   if (error) return { error: error.message };
+  await recalcInvoiceTotals(supabase, invoiceId);
   revalidatePath(`/admin/invoices/${invoiceId}`);
   return { success: true };
 }

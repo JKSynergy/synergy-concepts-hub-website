@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { NavLink as Link } from "@/components/nav-link";
 import {
@@ -33,7 +34,9 @@ export default async function InvoiceDetailPage({
     redirect("/client");
   }
 
-  const { data: invoice } = await supabase
+  const admin = createAdminClient();
+
+  const { data: invoice } = await admin
     .from("invoices")
     .select("*")
     .eq("id", id)
@@ -47,24 +50,24 @@ export default async function InvoiceDetailPage({
     );
   }
 
-  const { data: lineItems } = await supabase
+  const { data: lineItems } = await admin
     .from("invoice_line_items")
     .select("*")
     .eq("invoice_id", id)
     .order("created_at", { ascending: true });
 
-  const { data: payments } = await supabase
+  const { data: payments } = await admin
     .from("payments")
     .select("*")
     .eq("invoice_id", id)
     .order("created_at", { ascending: false });
 
-  const { data: receipts } = await supabase
+  const { data: receipts } = await admin
     .from("receipts")
     .select("*")
     .eq("invoice_id", id);
 
-  const { data: client } = await supabase
+  const { data: client } = await admin
     .from("profiles")
     .select("id, full_name, company_name, email, billing_address, phone")
     .eq("id", invoice.client_id)

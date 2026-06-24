@@ -5,9 +5,10 @@ import {
   INVOICE_STATUS_BADGE,
   type InvoiceStatus,
 } from "@/lib/types";
-import { setInvoiceStatus, updateInvoice, addLineItem, deleteLineItem } from "@/lib/actions/invoices";
+import { setInvoiceStatus, updateInvoice } from "@/lib/actions/invoices";
 import { recordPayment } from "@/lib/actions/payments";
 import { InvoiceActions } from "@/components/invoice-actions";
+import { LineItemsManager } from "@/components/line-items-manager";
 
 export default async function InvoiceDetailPage({
   params,
@@ -71,11 +72,6 @@ export default async function InvoiceDetailPage({
 
   const receiptMap = new Map((receipts ?? []).map((r) => [r.payment_id, r]));
 
-  const computedSubtotal = (lineItems ?? []).reduce((sum, item) => sum + Number(item.amount), 0);
-  const displayTaxRate = Number(invoice.tax_rate) || 0;
-  const displayTaxAmount = computedSubtotal * (displayTaxRate / 100);
-  const displayTotal = computedSubtotal + displayTaxAmount;
-
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -108,108 +104,11 @@ export default async function InvoiceDetailPage({
           {client?.billing_address && <p className="text-sm text-gray-500">{client.billing_address}</p>}
           {client?.phone && <p className="text-sm text-gray-500">{client.phone}</p>}
 
-          <div className="mt-6">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Line Items</h2>
-            <div className="overflow-x-auto">
-              <table className="mt-3 min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Description</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Qty</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Unit Price</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Amount</th>
-                    <th className="px-4 py-2" />
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {(lineItems ?? []).map((item) => (
-                    <tr key={item.id}>
-                      <td className="px-4 py-2 text-sm text-gray-900">{item.description}</td>
-                      <td className="px-4 py-2 text-right text-sm text-gray-500">{Number(item.quantity).toLocaleString()}</td>
-                      <td className="px-4 py-2 text-right text-sm text-gray-500">UGX {Number(item.unit_price).toLocaleString()}</td>
-                      <td className="px-4 py-2 text-right text-sm text-gray-900">UGX {Number(item.amount).toLocaleString()}</td>
-                      <td className="px-4 py-2 text-right">
-                        <form action={async () => {
-                          "use server";
-                          await deleteLineItem(item.id, id);
-                        }}>
-                          <button type="submit" className="text-xs text-red-600 hover:underline">Remove</button>
-                        </form>
-                      </td>
-                    </tr>
-                  ))}
-                  {(!lineItems || lineItems.length === 0) && (
-                    <tr>
-                      <td colSpan={5} className="px-4 py-4 text-center text-sm text-gray-500">
-                        No line items yet. Use the form below to add one.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="mt-4 rounded-lg border border-dashed border-gray-300 p-4">
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Add Line Item</h3>
-            <form
-              action={async (fd) => {
-                "use server";
-                await addLineItem(id, fd);
-              }}
-              className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_80px_140px_auto]"
-            >
-              <input
-                name="description"
-                placeholder="Description"
-                required
-                className="rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-gray-500 focus:outline-none"
-              />
-              <input
-                name="quantity"
-                type="number"
-                placeholder="Qty"
-                defaultValue={1}
-                min={1}
-                required
-                className="rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-gray-500 focus:outline-none"
-              />
-              <input
-                name="unit_price"
-                type="number"
-                placeholder="Unit Price (UGX)"
-                min={0}
-                step={0.01}
-                required
-                className="rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-gray-500 focus:outline-none"
-              />
-              <button
-                type="submit"
-                className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-              >
-                Add
-              </button>
-            </form>
-          </div>
-
-          <div className="mt-6 flex justify-end">
-            <div className="w-full max-w-xs space-y-2 text-right sm:w-64">
-              <div className="flex justify-between text-sm text-gray-500">
-                <span>Subtotal</span>
-                <span>UGX {computedSubtotal.toLocaleString()}</span>
-              </div>
-              {displayTaxRate > 0 && (
-                <div className="flex justify-between text-sm text-gray-500">
-                  <span>Tax ({displayTaxRate}%)</span>
-                  <span>UGX {displayTaxAmount.toLocaleString()}</span>
-                </div>
-              )}
-              <div className="flex justify-between text-base font-bold text-gray-900">
-                <span>Total</span>
-                <span>UGX {displayTotal.toLocaleString()}</span>
-              </div>
-            </div>
-          </div>
+          <LineItemsManager
+            invoiceId={id}
+            initialItems={lineItems ?? []}
+            taxRate={Number(invoice.tax_rate)}
+          />
         </div>
 
         <div className="space-y-4">

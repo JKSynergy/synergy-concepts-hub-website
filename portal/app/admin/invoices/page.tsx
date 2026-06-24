@@ -94,7 +94,7 @@ export default async function AdminInvoicesPage() {
 
               <div className="flex flex-wrap items-center gap-4">
                 <span className="text-sm font-medium text-gray-900">
-                  UGX {Number(inv.total).toLocaleString()}
+                  {inv.total ? `UGX ${Number(inv.total).toLocaleString()}` : "—"}
                 </span>
                 <span className="text-xs text-gray-400">
                   {new Date(inv.issue_date).toLocaleDateString()}

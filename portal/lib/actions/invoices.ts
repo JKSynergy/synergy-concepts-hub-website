@@ -102,6 +102,7 @@ export async function updateInvoice(
     .eq("id", invoiceId);
 
   if (error) return { error: error.message };
+  await recalcInvoiceTotals(supabase, invoiceId);
   revalidatePath("/admin/invoices");
   revalidatePath(`/admin/invoices/${invoiceId}`);
   revalidatePath(`/client/invoices/${invoiceId}`);

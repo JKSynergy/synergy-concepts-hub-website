@@ -26,6 +26,32 @@ async function requireStaff() {
   return { supabase, user, isStaff, isAdmin };
 }
 
+export async function recalcProjectProgress(
+  projectId: string
+): Promise<ActionResult> {
+  const { supabase, isStaff } = await requireStaff();
+  if (!isStaff) return { error: "Forbidden" };
+
+  const { data: milestones } = await supabase
+    .from("project_milestones")
+    .select("weight_percent, status")
+    .eq("project_id", projectId);
+
+  const progress = (milestones ?? [])
+    .filter((m) => m.status === "approved")
+    .reduce((sum, m) => sum + (m.weight_percent ?? 0), 0);
+
+  const { error } = await supabase
+    .from("projects")
+    .update({ progress_percent: Math.min(progress, 100) })
+    .eq("id", projectId);
+
+  if (error) return { error: error.message };
+  revalidatePath(`/admin/projects/${projectId}`);
+  revalidatePath(`/client/projects/${projectId}`);
+  return { success: true };
+}
+
 export async function createProject(formData: FormData): Promise<ActionResult> {
   const { supabase, isStaff } = await requireStaff();
   if (!isStaff) return { error: "Forbidden" };

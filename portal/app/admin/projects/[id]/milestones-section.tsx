@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { addMilestone, setMilestoneStatus } from "@/lib/actions/projects";
+import { addMilestone, setMilestoneStatus, recalcProjectProgress } from "@/lib/actions/projects";
 import {
   MILESTONE_STATUSES,
   type Milestone,
@@ -25,6 +25,13 @@ export default function MilestonesSection({
 }) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
+  const [syncing, setSyncing] = useState(false);
+
+  async function syncProgress() {
+    setSyncing(true);
+    await recalcProjectProgress(projectId);
+    setSyncing(false);
+  }
 
   async function addAction(formData: FormData) {
     setError("");
@@ -44,12 +51,21 @@ export default function MilestonesSection({
     <div className="rounded-xl bg-white p-6 shadow">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-900">Milestones</h2>
-        <button
-          onClick={() => setOpen((v) => !v)}
-          className="text-sm font-medium text-sch-blue hover:underline"
-        >
-          {open ? "Close" : "+ Add"}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={syncProgress}
+            disabled={syncing}
+            className="text-xs text-gray-400 hover:text-gray-600 disabled:opacity-50"
+          >
+            {syncing ? "Syncing…" : "↺ Sync Progress"}
+          </button>
+          <button
+            onClick={() => setOpen((v) => !v)}
+            className="text-sm font-medium text-sch-blue hover:underline"
+          >
+            {open ? "Close" : "+ Add"}
+          </button>
+        </div>
       </div>
 
       {error && (

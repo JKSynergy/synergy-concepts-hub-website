@@ -9,9 +9,7 @@ import {
 import type { Invoice, InvoiceLineItem, Payment } from "@/lib/types";
 
 const C = {
-  primary: "#D97706",
-  primaryLight: "#FEF3C7",
-  primaryMid: "#FDE68A",
+  primary: "#1A2E5A",
   dark: "#0F172A",
   body: "#374151",
   muted: "#6B7280",
@@ -19,23 +17,17 @@ const C = {
   bgLight: "#F9FAFB",
   bgStripe: "#F3F4F6",
   white: "#FFFFFF",
-  tableHead: "#1E293B",
+  tableHead: "#1A2E5A",
 };
 
 const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
-  draft: { bg: "#F3F4F6", text: "#6B7280" },
+  draft: { bg: "#1A2E5A", text: "#FFFFFF" },
   sent: { bg: "#EFF6FF", text: "#1E40AF" },
   paid: { bg: "#ECFDF5", text: "#065F46" },
   overdue: { bg: "#FEF2F2", text: "#991B1B" },
   cancelled: { bg: "#F3F4F6", text: "#9CA3AF" },
 };
 
-const PAYMENT_LABEL: Record<string, string> = {
-  paystack: "Paystack",
-  mobile_money: "Mobile Money",
-  bank_transfer: "Bank Transfer",
-  cash: "Cash",
-};
 
 const styles = StyleSheet.create({
   page: {
@@ -45,35 +37,30 @@ const styles = StyleSheet.create({
     backgroundColor: C.white,
     flexDirection: "column",
   },
-  topBar: {
-    height: 5,
-    backgroundColor: C.primary,
-    width: "100%",
-  },
   content: {
     flex: 1,
     paddingHorizontal: 44,
-    paddingTop: 30,
+    paddingTop: 36,
     paddingBottom: 24,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 28,
+    marginBottom: 24,
   },
   brandBlock: {
     flexDirection: "row",
     alignItems: "center",
   },
   logo: {
-    width: 50,
-    height: 50,
+    width: 48,
+    height: 48,
     objectFit: "contain",
     marginRight: 12,
   },
   brandName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "bold",
     color: C.dark,
     marginBottom: 3,
@@ -87,11 +74,11 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   invoiceTitle: {
-    fontSize: 34,
+    fontSize: 36,
     fontWeight: "bold",
     color: C.primary,
-    letterSpacing: 5,
-    marginBottom: 10,
+    letterSpacing: 4,
+    marginBottom: 12,
   },
   metaRow: {
     flexDirection: "row",
@@ -115,16 +102,16 @@ const styles = StyleSheet.create({
   },
   badge: {
     marginTop: 10,
-    paddingVertical: 4,
-    paddingHorizontal: 10,
+    paddingVertical: 5,
+    paddingHorizontal: 14,
     borderRadius: 3,
     alignSelf: "flex-end",
   },
   badgeText: {
-    fontSize: 7.5,
+    fontSize: 8,
     fontWeight: "bold",
     textTransform: "uppercase",
-    letterSpacing: 1.2,
+    letterSpacing: 1.5,
   },
   divider: {
     height: 1,
@@ -235,16 +222,14 @@ const styles = StyleSheet.create({
   },
   totalsCard: {
     width: 268,
-    borderTopWidth: 2,
-    borderTopColor: C.primary,
+    borderTopWidth: 1,
+    borderTopColor: C.border,
     paddingTop: 14,
   },
   totalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     paddingVertical: 5,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
   },
   totalLabel: {
     fontSize: 9.5,
@@ -259,71 +244,95 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingTop: 12,
+    paddingTop: 10,
     paddingBottom: 4,
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+    marginTop: 6,
   },
   grandTotalLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "bold",
     color: C.dark,
+    textTransform: "uppercase",
+    letterSpacing: 1.5,
   },
   grandTotalValue: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "bold",
     color: C.primary,
   },
-  paymentSection: {
-    marginBottom: 26,
-    padding: 16,
+  paymentCard: {
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 4,
     backgroundColor: C.bgLight,
-    borderLeftWidth: 3,
-    borderLeftColor: C.primary,
+    padding: 16,
   },
-  paymentTitle: {
-    fontSize: 7.5,
+  paymentCardTitle: {
+    fontSize: 8,
     color: C.primary,
     fontWeight: "bold",
     textTransform: "uppercase",
     letterSpacing: 1.8,
-    marginBottom: 10,
+    marginBottom: 12,
   },
-  paymentRow: {
+  paymentCardBody: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 8,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
   },
-  paymentLabel: {
+  paymentCardLeft: {
+    flex: 1,
+    flexDirection: "row",
+  },
+  bankIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#D1D5DB",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  bankIconText: {
+    fontSize: 16,
+    color: "#6B7280",
+  },
+  bankDetails: {
+    flex: 1,
+  },
+  bankDetailLabel: {
     fontSize: 8.5,
-    color: C.muted,
-    marginTop: 2,
-  },
-  paymentValue: {
-    fontSize: 9.5,
     fontWeight: "bold",
     color: C.dark,
+    marginBottom: 1,
   },
-  notesSection: {
-    marginBottom: 20,
-    padding: 14,
-    backgroundColor: C.bgLight,
-    borderLeftWidth: 3,
-    borderLeftColor: C.border,
+  bankDetailValue: {
+    fontSize: 8.5,
+    color: C.body,
+    marginBottom: 5,
+  },
+  paymentCardDivider: {
+    width: 1,
+    backgroundColor: C.border,
+    marginHorizontal: 16,
+  },
+  paymentCardRight: {
+    flex: 1,
   },
   notesTitle: {
-    fontSize: 7.5,
-    color: C.primary,
+    fontSize: 8,
+    color: C.dark,
     fontWeight: "bold",
     textTransform: "uppercase",
-    letterSpacing: 1.8,
-    marginBottom: 7,
+    letterSpacing: 1.5,
+    marginBottom: 8,
   },
   notesBody: {
-    fontSize: 9.5,
+    fontSize: 9,
     color: C.body,
     lineHeight: 1.6,
+    marginBottom: 4,
   },
   footer: {
     paddingHorizontal: 44,
@@ -332,34 +341,63 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: C.border,
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
   },
-  footerLeft: {},
-  footerBrand: {
+  footerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  footerIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: C.bgStripe,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  footerIconText: {
     fontSize: 11,
+    color: C.muted,
+  },
+  footerBrand: {
+    fontSize: 10,
     fontWeight: "bold",
     color: C.dark,
     marginBottom: 2,
   },
   footerTagline: {
-    fontSize: 8.5,
-    color: C.primary,
+    fontSize: 8,
+    color: C.muted,
     letterSpacing: 0.4,
+  },
+  footerVerticalDivider: {
+    width: 1,
+    height: 36,
+    backgroundColor: C.border,
+    marginHorizontal: 24,
   },
   footerRight: {
     alignItems: "flex-end",
   },
+  footerLinkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 3,
+    justifyContent: "flex-end",
+  },
+  footerLinkIcon: {
+    fontSize: 9,
+    color: C.muted,
+    marginRight: 4,
+  },
   footerLink: {
     fontSize: 8.5,
     color: C.muted,
-    marginBottom: 2,
     textAlign: "right",
-  },
-  bottomBar: {
-    height: 4,
-    backgroundColor: C.primary,
-    width: "100%",
   },
 });
 
@@ -405,8 +443,6 @@ export default function InvoicePDF({
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <View style={styles.topBar} />
-
         <View style={styles.content}>
           <View style={styles.header}>
             <View style={styles.brandBlock}>
@@ -510,48 +546,60 @@ export default function InvoicePDF({
             </View>
           </View>
 
-          {payments && payments.length > 0 && (
-            <View style={styles.paymentSection}>
-              <Text style={styles.paymentTitle}>Payment Details</Text>
-              {payments.map((p) => (
-                <View style={styles.paymentRow} key={p.id}>
-                  <View>
-                    <Text style={styles.paymentValue}>
-                      {PAYMENT_LABEL[p.method] || p.method}
-                    </Text>
-                    {p.reference && <Text style={styles.paymentLabel}>Ref: {p.reference}</Text>}
-                  </View>
-                  <View style={{ alignItems: "flex-end" }}>
-                    <Text style={styles.paymentValue}>UGX {Number(p.amount).toLocaleString()}</Text>
-                    <Text style={styles.paymentLabel}>
-                      {p.paid_at ? new Date(p.paid_at).toLocaleDateString() : "Pending"}
-                    </Text>
-                  </View>
+          <View style={styles.paymentCard}>
+            <Text style={styles.paymentCardTitle}>Payment Details</Text>
+            <View style={styles.paymentCardBody}>
+              <View style={styles.paymentCardLeft}>
+                <View style={styles.bankIconCircle}>
+                  <Text style={styles.bankIconText}>H</Text>
                 </View>
-              ))}
+                <View style={styles.bankDetails}>
+                  <Text style={styles.bankDetailLabel}>Account Name:</Text>
+                  <Text style={styles.bankDetailValue}>Joseph Sengendo</Text>
+                  <Text style={styles.bankDetailLabel}>Account Number:</Text>
+                  <Text style={styles.bankDetailValue}>0100823802201</Text>
+                  <Text style={styles.bankDetailLabel}>Bank:</Text>
+                  <Text style={styles.bankDetailValue}>Standard Chartered Bank Uganda</Text>
+                </View>
+              </View>
+              <View style={styles.paymentCardDivider} />
+              <View style={styles.paymentCardRight}>
+                <Text style={styles.notesTitle}>Notes</Text>
+                {invoice.notes?.trim() ? (
+                  <Text style={styles.notesBody}>{invoice.notes.trim()}</Text>
+                ) : (
+                  <>
+                    <Text style={styles.notesBody}>Payment due by the due date.</Text>
+                    <Text style={styles.notesBody}>Thank you for your business.</Text>
+                  </>
+                )}
+              </View>
             </View>
-          )}
-
-          {invoice.notes?.trim() && (
-            <View style={styles.notesSection}>
-              <Text style={styles.notesTitle}>Notes</Text>
-              <Text style={styles.notesBody}>{invoice.notes.trim()}</Text>
-            </View>
-          )}
+          </View>
         </View>
 
         <View style={styles.footer}>
           <View style={styles.footerLeft}>
-            <Text style={styles.footerBrand}>Synergy Concepts Hub</Text>
-            <Text style={styles.footerTagline}>Where Ideas Come to Life</Text>
+            <View style={styles.footerIconCircle}>
+              <Text style={styles.footerIconText}>o</Text>
+            </View>
+            <View>
+              <Text style={styles.footerBrand}>Synergy Concepts Hub</Text>
+              <Text style={styles.footerTagline}>Where Ideas Come to Life</Text>
+            </View>
           </View>
+          <View style={styles.footerVerticalDivider} />
           <View style={styles.footerRight}>
-            <Text style={styles.footerLink}>www.synergyconceptshub.com</Text>
-            <Text style={styles.footerLink}>info@synergyconceptshub.com</Text>
+            <View style={styles.footerLinkRow}>
+              <Text style={styles.footerLinkIcon}>O</Text>
+              <Text style={styles.footerLink}>www.synergyconceptshub.com</Text>
+            </View>
+            <View style={styles.footerLinkRow}>
+              <Text style={styles.footerLinkIcon}>@</Text>
+              <Text style={styles.footerLink}>info@synergyconceptshub.com</Text>
+            </View>
           </View>
         </View>
-
-        <View style={styles.bottomBar} />
       </Page>
     </Document>
   );

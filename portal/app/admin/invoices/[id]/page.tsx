@@ -108,6 +108,9 @@ export default async function InvoiceDetailPage({
             invoiceId={id}
             initialItems={lineItems ?? []}
             taxRate={Number(invoice.tax_rate)}
+            storedSubtotal={Number(invoice.subtotal)}
+            storedTaxAmount={Number(invoice.tax_amount)}
+            storedTotal={Number(invoice.total)}
           />
         </div>
 
@@ -177,6 +180,26 @@ export default async function InvoiceDetailPage({
             </form>
           </div>
         </div>
+      </div>
+
+      <div className="rounded-xl bg-white shadow overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Invoice Preview</h2>
+          <a
+            href={`/api/invoices/${id}/pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-blue-600 hover:underline"
+          >
+            Open in new tab ↗
+          </a>
+        </div>
+        <iframe
+          src={`/api/invoices/${id}/pdf`}
+          className="w-full border-0"
+          style={{ height: "900px" }}
+          title="Invoice Preview"
+        />
       </div>
 
       {(payments ?? []).length > 0 && (

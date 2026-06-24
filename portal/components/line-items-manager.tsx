@@ -16,10 +16,16 @@ export function LineItemsManager({
   invoiceId,
   initialItems,
   taxRate,
+  storedSubtotal = 0,
+  storedTaxAmount = 0,
+  storedTotal = 0,
 }: {
   invoiceId: string;
   initialItems: LineItem[];
   taxRate: number;
+  storedSubtotal?: number;
+  storedTaxAmount?: number;
+  storedTotal?: number;
 }) {
   const router = useRouter();
   const [desc, setDesc] = useState("");
@@ -28,17 +34,20 @@ export function LineItemsManager({
   const [loading, setLoading] = useState(false);
   const [actionError, setActionError] = useState("");
 
-  const existingSubtotal = initialItems.reduce(
-    (sum, item) => sum + Number(item.amount),
-    0
-  );
+  const existingSubtotal = initialItems.length > 0
+    ? initialItems.reduce((sum, item) => sum + Number(item.amount), 0)
+    : storedSubtotal;
   const previewQty = Number(qty) || 0;
   const previewPrice = Number(unitPrice) || 0;
   const previewAmount = desc.trim() ? previewQty * previewPrice : 0;
   const previewSubtotal = existingSubtotal + previewAmount;
   const displayTaxRate = Number(taxRate) || 0;
-  const taxAmount = previewSubtotal * (displayTaxRate / 100);
-  const total = previewSubtotal + taxAmount;
+  const taxAmount = initialItems.length > 0 || previewAmount > 0
+    ? previewSubtotal * (displayTaxRate / 100)
+    : storedTaxAmount;
+  const total = initialItems.length > 0 || previewAmount > 0
+    ? previewSubtotal + taxAmount
+    : storedTotal;
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();

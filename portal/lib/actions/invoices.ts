@@ -67,9 +67,12 @@ export async function updateInvoice(
   const { supabase, isAdmin } = await requireAdmin();
   if (!isAdmin) return { error: "Forbidden" };
 
+  const client_id = formData.get("client_id") as string;
+
   const { error } = await supabase
     .from("invoices")
     .update({
+      client_id: client_id || undefined,
       status: (formData.get("status") as InvoiceStatus) || undefined,
       issue_date: (formData.get("issue_date") as string) || undefined,
       due_date: (formData.get("due_date") as string) || null,
@@ -141,5 +144,19 @@ export async function setInvoiceStatus(
   revalidatePath("/admin/invoices");
   revalidatePath(`/admin/invoices/${invoiceId}`);
   revalidatePath(`/client/invoices/${invoiceId}`);
+  return { success: true };
+}
+
+export async function deleteInvoice(invoiceId: string): Promise<ActionResult> {
+  const { supabase, isAdmin } = await requireAdmin();
+  if (!isAdmin) return { error: "Forbidden" };
+
+  const { error } = await supabase
+    .from("invoices")
+    .delete()
+    .eq("id", invoiceId);
+
+  if (error) return { error: error.message };
+  revalidatePath("/admin/invoices");
   return { success: true };
 }

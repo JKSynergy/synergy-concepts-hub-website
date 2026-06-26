@@ -10,7 +10,7 @@ interface SendArgs {
 
 export async function sendEmail({ to, subject, html }: SendArgs): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM ?? "SCH Portal <noreply@synergyconceptshub.com>";
+  const from = process.env.EMAIL_FROM ?? "SCH Portal <synergyconceptshub@gmail.com>";
 
   if (!apiKey) {
     // Email not configured — skip silently in dev / free tier.

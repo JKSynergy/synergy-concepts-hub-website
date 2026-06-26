@@ -222,7 +222,9 @@ const styles = StyleSheet.create({
     color: C.dark,
   },
   totalsSection: {
-    alignItems: "flex-end",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 28,
   },
   totalsCard: {
@@ -375,6 +377,19 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     objectFit: "contain",
+    transform: "rotate(12deg)",
+    transformOrigin: "center",
+    opacity: 0.82,
+  },
+  totalsStamp: {
+    marginTop: 0,
+    padding: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stampPlaceholder: {
+    width: 104,
+    height: 104,
   },
   signatureSection: {
     marginTop: 20,
@@ -518,6 +533,12 @@ export default function InvoicePDF({
   const displayTotal =
     invoice.total > 0 ? Number(invoice.total) : displaySubtotal + displayTaxAmount;
   const discount = Math.max(0, displaySubtotal + displayTaxAmount - displayTotal);
+  const stampImageSrc =
+    invoice.status === "paid" && stampSrc
+      ? stampSrc
+      : (invoice.status === "sent" || invoice.status === "overdue") && unpaidStampSrc
+      ? unpaidStampSrc
+      : null;
 
   return (
     <Document>
@@ -553,16 +574,6 @@ export default function InvoicePDF({
               <View style={[styles.badge, { backgroundColor: statusStyle.bg }]}>
                 <Text style={[styles.badgeText, { color: statusStyle.text }]}>{invoice.status}</Text>
               </View>
-              {invoice.status === "paid" && stampSrc && (
-                <View style={styles.stampContainer}>
-                  <Image style={styles.stampImage} src={stampSrc} />
-                </View>
-              )}
-              {(invoice.status === "sent" || invoice.status === "overdue") && unpaidStampSrc && (
-                <View style={styles.stampContainer}>
-                  <Image style={styles.stampImage} src={unpaidStampSrc} />
-                </View>
-              )}
             </View>
           </View>
 
@@ -580,7 +591,7 @@ export default function InvoicePDF({
             <View style={styles.infoBlock}>
               <Text style={styles.infoLabel}>From</Text>
               <Text style={styles.infoName}>Synergy Concepts Hub</Text>
-              <Text style={styles.infoSub}>info@synergyconceptshub.com</Text>
+              <Text style={styles.infoSub}>synergyconceptshub@gmail.com</Text>
               <Text style={styles.infoSub}>www.synergyconceptshub.com</Text>
             </View>
           </View>
@@ -614,6 +625,13 @@ export default function InvoicePDF({
           </View>
 
           <View style={styles.totalsSection}>
+            {stampImageSrc ? (
+              <View style={[styles.stampContainer, styles.totalsStamp]}>
+                <Image style={styles.stampImage} src={stampImageSrc} />
+              </View>
+            ) : (
+              <View style={styles.stampPlaceholder} />
+            )}
             <View style={styles.totalsCard}>
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Subtotal</Text>
@@ -686,7 +704,7 @@ export default function InvoicePDF({
             <Text style={styles.termsBody}>• An 80% deposit is required before commencement of work unless otherwise agreed in writing.</Text>
             <Text style={styles.termsBody}>• The remaining 20% balance is payable upon project completion or prior to delivery of the final deliverables.</Text>
             <Text style={styles.termsBody}>• Please quote the invoice number as the payment reference for all transactions.</Text>
-            <Text style={styles.termsBody}>• A remittance advice or proof of payment should be emailed to accounts@synergyconceptshub.com after payment.</Text>
+            <Text style={styles.termsBody}>• A remittance advice or proof of payment should be emailed to synergyconceptshub@gmail.com after payment.</Text>
             <Text style={styles.termsBody}>• All deliverables remain the property of Synergy Concepts Hub until full payment has been received.</Text>
             <Text style={styles.termsBody}>• We appreciate your business and look forward to serving you.</Text>
           </View>
@@ -718,7 +736,7 @@ export default function InvoicePDF({
           <View style={styles.footerVerticalDivider} />
           <View style={styles.footerRight}>
             <Text style={styles.footerLink}>www.synergyconceptshub.com</Text>
-            <Text style={styles.footerLink}>info@synergyconceptshub.com</Text>
+            <Text style={styles.footerLink}>synergyconceptshub@gmail.com</Text>
           </View>
         </View>
       </Page>

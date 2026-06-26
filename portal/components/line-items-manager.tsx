@@ -82,7 +82,7 @@ export function LineItemsManager({
           Line Items
         </h2>
         <div className="overflow-x-auto">
-          <table className="mt-3 min-w-full divide-y divide-gray-200">
+          <table className="mt-3 min-w-[640px] divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">

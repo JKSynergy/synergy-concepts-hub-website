@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { NavLink as Link } from "@/components/nav-link";
-import InviteStaffForm from "./invite-staff-form";
+import AddStaffForm from "./invite-staff-form";
 
 export default async function StaffPage() {
   const supabase = await createClient();
@@ -40,7 +40,7 @@ export default async function StaffPage() {
         <div className="text-sm font-medium" style={{ color: "var(--p-text-strong)" }}>
           {staff?.length || 0} staff member{staff?.length !== 1 ? "s" : ""}
         </div>
-        <InviteStaffForm />
+        <AddStaffForm />
       </div>
 
       <div className="glass-card overflow-hidden">
@@ -115,7 +115,7 @@ export default async function StaffPage() {
                           No staff members yet
                         </p>
                         <p className="mt-1 text-sm" style={{ color: "var(--p-muted)" }}>
-                          Get started by inviting your first team member
+                          Get started by inviting or manually adding your first team member
                         </p>
                       </div>
                     </div>

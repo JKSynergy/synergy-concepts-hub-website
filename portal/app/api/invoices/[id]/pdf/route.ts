@@ -61,12 +61,22 @@ export async function GET(
   const logoBuffer = readFileSync(logoPath);
   const logoSrc = `data:image/png;base64,${logoBuffer.toString("base64")}`;
 
+  const stampPath = join(process.cwd(), "..", "images", "SCH E-Stamp small.png");
+  const stampBuffer = readFileSync(stampPath);
+  const stampSrc = `data:image/png;base64,${stampBuffer.toString("base64")}`;
+
+  const signaturePath = join(process.cwd(), "..", "images", "SCH E-Signature small.png");
+  const signatureBuffer = readFileSync(signaturePath);
+  const signatureSrc = `data:image/png;base64,${signatureBuffer.toString("base64")}`;
+
   const blob = await pdf(
     InvoicePDF({
       invoice,
       lineItems: lineItems ?? [],
       client: client ?? { email: "" },
       logoSrc,
+      stampSrc,
+      signatureSrc,
       project,
       payments: payments ?? [],
     })

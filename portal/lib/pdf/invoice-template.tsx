@@ -345,6 +345,57 @@ const styles = StyleSheet.create({
     lineHeight: 1.6,
     marginBottom: 4,
   },
+  termsCard: {
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 4,
+    backgroundColor: C.bgLight,
+    padding: 16,
+  },
+  termsTitle: {
+    fontSize: 8,
+    color: C.dark,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+    letterSpacing: 1.5,
+    marginBottom: 8,
+  },
+  termsBody: {
+    fontSize: 9,
+    color: C.body,
+    lineHeight: 1.6,
+    marginBottom: 4,
+  },
+  stampContainer: {
+    marginTop: 14,
+    alignItems: "flex-start",
+  },
+  stampImage: {
+    width: 80,
+    height: 80,
+    objectFit: "contain",
+  },
+  signatureSection: {
+    marginTop: 20,
+    alignItems: "flex-end",
+  },
+  signatureImage: {
+    width: 160,
+    height: 50,
+    objectFit: "contain",
+  },
+  signatureName: {
+    fontSize: 9,
+    color: C.dark,
+    fontWeight: "bold",
+    marginTop: 4,
+  },
+  signatureTitle: {
+    fontSize: 8,
+    color: C.muted,
+    marginBottom: 2,
+  },
   footer: {
     paddingHorizontal: 44,
     paddingTop: 14,
@@ -418,6 +469,8 @@ export default function InvoicePDF({
   lineItems,
   client,
   logoSrc,
+  stampSrc,
+  signatureSrc,
   project,
   payments,
 }: {
@@ -432,6 +485,8 @@ export default function InvoicePDF({
     tax_id?: string | null;
   };
   logoSrc?: string;
+  stampSrc?: string;
+  signatureSrc?: string;
   project?: { title: string; description?: string | null } | null;
   payments?: Payment[] | null;
 }) {
@@ -486,6 +541,11 @@ export default function InvoicePDF({
               <View style={[styles.badge, { backgroundColor: statusStyle.bg }]}>
                 <Text style={[styles.badgeText, { color: statusStyle.text }]}>{invoice.status}</Text>
               </View>
+              {invoice.status === "paid" && stampSrc && (
+                <View style={styles.stampContainer}>
+                  <Image style={styles.stampImage} src={stampSrc} />
+                </View>
+              )}
             </View>
           </View>
 
@@ -602,6 +662,22 @@ export default function InvoicePDF({
                 <Text style={styles.notesBody}>Thank you for your business.</Text>
               </>
             )}
+          </View>
+
+          <View style={styles.termsCard}>
+            <Text style={styles.termsTitle}>Standard Terms</Text>
+            <Text style={styles.termsBody}>• An 80% deposit is required before commencement of work unless otherwise agreed in writing.</Text>
+            <Text style={styles.termsBody}>• The remaining 20% balance is payable upon project completion or prior to delivery of the final deliverables.</Text>
+            <Text style={styles.termsBody}>• Please quote the invoice number as the payment reference for all transactions.</Text>
+            <Text style={styles.termsBody}>• A remittance advice or proof of payment should be emailed to accounts@synergyconceptshub.com after payment.</Text>
+            <Text style={styles.termsBody}>• All deliverables remain the property of Synergy Concepts Hub until full payment has been received.</Text>
+            <Text style={styles.termsBody}>• We appreciate your business and look forward to serving you.</Text>
+          </View>
+
+          <View style={styles.signatureSection}>
+            <Text style={styles.signatureTitle}>Authorized by</Text>
+            {signatureSrc && <Image style={styles.signatureImage} src={signatureSrc} />}
+            <Text style={styles.signatureName}>Joseph Sengendo</Text>
           </View>
         </View>
 

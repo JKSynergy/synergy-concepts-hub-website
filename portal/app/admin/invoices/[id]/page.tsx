@@ -199,8 +199,7 @@ export default async function InvoiceDetailPage({
         </div>
         <iframe
           src={`/api/invoices/${id}/pdf`}
-          className="w-full border-0"
-          style={{ height: "900px" }}
+          className="w-full border-0 h-[500px] md:h-[900px]"
           title="Invoice Preview"
         />
       </div>
@@ -209,7 +208,7 @@ export default async function InvoiceDetailPage({
         <div className="rounded-xl bg-white p-5 shadow">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Payments</h2>
           <div className="overflow-x-auto">
-            <table className="mt-3 min-w-full divide-y divide-gray-200">
+            <table className="mt-3 min-w-[640px] divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Date</th>

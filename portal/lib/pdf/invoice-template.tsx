@@ -71,18 +71,18 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   titleBlock: {
-    alignItems: "flex-end",
+    alignItems: "flex-start",
   },
   invoiceTitle: {
-    fontSize: 36,
+    fontSize: 24,
     fontWeight: "bold",
     color: C.primary,
-    letterSpacing: 4,
+    letterSpacing: 2,
     marginBottom: 12,
   },
   metaRow: {
     flexDirection: "row",
-    justifyContent: "flex-end",
+    justifyContent: "flex-start",
     alignItems: "center",
     marginBottom: 4,
   },
@@ -91,21 +91,21 @@ const styles = StyleSheet.create({
     color: C.muted,
     marginRight: 8,
     minWidth: 58,
-    textAlign: "right",
+    textAlign: "left",
   },
   metaValue: {
     fontSize: 8.5,
     fontWeight: "bold",
     color: C.dark,
     minWidth: 80,
-    textAlign: "right",
+    textAlign: "left",
   },
   badge: {
     marginTop: 10,
     paddingVertical: 5,
     paddingHorizontal: 14,
     borderRadius: 3,
-    alignSelf: "flex-end",
+    alignSelf: "flex-start",
   },
   badgeText: {
     fontSize: 8,
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
     color: C.dark,
   },
   totalsSection: {
-    alignItems: "flex-end",
+    alignItems: "flex-start",
     marginBottom: 28,
   },
   totalsCard: {
@@ -232,11 +232,11 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   totalLabel: {
-    fontSize: 9.5,
+    fontSize: 8.5,
     color: C.muted,
   },
   totalValue: {
-    fontSize: 9.5,
+    fontSize: 8.5,
     fontWeight: "bold",
     color: C.dark,
   },
@@ -251,14 +251,14 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   grandTotalLabel: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: "bold",
     color: C.dark,
     textTransform: "uppercase",
     letterSpacing: 1.5,
   },
   grandTotalValue: {
-    fontSize: 20,
+    fontSize: 14,
     fontWeight: "bold",
     color: C.primary,
   },
@@ -283,7 +283,12 @@ const styles = StyleSheet.create({
   },
   paymentCardLeft: {
     flex: 1,
+    flexDirection: "column",
+  },
+  paymentRow: {
     flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 10,
   },
   bankIconCircle: {
     width: 36,
@@ -381,6 +386,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 24,
   },
   footerRight: {
+    flex: 1,
     alignItems: "flex-end",
   },
   footerLinkRow: {
@@ -550,16 +556,29 @@ export default function InvoicePDF({
             <Text style={styles.paymentCardTitle}>Payment Details</Text>
             <View style={styles.paymentCardBody}>
               <View style={styles.paymentCardLeft}>
-                <View style={styles.bankIconCircle}>
-                  <Text style={styles.bankIconText}>H</Text>
+                <View style={styles.paymentRow}>
+                  <View style={styles.bankIconCircle}>
+                    <Text style={styles.bankIconText}>H</Text>
+                  </View>
+                  <View style={styles.bankDetails}>
+                    <Text style={styles.bankDetailLabel}>Account Name:</Text>
+                    <Text style={styles.bankDetailValue}>Joseph Sengendo</Text>
+                    <Text style={styles.bankDetailLabel}>Account Number:</Text>
+                    <Text style={styles.bankDetailValue}>0100823802201</Text>
+                    <Text style={styles.bankDetailLabel}>Bank:</Text>
+                    <Text style={styles.bankDetailValue}>Standard Chartered Bank Uganda</Text>
+                  </View>
                 </View>
-                <View style={styles.bankDetails}>
-                  <Text style={styles.bankDetailLabel}>Account Name:</Text>
-                  <Text style={styles.bankDetailValue}>Joseph Sengendo</Text>
-                  <Text style={styles.bankDetailLabel}>Account Number:</Text>
-                  <Text style={styles.bankDetailValue}>0100823802201</Text>
-                  <Text style={styles.bankDetailLabel}>Bank:</Text>
-                  <Text style={styles.bankDetailValue}>Standard Chartered Bank Uganda</Text>
+                <View style={styles.paymentRow}>
+                  <View style={styles.bankIconCircle}>
+                    <Text style={styles.bankIconText}>A</Text>
+                  </View>
+                  <View style={styles.bankDetails}>
+                    <Text style={styles.bankDetailLabel}>Airtel Money:</Text>
+                    <Text style={styles.bankDetailValue}>0704 783 724</Text>
+                    <Text style={styles.bankDetailLabel}>Account Name:</Text>
+                    <Text style={styles.bankDetailValue}>Joseph Sengendo</Text>
+                  </View>
                 </View>
               </View>
               <View style={styles.paymentCardDivider} />

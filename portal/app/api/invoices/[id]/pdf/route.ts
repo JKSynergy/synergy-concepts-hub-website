@@ -65,6 +65,10 @@ export async function GET(
   const stampBuffer = readFileSync(stampPath);
   const stampSrc = `data:image/png;base64,${stampBuffer.toString("base64")}`;
 
+  const unpaidStampPath = join(process.cwd(), "..", "images", "SCH E-Stamp small unpaid.png");
+  const unpaidStampBuffer = readFileSync(unpaidStampPath);
+  const unpaidStampSrc = `data:image/png;base64,${unpaidStampBuffer.toString("base64")}`;
+
   const signaturePath = join(process.cwd(), "..", "images", "SCH E-Signature small.png");
   const signatureBuffer = readFileSync(signaturePath);
   const signatureSrc = `data:image/png;base64,${signatureBuffer.toString("base64")}`;
@@ -76,6 +80,7 @@ export async function GET(
       client: client ?? { email: "" },
       logoSrc,
       stampSrc,
+      unpaidStampSrc,
       signatureSrc,
       project,
       payments: payments ?? [],

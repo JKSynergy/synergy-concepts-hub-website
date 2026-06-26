@@ -380,21 +380,31 @@ const styles = StyleSheet.create({
     marginTop: 20,
     alignItems: "flex-end",
   },
+  signatureBlock: {
+    alignItems: "center",
+  },
   signatureImage: {
     width: 160,
     height: 50,
     objectFit: "contain",
   },
+  signatureLine: {
+    width: 160,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+    marginTop: 2,
+    marginBottom: 4,
+  },
   signatureName: {
     fontSize: 9,
     color: C.dark,
     fontWeight: "bold",
-    marginTop: 4,
+    marginTop: 2,
   },
   signatureTitle: {
     fontSize: 8,
     color: C.muted,
-    marginBottom: 2,
+    marginTop: 2,
   },
   footer: {
     paddingHorizontal: 44,
@@ -470,6 +480,7 @@ export default function InvoicePDF({
   client,
   logoSrc,
   stampSrc,
+  unpaidStampSrc,
   signatureSrc,
   project,
   payments,
@@ -486,6 +497,7 @@ export default function InvoicePDF({
   };
   logoSrc?: string;
   stampSrc?: string;
+  unpaidStampSrc?: string;
   signatureSrc?: string;
   project?: { title: string; description?: string | null } | null;
   payments?: Payment[] | null;
@@ -544,6 +556,11 @@ export default function InvoicePDF({
               {invoice.status === "paid" && stampSrc && (
                 <View style={styles.stampContainer}>
                   <Image style={styles.stampImage} src={stampSrc} />
+                </View>
+              )}
+              {(invoice.status === "sent" || invoice.status === "overdue") && unpaidStampSrc && (
+                <View style={styles.stampContainer}>
+                  <Image style={styles.stampImage} src={unpaidStampSrc} />
                 </View>
               )}
             </View>
@@ -652,7 +669,7 @@ export default function InvoicePDF({
             </View>
           </View>
 
-          <View style={styles.notesCard}>
+          <View style={styles.notesCard} wrap={false}>
             <Text style={styles.notesTitle}>Notes</Text>
             {invoice.notes?.trim() ? (
               <Text style={styles.notesBody}>{invoice.notes.trim()}</Text>
@@ -664,7 +681,7 @@ export default function InvoicePDF({
             )}
           </View>
 
-          <View style={styles.termsCard}>
+          <View style={styles.termsCard} wrap={false}>
             <Text style={styles.termsTitle}>Standard Terms</Text>
             <Text style={styles.termsBody}>• An 80% deposit is required before commencement of work unless otherwise agreed in writing.</Text>
             <Text style={styles.termsBody}>• The remaining 20% balance is payable upon project completion or prior to delivery of the final deliverables.</Text>
@@ -674,10 +691,22 @@ export default function InvoicePDF({
             <Text style={styles.termsBody}>• We appreciate your business and look forward to serving you.</Text>
           </View>
 
-          <View style={styles.signatureSection}>
-            <Text style={styles.signatureTitle}>Authorized by</Text>
-            {signatureSrc && <Image style={styles.signatureImage} src={signatureSrc} />}
-            <Text style={styles.signatureName}>Joseph Sengendo</Text>
+          <View style={styles.signatureSection} wrap={false}>
+            {signatureSrc && (
+              <View style={styles.signatureBlock}>
+                <Image style={styles.signatureImage} src={signatureSrc} />
+                <View style={styles.signatureLine} />
+                <Text style={styles.signatureName}>Joseph Sengendo</Text>
+                <Text style={styles.signatureTitle}>Authorized by</Text>
+              </View>
+            )}
+            {!signatureSrc && (
+              <>
+                <Text style={styles.signatureTitle}>Authorized by</Text>
+                <View style={styles.signatureLine} />
+                <Text style={styles.signatureName}>Joseph Sengendo</Text>
+              </>
+            )}
           </View>
         </View>
 

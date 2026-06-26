@@ -143,6 +143,7 @@ export const INVOICE_STATUSES = [
   "draft",
   "sent",
   "paid",
+  "partially paid",
   "overdue",
   "cancelled",
 ] as const;
@@ -153,6 +154,7 @@ export const INVOICE_STATUS_BADGE: Record<InvoiceStatus, string> = {
   draft: "bg-gray-100 text-gray-500",
   sent: "bg-blue-100 text-blue-700",
   paid: "bg-green-100 text-green-700",
+  "partially paid": "bg-amber-100 text-amber-700",
   overdue: "bg-red-100 text-red-700",
   cancelled: "bg-gray-100 text-gray-400",
 };

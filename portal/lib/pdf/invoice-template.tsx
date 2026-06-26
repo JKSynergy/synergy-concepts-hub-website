@@ -24,6 +24,7 @@ const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
   draft: { bg: "#1A2E5A", text: "#FFFFFF" },
   sent: { bg: "#EFF6FF", text: "#1E40AF" },
   paid: { bg: "#ECFDF5", text: "#065F46" },
+  "partially paid": { bg: "#FEF3C7", text: "#92400E" },
   overdue: { bg: "#FEF2F2", text: "#991B1B" },
   cancelled: { bg: "#F3F4F6", text: "#9CA3AF" },
 };
@@ -494,8 +495,10 @@ export default function InvoicePDF({
   lineItems,
   client,
   logoSrc,
-  stampSrc,
+  paidStampSrc,
   unpaidStampSrc,
+  partialStampSrc,
+  cancelledStampSrc,
   signatureSrc,
   project,
   payments,
@@ -511,8 +514,10 @@ export default function InvoicePDF({
     tax_id?: string | null;
   };
   logoSrc?: string;
-  stampSrc?: string;
+  paidStampSrc?: string;
   unpaidStampSrc?: string;
+  partialStampSrc?: string;
+  cancelledStampSrc?: string;
   signatureSrc?: string;
   project?: { title: string; description?: string | null } | null;
   payments?: Payment[] | null;
@@ -534,10 +539,14 @@ export default function InvoicePDF({
     invoice.total > 0 ? Number(invoice.total) : displaySubtotal + displayTaxAmount;
   const discount = Math.max(0, displaySubtotal + displayTaxAmount - displayTotal);
   const stampImageSrc =
-    invoice.status === "paid" && stampSrc
-      ? stampSrc
+    invoice.status === "paid" && paidStampSrc
+      ? paidStampSrc
+      : invoice.status === "partially paid" && partialStampSrc
+      ? partialStampSrc
       : (invoice.status === "sent" || invoice.status === "overdue") && unpaidStampSrc
       ? unpaidStampSrc
+      : invoice.status === "cancelled" && cancelledStampSrc
+      ? cancelledStampSrc
       : null;
 
   return (

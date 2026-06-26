@@ -61,13 +61,21 @@ export async function GET(
   const logoBuffer = readFileSync(logoPath);
   const logoSrc = `data:image/png;base64,${logoBuffer.toString("base64")}`;
 
-  const stampPath = join(process.cwd(), "..", "images", "SCH E-Stamp small.png");
-  const stampBuffer = readFileSync(stampPath);
-  const stampSrc = `data:image/png;base64,${stampBuffer.toString("base64")}`;
+  const paidStampPath = join(process.cwd(), "..", "images", "SCH E-Stamp small paid.png");
+  const paidStampBuffer = readFileSync(paidStampPath);
+  const paidStampSrc = `data:image/png;base64,${paidStampBuffer.toString("base64")}`;
 
   const unpaidStampPath = join(process.cwd(), "..", "images", "SCH E-Stamp small unpaid.png");
   const unpaidStampBuffer = readFileSync(unpaidStampPath);
   const unpaidStampSrc = `data:image/png;base64,${unpaidStampBuffer.toString("base64")}`;
+
+  const partialStampPath = join(process.cwd(), "..", "images", "SCH E-Stamp small partially paid.png");
+  const partialStampBuffer = readFileSync(partialStampPath);
+  const partialStampSrc = `data:image/png;base64,${partialStampBuffer.toString("base64")}`;
+
+  const cancelledStampPath = join(process.cwd(), "..", "images", "SCH E-Stamp small Cancelled.png");
+  const cancelledStampBuffer = readFileSync(cancelledStampPath);
+  const cancelledStampSrc = `data:image/png;base64,${cancelledStampBuffer.toString("base64")}`;
 
   const signaturePath = join(process.cwd(), "..", "images", "SCH E-Signature small.png");
   const signatureBuffer = readFileSync(signaturePath);
@@ -79,8 +87,10 @@ export async function GET(
       lineItems: lineItems ?? [],
       client: client ?? { email: "" },
       logoSrc,
-      stampSrc,
+      paidStampSrc,
       unpaidStampSrc,
+      partialStampSrc,
+      cancelledStampSrc,
       signatureSrc,
       project,
       payments: payments ?? [],

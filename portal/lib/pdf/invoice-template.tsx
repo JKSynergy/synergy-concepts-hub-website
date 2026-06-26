@@ -54,8 +54,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   logo: {
-    width: 48,
-    height: 48,
+    width: 60,
+    height: 60,
     objectFit: "contain",
     marginRight: 12,
   },
@@ -69,6 +69,11 @@ const styles = StyleSheet.create({
     fontSize: 8.5,
     color: C.muted,
     letterSpacing: 0.4,
+  },
+  brandContact: {
+    fontSize: 8,
+    color: C.body,
+    marginTop: 4,
   },
   titleBlock: {
     alignItems: "flex-start",
@@ -217,7 +222,7 @@ const styles = StyleSheet.create({
     color: C.dark,
   },
   totalsSection: {
-    alignItems: "flex-start",
+    alignItems: "flex-end",
     marginBottom: 28,
   },
   totalsCard: {
@@ -281,14 +286,10 @@ const styles = StyleSheet.create({
   paymentCardBody: {
     flexDirection: "row",
   },
-  paymentCardLeft: {
-    flex: 1,
-    flexDirection: "column",
-  },
   paymentRow: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "flex-start",
-    marginBottom: 10,
   },
   bankIconCircle: {
     width: 36,
@@ -322,8 +323,13 @@ const styles = StyleSheet.create({
     backgroundColor: C.border,
     marginHorizontal: 16,
   },
-  paymentCardRight: {
-    flex: 1,
+  notesCard: {
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 4,
+    backgroundColor: C.bgLight,
+    padding: 16,
   },
   notesTitle: {
     fontSize: 8,
@@ -456,6 +462,9 @@ export default function InvoicePDF({
               <View>
                 <Text style={styles.brandName}>Synergy Concepts Hub</Text>
                 <Text style={styles.brandTagline}>Where Ideas Come to Life</Text>
+                <Text style={styles.brandContact}>Phone: +256706739311</Text>
+                <Text style={styles.brandContact}>Email: synergyconceptshub@gmail.com</Text>
+                <Text style={styles.brandContact}>Website: www.synergyconceptshub.com</Text>
               </View>
             </View>
             <View style={styles.titleBlock}>
@@ -555,45 +564,44 @@ export default function InvoicePDF({
           <View style={styles.paymentCard}>
             <Text style={styles.paymentCardTitle}>Payment Details</Text>
             <View style={styles.paymentCardBody}>
-              <View style={styles.paymentCardLeft}>
-                <View style={styles.paymentRow}>
-                  <View style={styles.bankIconCircle}>
-                    <Text style={styles.bankIconText}>H</Text>
-                  </View>
-                  <View style={styles.bankDetails}>
-                    <Text style={styles.bankDetailLabel}>Account Name:</Text>
-                    <Text style={styles.bankDetailValue}>Joseph Sengendo</Text>
-                    <Text style={styles.bankDetailLabel}>Account Number:</Text>
-                    <Text style={styles.bankDetailValue}>0100823802201</Text>
-                    <Text style={styles.bankDetailLabel}>Bank:</Text>
-                    <Text style={styles.bankDetailValue}>Standard Chartered Bank Uganda</Text>
-                  </View>
+              <View style={styles.paymentRow}>
+                <View style={styles.bankIconCircle}>
+                  <Text style={styles.bankIconText}>H</Text>
                 </View>
-                <View style={styles.paymentRow}>
-                  <View style={styles.bankIconCircle}>
-                    <Text style={styles.bankIconText}>A</Text>
-                  </View>
-                  <View style={styles.bankDetails}>
-                    <Text style={styles.bankDetailLabel}>Airtel Money:</Text>
-                    <Text style={styles.bankDetailValue}>0704 783 724</Text>
-                    <Text style={styles.bankDetailLabel}>Account Name:</Text>
-                    <Text style={styles.bankDetailValue}>Joseph Sengendo</Text>
-                  </View>
+                <View style={styles.bankDetails}>
+                  <Text style={styles.bankDetailLabel}>Account Name:</Text>
+                  <Text style={styles.bankDetailValue}>Joseph Sengendo</Text>
+                  <Text style={styles.bankDetailLabel}>Account Number:</Text>
+                  <Text style={styles.bankDetailValue}>0100823802201</Text>
+                  <Text style={styles.bankDetailLabel}>Bank:</Text>
+                  <Text style={styles.bankDetailValue}>Standard Chartered Bank Uganda</Text>
                 </View>
               </View>
               <View style={styles.paymentCardDivider} />
-              <View style={styles.paymentCardRight}>
-                <Text style={styles.notesTitle}>Notes</Text>
-                {invoice.notes?.trim() ? (
-                  <Text style={styles.notesBody}>{invoice.notes.trim()}</Text>
-                ) : (
-                  <>
-                    <Text style={styles.notesBody}>Payment due by the due date.</Text>
-                    <Text style={styles.notesBody}>Thank you for your business.</Text>
-                  </>
-                )}
+              <View style={styles.paymentRow}>
+                <View style={styles.bankIconCircle}>
+                  <Text style={styles.bankIconText}>A</Text>
+                </View>
+                <View style={styles.bankDetails}>
+                  <Text style={styles.bankDetailLabel}>Airtel Money:</Text>
+                  <Text style={styles.bankDetailValue}>0704 783 724</Text>
+                  <Text style={styles.bankDetailLabel}>Account Name:</Text>
+                  <Text style={styles.bankDetailValue}>Joseph Sengendo</Text>
+                </View>
               </View>
             </View>
+          </View>
+
+          <View style={styles.notesCard}>
+            <Text style={styles.notesTitle}>Notes</Text>
+            {invoice.notes?.trim() ? (
+              <Text style={styles.notesBody}>{invoice.notes.trim()}</Text>
+            ) : (
+              <>
+                <Text style={styles.notesBody}>Payment due by the due date.</Text>
+                <Text style={styles.notesBody}>Thank you for your business.</Text>
+              </>
+            )}
           </View>
         </View>
 

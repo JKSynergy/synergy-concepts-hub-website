@@ -43,6 +43,11 @@ export async function GET(
     .eq("id", receipt.invoice_id)
     .single();
 
+  const { data: payments } = await admin
+    .from("payments")
+    .select("*")
+    .eq("invoice_id", receipt.invoice_id);
+
   const { data: client } = await admin
     .from("profiles")
     .select("full_name, company_name, email")
@@ -66,7 +71,7 @@ export async function GET(
   const paidStampSrc = `data:image/png;base64,${paidStampBuffer.toString("base64")}`;
 
   const blob = await pdf(
-    ReceiptPDF({ receipt, payment, invoice, client: client ?? { email: "" }, logoSrc, signatureSrc, paidStampSrc })
+    ReceiptPDF({ receipt, payment, invoice, client: client ?? { email: "" }, logoSrc, signatureSrc, paidStampSrc, payments: payments ?? [] })
   ).toBlob();
 
   const buffer = Buffer.from(await blob.arrayBuffer());

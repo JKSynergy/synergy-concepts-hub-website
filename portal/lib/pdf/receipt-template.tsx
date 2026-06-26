@@ -366,6 +366,7 @@ export default function ReceiptPDF({
   logoSrc,
   signatureSrc,
   paidStampSrc,
+  payments,
 }: {
   receipt: Receipt;
   payment: Payment;
@@ -374,9 +375,11 @@ export default function ReceiptPDF({
   logoSrc?: string;
   signatureSrc?: string;
   paidStampSrc?: string;
+  payments?: Payment[] | null;
 }) {
   const paidAt = payment.paid_at ? new Date(payment.paid_at).toLocaleDateString() : "—";
-  const balance = Math.max(0, Number(invoice.total) - Number(payment.amount));
+  const totalPaid = (payments ?? []).reduce((sum: number, p: Payment) => sum + Number(p.amount), 0);
+  const balance = Math.max(0, Number(invoice.total) - totalPaid);
   const methodLabel = payment.method.replace(/_/g, " ").toUpperCase();
 
   return (

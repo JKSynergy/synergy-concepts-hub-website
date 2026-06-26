@@ -36,11 +36,11 @@ const styles = StyleSheet.create({
     color: C.dark,
     backgroundColor: C.white,
     flexDirection: "column",
+    paddingTop: 36,
   },
   content: {
     flex: 1,
     paddingHorizontal: 44,
-    paddingTop: 36,
     paddingBottom: 24,
   },
   header: {

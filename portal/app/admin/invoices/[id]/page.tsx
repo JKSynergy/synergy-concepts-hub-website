@@ -146,7 +146,7 @@ export default async function InvoiceDetailPage({
                 <button
                   type="submit"
                   disabled={invoice.status === "cancelled"}
-                  className="w-full rounded-md bg-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 disabled:opacity-50"
+                  className="w-full rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
                 >
                   Cancel
                 </button>

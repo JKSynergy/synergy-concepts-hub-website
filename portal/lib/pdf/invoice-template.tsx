@@ -223,7 +223,6 @@ const styles = StyleSheet.create({
   },
   totalsSection: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 28,
   },
@@ -381,15 +380,16 @@ const styles = StyleSheet.create({
     transformOrigin: "center",
     opacity: 0.82,
   },
+  stampArea: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   totalsStamp: {
     marginTop: 0,
     padding: 12,
     alignItems: "center",
     justifyContent: "center",
-  },
-  stampPlaceholder: {
-    width: 104,
-    height: 104,
   },
   signatureSection: {
     marginTop: 20,
@@ -626,11 +626,13 @@ export default function InvoicePDF({
 
           <View style={styles.totalsSection}>
             {stampImageSrc ? (
-              <View style={[styles.stampContainer, styles.totalsStamp]}>
-                <Image style={styles.stampImage} src={stampImageSrc} />
+              <View style={styles.stampArea}>
+                <View style={[styles.stampContainer, styles.totalsStamp]}>
+                  <Image style={styles.stampImage} src={stampImageSrc} />
+                </View>
               </View>
             ) : (
-              <View style={styles.stampPlaceholder} />
+              <View style={styles.stampArea} />
             )}
             <View style={styles.totalsCard}>
               <View style={styles.totalRow}>

@@ -2,6 +2,18 @@
 -- when the total paid amount covers the invoice total. Otherwise the invoice
 -- becomes "partially paid".
 
+-- Ensure the enum value exists before the function uses it.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_enum
+    WHERE enumtypid = 'public.invoice_status'::regtype
+    AND enumlabel = 'partially paid'
+  ) THEN
+    ALTER TYPE public.invoice_status ADD VALUE 'partially paid';
+  END IF;
+END $$;
+
 CREATE OR REPLACE FUNCTION public.handle_payment_receipt()
 RETURNS TRIGGER AS $$
 DECLARE

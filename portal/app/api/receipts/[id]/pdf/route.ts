@@ -57,11 +57,11 @@ export async function GET(
   const logoBuffer = readFileSync(logoPath);
   const logoSrc = `data:image/png;base64,${logoBuffer.toString("base64")}`;
 
-  const signaturePath = join(process.cwd(), "..", "images", "SCH E-Signature small.png");
+  const signaturePath = join(process.cwd(), "public", "images", "SCH E-Signature small.png");
   const signatureBuffer = readFileSync(signaturePath);
   const signatureSrc = `data:image/png;base64,${signatureBuffer.toString("base64")}`;
 
-  const paidStampPath = join(process.cwd(), "..", "images", "SCH E-Stamp small paid.png");
+  const paidStampPath = join(process.cwd(), "public", "images", "SCH E-Stamp small paid.png");
   const paidStampBuffer = readFileSync(paidStampPath);
   const paidStampSrc = `data:image/png;base64,${paidStampBuffer.toString("base64")}`;
 

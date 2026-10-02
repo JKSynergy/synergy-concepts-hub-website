@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import EditInvoiceForm from "./edit-invoice-form";
+import { PageHeader } from "@/components/ux/primitives";
+import { canAccessFinance } from "@/lib/security/roles";
 
 export default async function EditInvoicePage({
   params,
@@ -21,13 +24,13 @@ export default async function EditInvoicePage({
     .eq("id", user.id)
     .single();
 
-  if (!profile || (profile.role !== "admin" && profile.role !== "staff")) {
+  if (!profile || !canAccessFinance(profile.role)) {
     redirect("/client");
   }
 
   const { data: invoice } = await supabase
     .from("invoices")
-    .select("id, client_id, issue_date, due_date, tax_rate, notes")
+    .select("id, invoice_number, client_id, issue_date, due_date, tax_rate, notes")
     .eq("id", id)
     .single();
 
@@ -42,8 +45,13 @@ export default async function EditInvoicePage({
     .order("company_name", { ascending: true });
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Edit Invoice</h1>
+    <div className="ux-page ux-page--narrow">
+      <Link href={`/admin/invoices/${id}`} className="ux-back">← {invoice.invoice_number ?? "Invoice"}</Link>
+      <PageHeader
+        eyebrow="Invoice"
+        title={`Edit ${invoice.invoice_number ?? "invoice"}`}
+        description="Change the client, dates, tax rate or notes. Line items are edited on the invoice page."
+      />
       <EditInvoiceForm invoice={invoice} clients={clients ?? []} />
     </div>
   );

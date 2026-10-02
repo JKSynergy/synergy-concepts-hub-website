@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Dialog } from "@/components/ux/dialog";
 
 export default function AddClientForm() {
   const router = useRouter();
@@ -54,139 +55,91 @@ export default function AddClientForm() {
     router.refresh();
   }
 
-  if (!open) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
-        className="rounded-md bg-sch-blue px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
-      >
-        + Add Client
-      </button>
-    );
-  }
+  const close = () => {
+    setOpen(false);
+    setCreated(null);
+    reset();
+  };
 
   return (
-    <div className="rounded-xl bg-white p-6 shadow">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">Add a Client</h3>
-        <button
-          onClick={() => {
-            setOpen(false);
-            setCreated(null);
-            reset();
-          }}
-          className="text-sm text-gray-500 hover:text-gray-700"
-        >
-          Close
-        </button>
-      </div>
+    <>
+      <button type="button" onClick={() => setOpen(true)} className="ux-btn ux-btn--primary">
+        Add client
+      </button>
+      {open && (
+    <Dialog onClose={close} labelledBy="add-client-title">
+      <>
+        <h3 id="add-client-title">Add a client</h3>
+        <p className="ux-desc">Creates the account now with a temporary password you share securely.</p>
 
-      {created ? (
-        <div className="space-y-4">
-          <div className="rounded-md bg-green-50 p-4 text-sm text-green-800">
-            <p className="font-semibold">Client account created.</p>
-            <p className="mt-2">
-              Share these temporary credentials securely. The client should
-              change the password after first login.
-            </p>
-            <div className="mt-3 space-y-1 rounded-md bg-white p-3 font-mono text-gray-800">
+        {created ? (
+          <div style={{ marginTop: 20 }}>
+            <div className="ux-notice ux-notice--ok">
+              <b>Client account created.</b> Share these temporary credentials securely. The client should change the
+              password after first sign-in.
+            </div>
+            <dl className="ux-dl">
               <div>
-                <span className="text-gray-500">Email:</span> {created.email}
+                <dt>Email</dt>
+                <dd>{created.email}</dd>
               </div>
               <div>
-                <span className="text-gray-500">Temp password:</span>{" "}
-                {created.tempPassword}
+                <dt>Temporary password</dt>
+                <dd style={{ fontFamily: "ui-monospace, monospace" }}>{created.tempPassword}</dd>
               </div>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() =>
-                navigator.clipboard.writeText(
-                  `Email: ${created.email}\nTemporary password: ${created.tempPassword}`
-                )
-              }
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Copy credentials
-            </button>
-            <button
-              onClick={() => setCreated(null)}
-              className="rounded-md bg-sch-blue px-3 py-2 text-sm font-semibold text-white hover:opacity-90"
-            >
-              Add another
-            </button>
-          </div>
-        </div>
-      ) : (
-        <>
-          {error && (
-            <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700">
-              {error}
-            </div>
-          )}
-
-          <form
-            onSubmit={handleSubmit}
-            className="grid grid-cols-1 gap-4 sm:grid-cols-2"
-          >
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Email *
-              </label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sch-blue focus:outline-none focus:ring-1 focus:ring-sch-blue"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Full Name
-              </label>
-              <input
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sch-blue focus:outline-none focus:ring-1 focus:ring-sch-blue"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Company
-              </label>
-              <input
-                type="text"
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sch-blue focus:outline-none focus:ring-1 focus:ring-sch-blue"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Phone
-              </label>
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sch-blue focus:outline-none focus:ring-1 focus:ring-sch-blue"
-              />
-            </div>
-            <div className="sm:col-span-2">
+            </dl>
+            <div className="ux-dialog-actions">
               <button
-                type="submit"
-                disabled={loading}
-                className="rounded-md bg-sch-blue px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                type="button"
+                onClick={() =>
+                  navigator.clipboard.writeText(`Email: ${created.email}\nTemporary password: ${created.tempPassword}`)
+                }
+                className="ux-btn ux-btn--secondary"
               >
-                {loading ? "Creating..." : "Create Client"}
+                Copy credentials
+              </button>
+              <button type="button" onClick={() => setCreated(null)} className="ux-btn ux-btn--secondary">
+                Add another
+              </button>
+              <button type="button" onClick={close} className="ux-btn ux-btn--primary">
+                Done
+              </button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} style={{ marginTop: 20 }}>
+            {error && <div className="ux-notice ux-notice--error">{error}</div>}
+            <div className="ux-formgrid">
+              <label className="ux-field ux-full">
+                <span>Email</span>
+                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="ux-input" />
+              </label>
+              <label className="ux-field">
+                <span>Full name</span>
+                <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} className="ux-input" />
+              </label>
+              <label className="ux-field">
+                <span>Company</span>
+                <input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} className="ux-input" />
+              </label>
+              <label className="ux-field ux-full">
+                <span>Phone</span>
+                <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="ux-input" />
+              </label>
+            </div>
+            <div className="ux-dialog-actions">
+              <button type="button" onClick={close} className="ux-btn ux-btn--secondary">
+                Cancel
+              </button>
+              <button type="submit" disabled={loading} className="ux-btn ux-btn--primary">
+                {loading ? "Creating…" : "Create client"}
               </button>
             </div>
           </form>
-        </>
+        )}
+      </>
+    </Dialog>
       )}
-    </div>
+    </>
   );
 }

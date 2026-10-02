@@ -1,9 +1,13 @@
 import type { ReactNode } from "react";
+import "../ux.css";
 import { NavProgress } from "@/components/nav-progress";
-import { PortalSidebar, type NavItem } from "@/components/portal-sidebar";
-import { PageTransition } from "@/components/page-transition";
+import { AdminShell } from "@/components/ux/admin-shell";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+
+import { isRole } from "@/lib/security/roles";
+
+const ROLE_LABEL = { admin: "Administrator", finance: "Finance", staff: "Staff", client: "Client" } as const;
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const supabase = await createClient();
@@ -18,45 +22,15 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     .eq("id", user.id)
     .single();
 
-  const isAdmin = profile?.role === "admin";
-
-  const items: NavItem[] = [
-    { href: "/admin", label: "Dashboard", icon: "dashboard", exact: true },
-    { href: "/admin/clients", label: "Clients", icon: "clients" },
-    { href: "/admin/projects", label: "Projects", icon: "projects" },
-    { href: "/admin/bookings", label: "Bookings", icon: "bookings" },
-    { href: "/admin/services", label: "Services", icon: "services" },
-    { href: "/admin/leads", label: "Quote Requests", icon: "leads" },
-    ...(isAdmin
-      ? ([
-          { href: "/admin/staff", label: "Staff", icon: "users" },
-          { href: "/admin/academy", label: "Academy", icon: "academy" },
-          { href: "/admin/invoices", label: "Invoices", icon: "invoices" },
-          { href: "/admin/finances", label: "Finances", icon: "finances" },
-          { href: "/admin/reports", label: "Reports", icon: "reports" },
-        ] as NavItem[])
-      : []),
-  ];
-
+  const role = isRole(profile?.role) ? profile.role : null;
   const userLabel = profile?.full_name || profile?.email || user.email || "Admin";
-  const userEmail = profile?.email || user.email || "";
 
   return (
-    <div className="portal-shell">
+    <>
       <NavProgress />
-      <div className="flex min-h-screen">
-        <PortalSidebar
-          brandName="Synergy Concepts Hub"
-          brandSub="Control Center"
-          items={items}
-          userLabel={userLabel}
-          userRole={isAdmin ? "Administrator" : "Staff"}
-          userEmail={userEmail}
-        />
-        <main className="portal-main">
-          <PageTransition>{children}</PageTransition>
-        </main>
-      </div>
-    </div>
+      <AdminShell role={role} userLabel={userLabel} userRole={ROLE_LABEL[role ?? "staff"]}>
+        {children}
+      </AdminShell>
+    </>
   );
 }

@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { addLineItem, deleteLineItem } from "@/lib/actions/invoices";
+import { useFeedback } from "@/components/ux/feedback";
+import { ugx } from "@/components/ux/primitives";
 
 type LineItem = {
   id: string;
@@ -28,6 +30,7 @@ export function LineItemsManager({
   storedTotal?: number;
 }) {
   const router = useRouter();
+  const { toast, confirm: askConfirm } = useFeedback();
   const [desc, setDesc] = useState("");
   const [qty, setQty] = useState(1);
   const [unitPrice, setUnitPrice] = useState<number | "">("");
@@ -35,7 +38,7 @@ export function LineItemsManager({
   const [actionError, setActionError] = useState("");
 
   const existingSubtotal = initialItems.length > 0
-    ? initialItems.reduce((sum, item) => sum + Number(item.amount), 0)
+    ? initialItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
     : storedSubtotal;
   const previewQty = Number(qty) || 0;
   const previewPrice = Number(unitPrice) || 0;
@@ -62,167 +65,143 @@ export function LineItemsManager({
     setLoading(false);
     if (res.error) {
       setActionError(res.error);
+      toast(res.error, "error");
     } else {
       setDesc("");
       setQty(1);
       setUnitPrice("");
+      toast("Line item added");
       router.refresh();
     }
   }
 
-  async function handleDelete(itemId: string) {
-    await deleteLineItem(itemId, invoiceId);
+  async function handleDelete(item: LineItem) {
+    const ok = await askConfirm({
+      title: "Remove this line item?",
+      body: item.description,
+      confirmLabel: "Remove item",
+      destructive: true,
+    });
+    if (!ok) return;
+    const res = await deleteLineItem(item.id, invoiceId);
+    if (res?.error) {
+      toast(res.error, "error");
+      return;
+    }
+    toast("Line item removed");
     router.refresh();
   }
 
+  const formId = `li-add-${invoiceId}`;
+
   return (
     <>
-      <div className="mt-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-          Line Items
-        </h2>
-        <div className="overflow-x-auto">
-          <table className="mt-3 min-w-[640px] divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
-                  Description
-                </th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">
-                  Qty
-                </th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">
-                  Unit Price
-                </th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">
-                  Amount
-                </th>
-                <th className="px-4 py-2" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {initialItems.map((item) => (
-                <tr key={item.id}>
-                  <td className="px-4 py-2 text-sm text-gray-900">
-                    {item.description}
-                  </td>
-                  <td className="px-4 py-2 text-right text-sm text-gray-500">
-                    {Number(item.quantity).toLocaleString()}
-                  </td>
-                  <td className="px-4 py-2 text-right text-sm text-gray-500">
-                    UGX {Number(item.unit_price).toLocaleString()}
-                  </td>
-                  <td className="px-4 py-2 text-right text-sm font-medium text-gray-900">
-                    UGX {Number(item.amount).toLocaleString()}
-                  </td>
-                  <td className="px-4 py-2 text-right">
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(item.id)}
-                      className="text-xs text-red-500 hover:underline"
-                    >
+      {actionError && <div className="ux-notice ux-notice--error">{actionError}</div>}
+      <div className="ux-tablewrap">
+        <table className="ux-table ux-table--stack ux-fin-table">
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th className="ux-num">Qty</th>
+              <th className="ux-num">Unit price</th>
+              <th className="ux-num">Amount</th>
+              <th>
+                <span className="sr-only">Actions</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {initialItems.map((item) => (
+              <tr key={item.id}>
+                <td>{item.description}</td>
+                <td className="ux-num" data-label="Qty">{Number(item.quantity).toLocaleString()}</td>
+                <td className="ux-num" data-label="Unit price">{ugx(Number(item.unit_price))}</td>
+                <td className="ux-num" data-label="Amount">{ugx(Number(item.amount) || 0)}</td>
+                <td>
+                  <div className="ux-rowactions">
+                    <button type="button" onClick={() => handleDelete(item)} className="ux-textbtn ux-textbtn--danger">
                       Remove
                     </button>
-                  </td>
-                </tr>
-              ))}
-              {initialItems.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="px-4 py-4 text-center text-sm text-gray-400"
-                  >
-                    No line items yet. Use the form below to add one.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {initialItems.length === 0 && (
+              <tr>
+                <td colSpan={5} className="ux-muted">
+                  No line items yet. Add the first one in the row below.
+                </td>
+              </tr>
+            )}
+            <tr className="ux-fin-addrow">
+              <td data-label="Description">
+                <input
+                  form={formId}
+                  className="ux-input"
+                  value={desc}
+                  onChange={(e) => setDesc(e.target.value)}
+                  placeholder="New line item"
+                  aria-label="Description"
+                  required
+                />
+              </td>
+              <td className="ux-num" data-label="Qty" style={{ width: 90 }}>
+                <input
+                  form={formId}
+                  className="ux-input"
+                  type="number"
+                  value={qty}
+                  onChange={(e) => setQty(Number(e.target.value))}
+                  aria-label="Quantity"
+                  min={1}
+                  required
+                />
+              </td>
+              <td className="ux-num" data-label="Unit price (UGX)" style={{ width: 170 }}>
+                <input
+                  form={formId}
+                  className="ux-input"
+                  type="number"
+                  value={unitPrice}
+                  onChange={(e) => setUnitPrice(e.target.value === "" ? "" : Number(e.target.value))}
+                  aria-label="Unit price in UGX"
+                  min={0}
+                  step={1}
+                  required
+                />
+              </td>
+              <td className="ux-num" data-label="Amount">
+                {previewAmount > 0 ? ugx(previewAmount) : <span className="ux-muted">—</span>}
+              </td>
+              <td>
+                <div className="ux-rowactions">
+                  <button type="submit" form={formId} className="ux-textbtn" disabled={loading}>
+                    {loading ? "Adding…" : "Add item"}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
+      <form id={formId} onSubmit={handleAdd} />
 
-      <div className="mt-4 rounded-lg border border-dashed border-gray-300 p-4">
-        <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
-          Add Line Item
-        </h3>
-        {actionError && (
-          <p className="mb-2 rounded bg-red-50 px-3 py-1.5 text-xs text-red-600">
-            {actionError}
-          </p>
-        )}
-        <form
-          onSubmit={handleAdd}
-          className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_80px_160px_auto]"
-        >
-          <input
-            value={desc}
-            onChange={(e) => setDesc(e.target.value)}
-            placeholder="Description"
-            required
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-gray-500 focus:outline-none"
-          />
-          <input
-            type="number"
-            value={qty}
-            onChange={(e) => setQty(Number(e.target.value))}
-            placeholder="Qty"
-            min={1}
-            required
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-gray-500 focus:outline-none"
-          />
-          <input
-            type="number"
-            value={unitPrice}
-            onChange={(e) =>
-              setUnitPrice(e.target.value === "" ? "" : Number(e.target.value))
-            }
-            placeholder="Unit Price (UGX)"
-            min={0}
-            step={1}
-            required
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-gray-500 focus:outline-none"
-          />
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
-          >
-            {loading ? "Adding…" : "Add"}
-          </button>
-        </form>
-
-        {desc.trim() && previewPrice > 0 && (
-          <div className="mt-2 flex items-center gap-3 rounded bg-gray-50 px-3 py-2 text-xs text-gray-500">
-            <span className="flex-1 truncate font-medium text-gray-700">
-              {desc}
-            </span>
-            <span>
-              {previewQty} × UGX {previewPrice.toLocaleString()}
-            </span>
-            <span className="font-semibold text-gray-900">
-              = UGX {previewAmount.toLocaleString()}
-            </span>
+      <div className="ux-fin-totals">
+        <div>
+          <span>Subtotal</span>
+          <span>{ugx(previewSubtotal)}</span>
+        </div>
+        {displayTaxRate > 0 && (
+          <div>
+            <span>Tax ({displayTaxRate}%)</span>
+            <span>{ugx(taxAmount)}</span>
           </div>
         )}
-      </div>
-
-      <div className="mt-6 flex justify-end">
-        <div className="w-full max-w-xs space-y-2 text-right sm:w-64">
-          <div className="flex justify-between text-sm text-gray-500">
-            <span>Subtotal</span>
-            <span>UGX {previewSubtotal.toLocaleString()}</span>
-          </div>
-          {displayTaxRate > 0 && (
-            <div className="flex justify-between text-sm text-gray-500">
-              <span>Tax ({displayTaxRate}%)</span>
-              <span>UGX {taxAmount.toLocaleString()}</span>
-            </div>
-          )}
-          <div className="flex justify-between border-t border-gray-200 pt-2 text-base font-bold text-gray-900">
-            <span>Total</span>
-            <span>UGX {total.toLocaleString()}</span>
-          </div>
+        <div>
+          <span>Total</span>
+          <span>{ugx(total)}</span>
         </div>
+        {previewAmount > 0 && <small>Includes the row being typed, not yet added</small>}
       </div>
     </>
   );

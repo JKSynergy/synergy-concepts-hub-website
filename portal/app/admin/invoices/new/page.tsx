@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import NewInvoiceForm from "./new-invoice-form";
+import { PageHeader } from "@/components/ux/primitives";
+import { canAccessFinance } from "@/lib/security/roles";
 
 export default async function NewInvoicePage() {
   const supabase = await createClient();
@@ -16,7 +19,7 @@ export default async function NewInvoicePage() {
     .eq("id", user.id)
     .single();
 
-  if (!profile || profile.role !== "admin") {
+  if (!profile || !canAccessFinance(profile.role)) {
     redirect("/admin");
   }
 
@@ -24,7 +27,18 @@ export default async function NewInvoicePage() {
     .from("profiles")
     .select("id, company_name, full_name, email")
     .eq("role", "client")
+    .is("archived_at", null)
     .order("company_name");
 
-  return <NewInvoiceForm clients={clients ?? []} />;
+  return (
+    <div className="ux-page ux-page--narrow">
+      <Link href="/admin/invoices" className="ux-back">← Invoices</Link>
+      <PageHeader
+        eyebrow="Invoice"
+        title="New invoice"
+        description="Set the client and dates first. Line items are added once the draft is created."
+      />
+      <NewInvoiceForm clients={clients ?? []} />
+    </div>
+  );
 }

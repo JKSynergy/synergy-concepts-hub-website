@@ -1,260 +1,293 @@
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { NavLink as Link } from "@/components/nav-link";
-import { KPICard } from "@/components/kpi-card";
-import { DashboardHero } from "@/components/dashboard-hero";
-import { TodayOverview } from "@/components/today-overview";
-import { FolderKanban, Users, CalendarDays, Receipt, ArrowUpRight, Clock, CalendarPlus, Inbox } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { EmptyState, PageHeader, Section } from "@/components/ux/primitives";
+import { isOperationalStaff, isAdmin as isAdminRole } from "@/lib/security/roles";
+
+function greeting(): string {
+  const hour = Number(
+    new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: "Africa/Nairobi" }).format(new Date())
+  );
+  return hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+}
+
+const dateFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "Africa/Nairobi" });
+const dateTimeFmt = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "Africa/Nairobi",
+});
+const plural = (n: number, one: string, many = one + "s") => `${n} ${n === 1 ? one : many}`;
+const excerpt = (s: string, n = 90) => (s.length > n ? s.slice(0, n).trimEnd() + "…" : s);
+
+type Attention = { label: string; href: string; parts: string[] };
+type Activity = { key: string; at: string; title: string; sub: string; href: string };
+type Upcoming = { key: string; at: string; title: string; sub: string; href: string; when: string };
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
-
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
-  if (!user) {
-    redirect("/login");
-  }
+  const { data: profile } = await supabase.from("profiles").select("role, full_name").eq("id", user.id).single();
+  if (!profile || !isOperationalStaff(profile.role)) redirect("/client");
+  const isAdmin = isAdminRole(profile.role);
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role, full_name")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile || (profile.role !== "admin" && profile.role !== "staff")) {
-    redirect("/client");
-  }
-
-  const isAdmin = profile.role === "admin";
-
-  // For staff: only count projects they are assigned to
-  let projectFilter = supabase
-    .from("projects")
-    .select("*", { count: "exact", head: true })
-    .in("status", ["active", "review"]);
-
+  // Staff only see the work they are assigned to.
+  let assignedIds: string[] | null = null;
   if (!isAdmin) {
-    const { data: assigned } = await supabase
-      .from("project_assignments")
-      .select("project_id")
-      .eq("staff_id", user.id);
-    const assignedIds = (assigned ?? []).map((a) => a.project_id);
-    if (assignedIds.length > 0) {
-      projectFilter = projectFilter.in("id", assignedIds);
-    } else {
-      projectFilter = projectFilter.eq("id", "00000000-0000-0000-0000-000000000000");
+    const { data: assigned } = await supabase.from("project_assignments").select("project_id").eq("staff_id", user.id);
+    assignedIds = (assigned ?? []).map((a) => a.project_id);
+  }
+  const NONE = "00000000-0000-0000-0000-000000000000";
+  const scope: string[] | null = assignedIds ? (assignedIds.length ? assignedIds : [NONE]) : null;
+
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  const in14 = new Date(now.getTime() + 14 * 86400000).toISOString().slice(0, 10);
+  const in30 = new Date(now.getTime() + 30 * 86400000).toISOString().slice(0, 10);
+
+  const [
+    reviewProjects,
+    revisionMilestones,
+    pendingBookings,
+    newLeads,
+    openInvoices,
+    draftInvoices,
+    updates,
+    recentBookings,
+    upcomingBookings,
+    dueInvoices,
+    targetProjects,
+  ] = await Promise.all([
+    (() => {
+      const q = supabase.from("projects").select("id", { count: "exact", head: true }).eq("status", "review");
+      return scope ? q.in("id", scope) : q;
+    })(),
+    (() => {
+      const q = supabase
+        .from("project_milestones")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "revision_requested");
+      return scope ? q.in("project_id", scope) : q;
+    })(),
+    supabase.from("bookings").select("id", { count: "exact", head: true }).eq("status", "pending"),
+    supabase.from("leads").select("id", { count: "exact", head: true }).eq("status", "new"),
+    isAdmin
+      ? supabase.from("invoices").select("id, status, due_date").in("status", ["sent", "partially paid", "overdue"])
+      : Promise.resolve({ data: [] as { id: string; status: string; due_date: string | null }[] }),
+    isAdmin
+      ? supabase.from("invoices").select("id", { count: "exact", head: true }).eq("status", "draft")
+      : Promise.resolve({ count: 0 }),
+    (() => {
+      const q = supabase
+        .from("project_updates")
+        .select("id, content, created_at, project_id, author_id")
+        .order("created_at", { ascending: false })
+        .limit(6);
+      return scope ? q.in("project_id", scope) : q;
+    })(),
+    supabase.from("bookings").select("id, title, created_at, client_id").order("created_at", { ascending: false }).limit(4),
+    supabase
+      .from("bookings")
+      .select("id, title, scheduled_at, client_id")
+      .in("status", ["pending", "confirmed"])
+      .gte("scheduled_at", now.toISOString())
+      .order("scheduled_at", { ascending: true })
+      .limit(5),
+    isAdmin
+      ? supabase
+          .from("invoices")
+          .select("id, invoice_number, due_date, client_id")
+          .in("status", ["sent", "partially paid"])
+          .gte("due_date", today)
+          .lte("due_date", in14)
+          .order("due_date", { ascending: true })
+          .limit(5)
+      : Promise.resolve({ data: [] as { id: string; invoice_number: string; due_date: string; client_id: string }[] }),
+    (() => {
+      const q = supabase
+        .from("projects")
+        .select("id, title, target_date, client_id")
+        .in("status", ["active", "review"])
+        .gte("target_date", today)
+        .lte("target_date", in30)
+        .order("target_date", { ascending: true })
+        .limit(5);
+      return scope ? q.in("id", scope) : q;
+    })(),
+  ]);
+
+  // Names for everything we are about to show.
+  const projectIds = [...new Set((updates.data ?? []).map((u) => u.project_id))];
+  const personIds = [
+    ...new Set([
+      ...(updates.data ?? []).map((u) => u.author_id),
+      ...(recentBookings.data ?? []).map((b) => b.client_id),
+      ...(upcomingBookings.data ?? []).map((b) => b.client_id),
+      ...(dueInvoices.data ?? []).map((i) => i.client_id),
+      ...(targetProjects.data ?? []).map((p) => p.client_id),
+    ]),
+  ].filter(Boolean) as string[];
+  const [{ data: projectRows }, { data: people }] = await Promise.all([
+    projectIds.length
+      ? supabase.from("projects").select("id, title").in("id", projectIds)
+      : Promise.resolve({ data: [] as { id: string; title: string }[] }),
+    personIds.length
+      ? supabase.from("profiles").select("id, full_name, company_name, email").in("id", personIds)
+      : Promise.resolve({ data: [] as { id: string; full_name: string | null; company_name: string | null; email: string }[] }),
+  ]);
+  const projectTitle = new Map((projectRows ?? []).map((p) => [p.id, p.title]));
+  const personName = new Map(
+    (people ?? []).map((p) => [p.id, p.company_name || p.full_name || p.email] as [string, string])
+  );
+  const who = (id: string | null) => (id ? personName.get(id) ?? "Unknown" : "No client yet");
+
+  // ── Attention: only rows that need action ──
+  const attention: Attention[] = [];
+  const revisions = revisionMilestones.count ?? 0;
+  const inReview = reviewProjects.count ?? 0;
+  if (revisions + inReview > 0) {
+    const parts: string[] = [];
+    if (revisions) parts.push(`${plural(revisions, "milestone")} with changes requested`);
+    if (inReview) parts.push(`${plural(inReview, "project")} in review`);
+    attention.push({ label: "Projects", href: "/admin/projects", parts });
+  }
+  const pending = pendingBookings.count ?? 0;
+  const leads = newLeads.count ?? 0;
+  if (pending + leads > 0) {
+    const parts: string[] = [];
+    if (pending) parts.push(`${pending} pending ${pending === 1 ? "booking" : "bookings"}`);
+    if (leads) parts.push(`${plural(leads, "new quote request")}`);
+    attention.push({ label: "Enquiries", href: pending ? "/admin/bookings" : "/admin/leads", parts });
+  }
+  if (isAdmin) {
+    const overdue = (openInvoices.data ?? []).filter(
+      (i) => i.status === "overdue" || (i.due_date && i.due_date < today)
+    ).length;
+    const drafts = draftInvoices.count ?? 0;
+    if (overdue + drafts > 0) {
+      const parts: string[] = [];
+      if (overdue) parts.push(`${overdue} overdue`);
+      if (drafts) parts.push(`${plural(drafts, "draft")} not yet sent`);
+      attention.push({ label: "Invoices", href: "/admin/invoices", parts });
     }
   }
 
-  const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  // ── Recent work: real records only ──
+  const recent: Activity[] = [
+    ...(updates.data ?? []).map((u) => ({
+      key: `u${u.id}`,
+      at: u.created_at,
+      title: `Update on ${projectTitle.get(u.project_id) ?? "a project"}`,
+      sub: `${excerpt(u.content)} (${who(u.author_id)})`,
+      href: `/admin/projects/${u.project_id}`,
+    })),
+    ...(recentBookings.data ?? []).map((b) => ({
+      key: `b${b.id}`,
+      at: b.created_at,
+      title: `New booking: ${b.title}`,
+      sub: who(b.client_id),
+      href: `/admin/bookings/${b.id}`,
+    })),
+  ]
+    .sort((a, b) => b.at.localeCompare(a.at))
+    .slice(0, 8);
 
-  const [
-    { count: activeProjects },
-    { count: clients },
-    { count: pendingBookings },
-    { count: unpaidInvoices },
-    { data: recentBookings },
-    { count: newClientsThisMonth },
-    { data: revenueData },
-    { count: recentActivityCount },
-  ] = await Promise.all([
-    projectFilter,
-    supabase
-      .from("profiles")
-      .select("*", { count: "exact", head: true })
-      .eq("role", "client"),
-    supabase
-      .from("bookings")
-      .select("*", { count: "exact", head: true })
-      .in("status", ["pending", "confirmed"]),
-    isAdmin
-      ? supabase
-          .from("invoices")
-          .select("*", { count: "exact", head: true })
-          .in("status", ["draft", "sent", "overdue"])
-      : Promise.resolve({ count: 0, data: [], error: null }),
-    supabase
-      .from("bookings")
-      .select("id, title, type, status, scheduled_at, client_id")
-      .in("status", ["pending", "confirmed"])
-      .order("scheduled_at", { ascending: true })
-      .limit(5),
-    supabase
-      .from("profiles")
-      .select("*", { count: "exact", head: true })
-      .eq("role", "client")
-      .gte("created_at", startOfMonth),
-    isAdmin
-      ? supabase
-          .from("invoices")
-          .select("total")
-          .eq("status", "paid")
-          .gte("created_at", startOfMonth)
-      : Promise.resolve({ data: [], error: null }),
-    supabase
-      .from("bookings")
-      .select("*", { count: "exact", head: true })
-      .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
-  ]);
+  // ── Upcoming ──
+  const upcoming: Upcoming[] = [
+    ...(upcomingBookings.data ?? []).map((b) => ({
+      key: `b${b.id}`,
+      at: b.scheduled_at as string,
+      title: b.title,
+      sub: `Booking, ${who(b.client_id)}`,
+      href: `/admin/bookings/${b.id}`,
+      when: dateTimeFmt.format(new Date(b.scheduled_at as string)),
+    })),
+    ...(dueInvoices.data ?? []).map((i) => ({
+      key: `i${i.id}`,
+      at: i.due_date,
+      title: `Invoice ${i.invoice_number} due`,
+      sub: who(i.client_id),
+      href: `/admin/invoices/${i.id}`,
+      when: dateFmt.format(new Date(i.due_date)),
+    })),
+    ...(targetProjects.data ?? []).map((p) => ({
+      key: `p${p.id}`,
+      at: p.target_date as string,
+      title: `${p.title} target date`,
+      sub: `Project, ${who(p.client_id)}`,
+      href: `/admin/projects/${p.id}`,
+      when: dateFmt.format(new Date(p.target_date as string)),
+    })),
+  ]
+    .sort((a, b) => a.at.localeCompare(b.at))
+    .slice(0, 8);
 
-  const revenueThisMonth = (revenueData ?? []).reduce(
-    (sum: number, inv: { total?: number }) => sum + (inv.total ?? 0),
-    0
-  );
-
-  const clientIds = [...new Set((recentBookings ?? []).map((b) => b.client_id))];
-  const { data: clientProfiles } = clientIds.length
-    ? await supabase
-        .from("profiles")
-        .select("id, company_name, full_name, email")
-        .in("id", clientIds)
-    : { data: [] };
-  const clientMap = new Map(
-    (clientProfiles ?? []).map((c) => [
-      c.id,
-      c.company_name || c.full_name || c.email,
-    ])
-  );
+  const firstName = (profile.full_name || "").trim().split(/\s+/)[0];
 
   return (
-    <div>
-      <DashboardHero
-        name={profile.full_name || user.email || "Admin"}
-        role={isAdmin ? "Administrator" : "Staff"}
-        stats={{
-          activeProjects: activeProjects ?? 0,
-          pendingBookings: pendingBookings ?? 0,
-          outstandingInvoices: unpaidInvoices ?? 0,
-        }}
-        isAdmin={isAdmin}
+    <div className="ux-page ux-page--wide">
+      <PageHeader
+        title={`${greeting()}${firstName ? ", " + firstName : ""}.`}
+        description={attention.length ? "Here is what needs attention today." : "Nothing needs attention right now."}
       />
 
-      <TodayOverview
-        stats={{
-          activeProjects: activeProjects ?? 0,
-          newClientsThisMonth: newClientsThisMonth ?? 0,
-          pendingBookings: pendingBookings ?? 0,
-          revenueThisMonth: revenueThisMonth,
-          recentActivityCount: recentActivityCount ?? 0,
-        }}
-      />
-
-      <div className={`mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 ${isAdmin ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
-        <KPICard
-          title="Active Projects"
-          value={activeProjects ?? 0}
-          href="/admin/projects"
-          icon={<FolderKanban size={20} strokeWidth={1.8} />}
-          trend={{ label: "In progress", dir: "up" }}
-          sparkData={[4, 5, 4, 6, 7, 6, 8]}
-          sparkColor="#22d3ee"
-          sparkId="ad-projects"
-          accent="cyan"
-        />
-        <KPICard
-          title="Clients"
-          value={clients ?? 0}
-          href="/admin/clients"
-          icon={<Users size={20} strokeWidth={1.8} />}
-          trend={{ label: "Total", dir: "up" }}
-          sparkData={[2, 3, 4, 4, 5, 6, 7]}
-          sparkColor="#2dd4bf"
-          sparkId="ad-clients"
-          accent="teal"
-        />
-        <KPICard
-          title="Pending Bookings"
-          value={pendingBookings ?? 0}
-          href="/admin/bookings"
-          icon={<CalendarDays size={20} strokeWidth={1.8} />}
-          trend={{ label: "Awaiting", dir: "flat" }}
-          sparkData={[3, 2, 4, 3, 5, 4, 5]}
-          sparkColor="#fbbf24"
-          sparkId="ad-bookings"
-          accent="amber"
-        />
-        {isAdmin && (
-          <KPICard
-            title="Unpaid Invoices"
-            value={unpaidInvoices ?? 0}
-            href="/admin/invoices"
-            icon={<Receipt size={20} strokeWidth={1.8} />}
-            trend={{ label: "Outstanding", dir: unpaidInvoices ? "down" : "flat" }}
-            sparkData={[6, 5, 5, 4, 4, 3, 3]}
-            sparkColor="#fb7185"
-            sparkId="ad-invoices"
-            accent="coral"
-          />
-        )}
-      </div>
-
-      <section className="mt-10">
-        <h2 className="section-title mb-4">Upcoming Bookings</h2>
-        {recentBookings && recentBookings.length > 0 ? (
-          <div className="glass-card overflow-hidden">
-            {recentBookings.map((b, i) => (
-              <div
-                key={b.id}
-                className="flex flex-wrap items-center justify-between gap-3 p-4"
-                style={{ borderTop: i === 0 ? "none" : "1px solid var(--p-border)" }}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="kpi-icon" style={{ width: 38, height: 38 }} aria-hidden>
-                    <Clock size={17} strokeWidth={1.8} />
-                  </span>
-                  <div>
-                    <span className="font-medium" style={{ color: "var(--p-text-strong)" }}>
-                      {b.title}
-                    </span>
-                    <p className="mt-0.5 text-sm" style={{ color: "var(--p-muted)" }}>
-                      {clientMap.get(b.client_id) ?? "Unknown client"}
-                      {b.scheduled_at &&
-                        ` \u2022 ${new Date(b.scheduled_at).toLocaleString()}`}
-                    </p>
-                  </div>
-                </div>
-                <Link
-                  href={`/admin/bookings/${b.id}`}
-                  className="btn-ghost"
-                >
-                  View <ArrowUpRight size={14} />
-                </Link>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="glass-card flex flex-col items-center justify-center gap-4 p-8 text-center" style={{ minHeight: "200px" }}>
-            <div
-              className="flex h-14 w-14 items-center justify-center rounded-2xl"
-              style={{
-                background: "rgba(251, 191, 36, 0.1)",
-                border: "1px solid rgba(251, 191, 36, 0.2)",
-                color: "#fbbf24",
-              }}
-            >
-              <Inbox size={24} strokeWidth={1.8} />
-            </div>
-            <div>
-              <p className="text-sm font-medium" style={{ color: "var(--p-text-strong)" }}>
-                No upcoming bookings
-              </p>
-              <p className="mt-1 text-sm" style={{ color: "var(--p-muted)" }}>
-                New bookings will automatically appear here.
-              </p>
-            </div>
-            <Link
-              href="/admin/bookings"
-              className="btn-primary mt-1 inline-flex items-center gap-2"
-            >
-              <CalendarPlus size={15} strokeWidth={2} />
-              Create Booking
+      <Section title="Attention">
+        {attention.length ? (
+          attention.map((a) => (
+            <Link key={a.label} href={a.href} className="ux-row">
+              <span className="ux-row-label">{a.label}</span>
+              <span className="ux-row-main">{a.parts.join(" · ")}</span>
+              <span className="ux-row-arrow" aria-hidden="true">
+                →
+              </span>
             </Link>
-          </div>
+          ))
+        ) : (
+          <EmptyState title="All clear.">No changes requested, pending enquiries or overdue invoices.</EmptyState>
         )}
-      </section>
+      </Section>
+
+      <div className="ux-cols">
+        <Section title="Recent work">
+          {recent.length ? (
+            recent.map((r) => (
+              <Link key={r.key} href={r.href} className="ux-item">
+                <span>
+                  <b>{r.title}</b>
+                  <small>{r.sub}</small>
+                </span>
+                <time dateTime={r.at}>{dateFmt.format(new Date(r.at))}</time>
+              </Link>
+            ))
+          ) : (
+            <EmptyState title="No activity yet.">Project updates and new bookings will appear here.</EmptyState>
+          )}
+        </Section>
+
+        <Section title="Upcoming">
+          {upcoming.length ? (
+            upcoming.map((u) => (
+              <Link key={u.key} href={u.href} className="ux-item">
+                <span>
+                  <b>{u.title}</b>
+                  <small>{u.sub}</small>
+                </span>
+                <span className="ux-when">{u.when}</span>
+              </Link>
+            ))
+          ) : (
+            <EmptyState title="Nothing scheduled.">
+              Bookings, invoice due dates and project target dates will appear here.
+            </EmptyState>
+          )}
+        </Section>
+      </div>
     </div>
   );
 }

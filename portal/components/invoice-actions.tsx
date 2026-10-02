@@ -3,42 +3,57 @@
 import { useRouter } from "next/navigation";
 import { NavLink as Link } from "@/components/nav-link";
 import { deleteInvoice } from "@/lib/actions/invoices";
+import { useFeedback } from "@/components/ux/feedback";
 
 export function InvoiceActions({
   invoiceId,
   redirectTo,
+  showOpen = false,
+  canDelete = true,
 }: {
   invoiceId: string;
   redirectTo?: string;
+  showOpen?: boolean;
+  canDelete?: boolean;
 }) {
   const router = useRouter();
+  const { confirm: askConfirm, toast } = useFeedback();
 
   async function handleDelete() {
-    if (!confirm("Are you sure you want to delete this invoice?")) return;
+    const ok = await askConfirm({
+      title: "Delete this invoice?",
+      body: "Only draft invoices with no payments can be deleted. Anything else must be cancelled instead.",
+      confirmLabel: "Delete invoice",
+      destructive: true,
+    });
+    if (!ok) return;
     const res = await deleteInvoice(invoiceId);
     if (res.error) {
-      alert(res.error);
+      toast(res.error, "error");
     } else if (redirectTo) {
+      toast("Invoice deleted");
       router.push(redirectTo);
     } else {
+      toast("Invoice deleted");
       router.refresh();
     }
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <Link
-        href={`/admin/invoices/${invoiceId}/edit`}
-        className="rounded-md bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-200"
-      >
+    <div className="ux-rowactions">
+      {showOpen && (
+        <Link href={`/admin/invoices/${invoiceId}`} className="ux-textbtn ux-textbtn--strong">
+          Open
+        </Link>
+      )}
+      <Link href={`/admin/invoices/${invoiceId}/edit`} className="ux-textbtn">
         Edit
       </Link>
-      <button
-        onClick={handleDelete}
-        className="rounded-md bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100"
-      >
-        Delete
-      </button>
+      {canDelete && (
+        <button type="button" onClick={handleDelete} className="ux-textbtn ux-textbtn--danger">
+          Delete
+        </button>
+      )}
     </div>
   );
 }

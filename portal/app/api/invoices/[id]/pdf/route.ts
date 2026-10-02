@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { canViewInvoiceDocument, isPortalRole, isUuid } from "@/lib/security/access";
 import { pdf } from "@react-pdf/renderer";
 import InvoicePDF from "@/lib/pdf/invoice-template";
+import { splitLines, DEFAULT_SIGNATURE, type InvoiceDoc } from "@/lib/pdf/invoice-doc";
 import { readFileSync } from "fs";
 import { join } from "path";
 
@@ -11,6 +12,14 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  if (!isUuid(id)) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  // Authorization uses the caller's own session. Every read below goes through
+  // row-level security, so a client can only ever load their own non-draft
+  // invoice; the explicit check is a second, independent gate. The service-role
+  // key is not used by this route.
   const supabase = await createClient();
   const {
     data: { user },
@@ -19,40 +28,42 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const admin = createAdminClient();
+  const { data: me } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  const role = isPortalRole(me?.role) ? me.role : null;
 
-  const { data: invoice } = await admin
+  const { data: invoice } = await supabase
     .from("invoices")
     .select("*")
     .eq("id", id)
-    .single();
+    .maybeSingle();
 
-  if (!invoice) {
+  if (!canViewInvoiceDocument({ role, userId: user.id, invoice })) {
+    // Same answer for "does not exist" and "not yours": no enumeration.
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const { data: lineItems } = await admin
+  const { data: lineItems } = await supabase
     .from("invoice_line_items")
     .select("*")
     .eq("invoice_id", id);
 
-  const { data: client } = await admin
+  const { data: client } = await supabase
     .from("profiles")
     .select("full_name, company_name, email, billing_address, phone, tax_id")
-    .eq("id", invoice.client_id)
+    .eq("id", invoice!.client_id)
     .single();
 
   let project = null;
-  if (invoice.project_id) {
-    const { data: p } = await admin
+  if (invoice!.project_id) {
+    const { data: p } = await supabase
       .from("projects")
       .select("title, description")
-      .eq("id", invoice.project_id)
-      .single();
+      .eq("id", invoice!.project_id)
+      .maybeSingle();
     project = p;
   }
 
-  const { data: payments } = await admin
+  const { data: payments } = await supabase
     .from("payments")
     .select("*")
     .eq("invoice_id", id);
@@ -81,9 +92,27 @@ export async function GET(
   const signatureBuffer = readFileSync(signaturePath);
   const signatureSrc = `data:image/png;base64,${signatureBuffer.toString("base64")}`;
 
+  // Build the document model: scope comes from the linked project, notes from
+  // the invoice itself. Anything not supplied simply does not render.
+  const doc: InvoiceDoc = {};
+
+  if (project) {
+    const scopeLines = splitLines(project.description);
+    doc.scope = {
+      title: project.title,
+      items: scopeLines.length > 1 ? scopeLines : [],
+      paragraphs: scopeLines.length === 1 ? scopeLines : [],
+    };
+  }
+
+  const noteLines = splitLines(invoice!.notes);
+  if (noteLines.length > 0) doc.projectNotes = noteLines;
+
+  doc.signature = signatureSrc ? { ...DEFAULT_SIGNATURE, imageSrc: signatureSrc } : null;
+
   const blob = await pdf(
     InvoicePDF({
-      invoice,
+      invoice: invoice!,
       lineItems: lineItems ?? [],
       client: client ?? { email: "" },
       logoSrc,
@@ -94,6 +123,7 @@ export async function GET(
       signatureSrc,
       project,
       payments: payments ?? [],
+      doc,
     })
   ).toBlob();
 
@@ -102,7 +132,7 @@ export async function GET(
   return new NextResponse(buffer, {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${invoice.invoice_number}.pdf"`,
+      "Content-Disposition": `attachment; filename="${invoice!.invoice_number}.pdf"`,
     },
   });
 }

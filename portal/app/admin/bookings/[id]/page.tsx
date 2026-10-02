@@ -2,12 +2,19 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import { NavLink as Link } from "@/components/nav-link";
 import BookingDetailActions from "./booking-detail-actions";
-import {
-  BOOKING_STATUS_BADGE,
-  BOOKING_TYPE_LABEL,
-  type BookingStatus,
-  type BookingType,
-} from "@/lib/types";
+import { PageHeader, Section, StatusMark } from "@/components/ux/primitives";
+import { BOOKING_TONE, bookingTypeText, fmtDateTime } from "../booking-labels";
+import type { BookingStatus } from "@/lib/types";
+import { isOperationalStaff } from "@/lib/security/roles";
+
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <dt>{label}</dt>
+      <dd>{children}</dd>
+    </div>
+  );
+}
 
 export default async function AdminBookingDetailPage({
   params,
@@ -28,7 +35,7 @@ export default async function AdminBookingDetailPage({
     .eq("id", user.id)
     .single();
 
-  if (!profile || (profile.role !== "admin" && profile.role !== "staff")) {
+  if (!profile || !isOperationalStaff(profile.role)) {
     redirect("/client");
   }
 
@@ -40,136 +47,101 @@ export default async function AdminBookingDetailPage({
 
   if (!booking) notFound();
 
-  const { data: client } = await supabase
-    .from("profiles")
-    .select("email, full_name, company_name, phone")
-    .eq("id", booking.client_id)
-    .single();
-
-  const { data: relatedProject } = booking.booking_id
+  const { data: client } = booking.client_id
     ? await supabase
-        .from("projects")
-        .select("id, title, status")
-        .eq("booking_id", id)
-        .maybeSingle()
+        .from("profiles")
+        .select("id, email, full_name, company_name, phone")
+        .eq("id", booking.client_id)
+        .single()
     : { data: null };
 
+  // Fix: the previous guard read a non-existent `bookings.booking_id` column, so
+  // the linked project was never found and "Convert to project" could repeat.
+  const { data: relatedProject } = await supabase
+    .from("projects")
+    .select("id, title, status")
+    .eq("booking_id", id)
+    .maybeSingle();
+
   const clientLabel =
-    client?.company_name || client?.full_name || client?.email || "Unknown";
+    client?.company_name || client?.full_name || client?.email || "Unknown requester";
 
   const meta = Object.entries((booking.metadata as Record<string, unknown>) ?? {});
+  const status = booking.status as BookingStatus;
 
   return (
-    <div className="space-y-6">
-      <Link
-        href="/admin/bookings"
-        className="text-sm text-sch-blue hover:underline"
-      >
-        &larr; Back to Bookings
+    <div className="ux-page">
+      <Link href="/admin/bookings" className="ux-back">
+        ← Booking requests
       </Link>
+      <PageHeader
+        eyebrow={bookingTypeText(booking.type)}
+        title={booking.title}
+        description={
+          <StatusMark tone={BOOKING_TONE[status] ?? "neutral"}>{status}</StatusMark>
+        }
+      />
 
-      <div className="rounded-xl bg-white p-6 shadow">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{booking.title}</h1>
-            <p className="mt-1 text-sm text-gray-500">
-              {clientLabel}
-              {client?.phone && ` \u2022 ${client.phone}`}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span
-              className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
-                BOOKING_STATUS_BADGE[booking.status as BookingStatus]
-              }`}
-            >
-              {booking.status}
-            </span>
-            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
-              {BOOKING_TYPE_LABEL[booking.type as BookingType]}
-            </span>
-          </div>
-        </div>
-
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <span className="text-xs font-medium uppercase tracking-wide text-gray-400">
-              Created
-            </span>
-            <p className="text-sm text-gray-700">
-              {new Date(booking.created_at).toLocaleString()}
-            </p>
-          </div>
-          {booking.scheduled_at && (
-            <div>
-              <span className="text-xs font-medium uppercase tracking-wide text-gray-400">
-                Scheduled
-              </span>
-              <p className="text-sm text-gray-700">
-                {new Date(booking.scheduled_at).toLocaleString()}
-              </p>
-            </div>
+      <Section title="Overview">
+        <dl className="ux-dl">
+          <Row label="Type">{bookingTypeText(booking.type)}</Row>
+          <Row label="Status">
+            <StatusMark tone={BOOKING_TONE[status] ?? "neutral"}>{status}</StatusMark>
+          </Row>
+          {(() => {
+            const sc = booking.service_catalog as { name?: string } | { name?: string }[] | null;
+            const name = Array.isArray(sc) ? sc[0]?.name : sc?.name;
+            return name ? <Row label="Service">{name}</Row> : null;
+          })()}
+          <Row label="Details">
+            {booking.description ? (
+              <span style={{ whiteSpace: "pre-wrap" }}>{booking.description}</span>
+            ) : (
+              <span className="ux-muted">No details provided</span>
+            )}
+          </Row>
+          <Row label="Requested">{fmtDateTime(booking.created_at)}</Row>
+          {meta.map(([key, value]) => (
+            <Row key={key} label={key.replace(/_/g, " ")}>
+              {typeof value === "object" ? JSON.stringify(value) : String(value)}
+            </Row>
+          ))}
+          {relatedProject && (
+            <Row label="Linked project">
+              <Link href={`/admin/projects/${relatedProject.id}`}>{relatedProject.title}</Link>{" "}
+              <span className="ux-muted">({relatedProject.status})</span>
+            </Row>
           )}
-          {booking.service_catalog && (
-            <div>
-              <span className="text-xs font-medium uppercase tracking-wide text-gray-400">
-                Service
-              </span>
-              <p className="text-sm text-gray-700">
-                {(booking.service_catalog as { name: string }).name}
-              </p>
-            </div>
-          )}
-        </div>
+        </dl>
+      </Section>
 
-        {booking.description && (
-          <div className="mt-4">
-            <span className="text-xs font-medium uppercase tracking-wide text-gray-400">
-              Details
-            </span>
-            <p className="mt-1 whitespace-pre-wrap text-sm text-gray-700">
-              {booking.description}
-            </p>
-          </div>
-        )}
+      <Section title="Requester">
+        <dl className="ux-dl">
+          <Row label="Client">
+            {client ? <Link href={`/admin/clients/${client.id}`}>{clientLabel}</Link> : clientLabel}
+          </Row>
+          {client?.full_name && client.company_name && <Row label="Contact">{client.full_name}</Row>}
+          {client?.email && <Row label="Email">{client.email}</Row>}
+          {client?.phone && <Row label="Phone">{client.phone}</Row>}
+        </dl>
+      </Section>
 
-        {meta.length > 0 && (
-          <div className="mt-4">
-            <span className="text-xs font-medium uppercase tracking-wide text-gray-400">
-              Metadata
-            </span>
-            <dl className="mt-1 grid grid-cols-1 gap-1 sm:grid-cols-2">
-              {meta.map(([key, value]) => (
-                <div key={key} className="text-sm">
-                  <dt className="inline text-gray-500">{key}:</dt>{" "}
-                  <dd className="inline text-gray-700">{String(value)}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        )}
+      <Section title="Schedule">
+        <dl className="ux-dl">
+          <Row label="Scheduled for">
+            {booking.scheduled_at ? fmtDateTime(booking.scheduled_at) : <span className="ux-muted">Not scheduled yet</span>}
+          </Row>
+        </dl>
+      </Section>
 
-        {relatedProject && (
-          <div className="mt-4 rounded-md bg-blue-50 p-3 text-sm">
-            Linked to project:{" "}
-            <Link
-              href={`/admin/projects/${relatedProject.id}`}
-              className="font-medium text-sch-blue hover:underline"
-            >
-              {relatedProject.title}
-            </Link>
-          </div>
-        )}
-
-        <div className="mt-6">
-          <BookingDetailActions
-            bookingId={id}
-            status={booking.status as BookingStatus}
-            scheduledAt={booking.scheduled_at}
-            hasProject={!!relatedProject}
-          />
-        </div>
-      </div>
+      <Section title="Actions">
+        <BookingDetailActions
+          bookingId={id}
+          status={status}
+          scheduledAt={booking.scheduled_at}
+          hasProject={!!relatedProject}
+        />
+      </Section>
     </div>
   );
 }

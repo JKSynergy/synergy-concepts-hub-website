@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { isOperationalStaff } from "@/lib/security/roles";
 
 export async function requireStaffApi() {
   const supabase = await createClient();
@@ -17,7 +18,7 @@ export async function requireStaffApi() {
     .eq("id", user.id)
     .single();
 
-  if (!profile || (profile.role !== "admin" && profile.role !== "staff")) {
+  if (!profile || !isOperationalStaff(profile.role)) {
     return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
   }
 

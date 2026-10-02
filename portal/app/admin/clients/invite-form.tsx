@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Dialog } from "@/components/ux/dialog";
 
 export default function InviteForm() {
   const router = useRouter();
@@ -62,94 +63,57 @@ export default function InviteForm() {
     }
   }
 
-  if (!open) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
-        className="rounded-md bg-sch-orange px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600"
-      >
-        + Invite Client
-      </button>
-    );
-  }
-
   return (
-    <div className="rounded-xl bg-white p-6 shadow">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">Invite a Client</h3>
-        <button
-          onClick={() => setOpen(false)}
-          className="text-sm text-gray-500 hover:text-gray-700"
-        >
-          Cancel
-        </button>
-      </div>
+    <>
+      <button type="button" onClick={() => setOpen(true)} className="ux-btn ux-btn--secondary">
+        Invite client
+      </button>
+      {open && (
+    <Dialog onClose={() => setOpen(false)} labelledBy="invite-client-title">
+      <>
+        <h3 id="invite-client-title">Invite a client</h3>
+        <p className="ux-desc">
+          Sends an email with an &quot;Accept invitation&quot; link. The client sets their password from that link, then
+          signs in here.
+        </p>
 
-      <p className="mb-4 text-sm text-gray-600">
-        Sends an email with an &quot;Accept invitation&quot; link. The client sets
-        their password from that link, then can sign in here.
-      </p>
+        {message && (
+          <div className={`ux-notice ${message.type === "ok" ? "ux-notice--ok" : "ux-notice--error"}`} style={{ marginTop: 16 }}>
+            {message.text}
+          </div>
+        )}
 
-      {message && (
-        <div
-          className={`mb-4 rounded-md p-3 text-sm ${
-            message.type === "ok"
-              ? "bg-green-50 text-green-700"
-              : "bg-red-50 text-red-700"
-          }`}
-        >
-          {message.text}
-        </div>
+        <form onSubmit={handleSubmit} style={{ marginTop: 20 }}>
+          <div className="ux-formgrid">
+            <label className="ux-field ux-full">
+              <span>Email</span>
+              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="ux-input" />
+            </label>
+            <label className="ux-field">
+              <span>Full name</span>
+              <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} className="ux-input" />
+            </label>
+            <label className="ux-field">
+              <span>Company</span>
+              <input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} className="ux-input" />
+            </label>
+            <label className="ux-field ux-full">
+              <span>Phone</span>
+              <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="ux-input" />
+            </label>
+          </div>
+          <div className="ux-dialog-actions">
+            <button type="button" onClick={() => setOpen(false)} className="ux-btn ux-btn--secondary">
+              {message?.type === "ok" ? "Close" : "Cancel"}
+            </button>
+            <button type="submit" disabled={loading} className="ux-btn ux-btn--primary">
+              {loading ? "Sending…" : "Send invite"}
+            </button>
+          </div>
+        </form>
+      </>
+    </Dialog>
       )}
-
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Email *</label>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sch-orange focus:outline-none focus:ring-1 focus:ring-sch-orange"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Full Name</label>
-          <input
-            type="text"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sch-orange focus:outline-none focus:ring-1 focus:ring-sch-orange"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Company</label>
-          <input
-            type="text"
-            value={companyName}
-            onChange={(e) => setCompanyName(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sch-orange focus:outline-none focus:ring-1 focus:ring-sch-orange"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Phone</label>
-          <input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sch-orange focus:outline-none focus:ring-1 focus:ring-sch-orange"
-          />
-        </div>
-        <div className="sm:col-span-2">
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded-md bg-sch-orange px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50"
-          >
-            {loading ? "Sending..." : "Send Invite"}
-          </button>
-        </div>
-      </form>
-    </div>
+    </>
   );
 }

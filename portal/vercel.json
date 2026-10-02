@@ -4,5 +4,11 @@
   "outputDirectory": ".next",
   "installCommand": "npm install",
   "framework": "nextjs",
-  "regions": ["iad1"]
+  "regions": ["iad1"],
+  "crons": [
+    {
+      "path": "/api/internal/provider-monitoring/run",
+      "schedule": "0 * * * *"
+    }
+  ]
 }

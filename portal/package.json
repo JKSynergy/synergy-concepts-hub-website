@@ -6,7 +6,16 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "node --experimental-strip-types --test \"tests/**/*.test.*\"",
+    "phase2c:guard": "node -e \"import('./scripts/phase2c-guard.mjs').then(m=>m.guard())\"",
+    "phase2c:preflight": "node scripts/phase2c-preflight.mjs",
+    "phase2c:seed": "node scripts/phase2c-seed-test-accounts.mjs",
+    "phase2c:verify": "node scripts/phase2c-verify.mjs",
+    "phase2c:verify:file": "node --env-file=.phase2c.dev.env scripts/phase2c-verify.mjs",
+    "phase2c:dev": "node scripts/phase2c-dev-server.mjs",
+    "phase2c:cred": "node scripts/phase2c-credential.mjs",
+    "phase2c:migrate:013": "node scripts/apply-migration-013.mjs"
   },
   "dependencies": {
     "next": "^15.5.0",
@@ -15,7 +24,6 @@
     "@supabase/supabase-js": "^2.47.0",
     "@supabase/ssr": "^0.5.2",
     "@react-pdf/renderer": "^4.5.1",
-    "paystack-sdk": "^3.8.0",
     "framer-motion": "^12.40.0",
     "lucide-react": "^1.17.0",
     "clsx": "^2.1.1",
@@ -30,6 +38,7 @@
     "tailwindcss": "^3.4.0",
     "autoprefixer": "^10.4.0",
     "eslint": "^9.0.0",
-    "eslint-config-next": "^15.5.0"
+    "eslint-config-next": "^15.5.0",
+    "@electric-sql/pglite": "^0.5.8"
   }
 }

@@ -1,6 +1,7 @@
-import { SCHLoaderOverlay } from "@/components/sch-loader";
-
 export default function Loading() {
-  // Infinite spin (no checkmark) — unmounts automatically when the route is ready.
-  return <SCHLoaderOverlay autoCompleteMs={0} label="Loading your workspace" />;
+  return (
+    <div className="ux-loading" role="status" aria-live="polite">
+      Loading…
+    </div>
+  );
 }

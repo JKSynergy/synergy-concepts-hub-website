@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { X } from "lucide-react";
+import { Dialog } from "@/components/ux/dialog";
 
 export type ClientFormData = {
   id: string;
@@ -72,145 +72,56 @@ export default function EditClientDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <button
-        type="button"
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-        aria-label="Close dialog"
-      />
-      <div className="glass-card relative z-10 w-full max-w-lg p-6">
-        <div className="mb-5 flex items-start justify-between gap-3">
-          <div>
-            <h3 className="text-lg font-semibold" style={{ color: "var(--p-text-strong)" }}>
-              Edit Client
-            </h3>
-            <p className="mt-1 text-xs" style={{ color: "var(--p-muted)" }}>
-              Update contact and billing details
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1.5 transition-colors hover:bg-white/10"
-            style={{ color: "var(--p-muted)" }}
-          >
-            <X size={18} />
-          </button>
-        </div>
+    <Dialog onClose={onClose} labelledBy="edit-client-title">
+      <>
+        <h3 id="edit-client-title">Edit client</h3>
+        <p className="ux-desc">{client.company_name || client.full_name || client.email}</p>
 
-        {error && (
-          <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
-            {error}
-          </div>
-        )}
+        {error && <div className="ux-notice ux-notice--error" style={{ marginTop: 16 }}>{error}</div>}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Field label="Email *" required>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="glass-input w-full"
-            />
-          </Field>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Full Name">
-              <input
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="glass-input w-full"
-              />
+        <form onSubmit={handleSubmit} style={{ marginTop: 20 }}>
+          <div className="ux-formgrid">
+            <Field label="Email" full>
+              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="ux-input" />
+            </Field>
+            <Field label="Full name">
+              <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} className="ux-input" />
             </Field>
             <Field label="Company">
-              <input
-                type="text"
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-                className="glass-input w-full"
-              />
+              <input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} className="ux-input" />
             </Field>
-          </div>
-          <Field label="Phone">
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="glass-input w-full"
-            />
-          </Field>
-          <Field label="Billing Address">
-            <textarea
-              value={billingAddress}
-              onChange={(e) => setBillingAddress(e.target.value)}
-              rows={2}
-              className="glass-input w-full resize-none"
-            />
-          </Field>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Phone" full>
+              <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="ux-input" />
+            </Field>
+            <Field label="Billing address" full>
+              <textarea value={billingAddress} onChange={(e) => setBillingAddress(e.target.value)} rows={2} className="ux-input" />
+            </Field>
             <Field label="Tax ID">
-              <input
-                type="text"
-                value={taxId}
-                onChange={(e) => setTaxId(e.target.value)}
-                className="glass-input w-full"
-              />
+              <input type="text" value={taxId} onChange={(e) => setTaxId(e.target.value)} className="ux-input" />
             </Field>
-            <Field label="External Portal URL">
-              <input
-                type="url"
-                value={externalPortalUrl}
-                onChange={(e) => setExternalPortalUrl(e.target.value)}
-                placeholder="https://"
-                className="glass-input w-full"
-              />
+            <Field label="External portal URL">
+              <input type="url" value={externalPortalUrl} onChange={(e) => setExternalPortalUrl(e.target.value)} placeholder="https://" className="ux-input" />
             </Field>
           </div>
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors hover:bg-white/10"
-              style={{ color: "var(--p-muted)" }}
-            >
+          <div className="ux-dialog-actions">
+            <button type="button" onClick={onClose} className="ux-btn ux-btn--secondary">
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-all disabled:opacity-50"
-              style={{
-                background: "linear-gradient(135deg, #0ea5e9, #38bdf8)",
-                boxShadow: "0 4px 12px rgba(14, 165, 233, 0.3)",
-              }}
-            >
-              {loading ? "Saving..." : "Save Changes"}
+            <button type="submit" disabled={loading} className="ux-btn ux-btn--primary">
+              {loading ? "Saving…" : "Save changes"}
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </>
+    </Dialog>
   );
 }
 
-function Field({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
+function Field({ label, full, children }: { label: string; full?: boolean; children: React.ReactNode }) {
   return (
-    <div>
-      <label className="mb-1.5 block text-xs font-medium" style={{ color: "var(--p-muted)" }}>
-        {label}
-        {required && <span className="text-red-400"> *</span>}
-      </label>
+    <label className={`ux-field ${full ? "ux-full" : ""}`}>
+      <span>{label}</span>
       {children}
-    </div>
+    </label>
   );
 }

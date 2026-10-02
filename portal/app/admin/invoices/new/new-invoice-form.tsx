@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createInvoice, addLineItem } from "@/lib/actions/invoices";
+import { useFeedback } from "@/components/ux/feedback";
+import { ugx } from "@/components/ux/primitives";
+import { fmtDate } from "../fin-utils";
 
 type ClientOption = {
   id: string;
@@ -11,189 +15,240 @@ type ClientOption = {
   email: string;
 };
 
+type Item = { description: string; quantity: number; unit_price: number };
+
 export default function NewInvoiceForm({
   clients,
 }: {
   clients: ClientOption[];
 }) {
   const router = useRouter();
+  const { toast } = useFeedback();
   const [invoiceId, setInvoiceId] = useState<string | null>(null);
-  const [items, setItems] = useState<
-    { description: string; quantity: number; unit_price: number }[]
-  >([]);
+  const [items, setItems] = useState<Item[]>([]);
   const [error, setError] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [meta, setMeta] = useState({ client: "", issue: "", due: "", tax: 0 });
+  const [desc, setDesc] = useState("");
+  const [qty, setQty] = useState(1);
+  const [price, setPrice] = useState<number | "">("");
 
   async function handleCreate(formData: FormData) {
     setError("");
+    setCreating(true);
     const res = await createInvoice(formData);
+    setCreating(false);
     if (res.error) {
       setError(res.error);
+      toast(res.error, "error");
     } else if (res.id) {
+      const cid = formData.get("client_id") as string;
+      const c = clients.find((x) => x.id === cid);
+      setMeta({
+        client: c ? c.company_name || c.full_name || c.email : "",
+        issue: (formData.get("issue_date") as string) || "",
+        due: (formData.get("due_date") as string) || "",
+        tax: Number(formData.get("tax_rate") || 0),
+      });
       setInvoiceId(res.id);
+      toast("Draft invoice created");
     }
   }
 
-  async function handleAddItem(formData: FormData) {
-    if (!invoiceId) return;
+  async function handleAddItem(e: React.FormEvent) {
+    e.preventDefault();
+    if (!invoiceId || !desc.trim()) return;
     setError("");
-    const res = await addLineItem(invoiceId, formData);
+    setAdding(true);
+    const fd = new FormData();
+    fd.append("description", desc.trim());
+    fd.append("quantity", String(qty || 1));
+    fd.append("unit_price", String(price || 0));
+    const res = await addLineItem(invoiceId, fd);
+    setAdding(false);
     if (res.error) {
       setError(res.error);
+      toast(res.error, "error");
     } else {
-      const desc = (formData.get("description") as string) || "";
-      const qty = Number(formData.get("quantity") || 1);
-      const price = Number(formData.get("unit_price") || 0);
-      setItems((prev) => [...prev, { description: desc, quantity: qty, unit_price: price }]);
+      setItems((prev) => [...prev, { description: desc.trim(), quantity: Number(qty || 1), unit_price: Number(price || 0) }]);
+      setDesc("");
+      setQty(1);
+      setPrice("");
+      toast("Line item added");
     }
   }
+
+  const subtotal = items.reduce((s, i) => s + i.quantity * i.unit_price, 0);
+  const tax = subtotal * (meta.tax / 100);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Create Invoice</h1>
-
-      {error && (
-        <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>
-      )}
+    <div>
+      {error && <div className="ux-notice ux-notice--error">{error}</div>}
 
       {!invoiceId ? (
-        <form action={handleCreate} className="space-y-4 rounded-xl bg-white p-6 shadow">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Client</label>
-            <select
-              name="client_id"
-              required
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            >
-              <option value="">Select client</option>
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.company_name || c.full_name || c.email}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Issue Date</label>
-              <input
-                type="date"
-                name="issue_date"
-                defaultValue={new Date().toISOString().split("T")[0]}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-              />
+        <form action={handleCreate}>
+          <section className="ux-fin-formsec">
+            <div className="ux-section-head">
+              <h2>Client and dates</h2>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Due Date</label>
-              <input
-                type="date"
-                name="due_date"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-              />
+            <div className="ux-formgrid">
+              <label className="ux-field ux-full">
+                <span>Client</span>
+                <select name="client_id" required className="ux-input ux-select" defaultValue="">
+                  <option value="" disabled>
+                    Select a client
+                  </option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.company_name || c.full_name || c.email}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="ux-field">
+                <span>Issue date</span>
+                <input type="date" name="issue_date" className="ux-input" defaultValue={new Date().toISOString().split("T")[0]} />
+              </label>
+              <label className="ux-field">
+                <span>Due date</span>
+                <input type="date" name="due_date" className="ux-input" />
+              </label>
+              <label className="ux-field">
+                <span>Tax rate (%)</span>
+                <input type="number" name="tax_rate" className="ux-input" defaultValue={0} min={0} max={100} />
+              </label>
             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Tax Rate (%)</label>
-              <input
-                type="number"
-                name="tax_rate"
-                defaultValue={0}
-                min={0}
-                max={100}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-              />
+          </section>
+
+          <section className="ux-fin-formsec">
+            <div className="ux-section-head">
+              <h2>Notes</h2>
             </div>
+            <label className="ux-field">
+              <span className="sr-only">Notes</span>
+              <textarea name="notes" rows={3} className="ux-input" placeholder="Payment instructions or a message for the client (optional)" />
+            </label>
+          </section>
+
+          <div className="ux-fin-submitbar">
+            <button type="submit" className="ux-btn ux-btn--primary" disabled={creating}>
+              {creating ? "Creating…" : "Create invoice"}
+            </button>
+            <Link href="/admin/invoices" className="ux-btn ux-btn--secondary">
+              Cancel
+            </Link>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Notes</label>
-            <textarea name="notes" rows={3} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
-          </div>
-          <button
-            type="submit"
-            className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-          >
-            Create Invoice
-          </button>
         </form>
       ) : (
-        <div className="space-y-6">
-          <div className="rounded-xl bg-white p-6 shadow">
-            <h2 className="text-lg font-semibold text-gray-900">Line Items</h2>
-            {items.length > 0 && (
-              <div className="overflow-x-auto">
-                <table className="mt-4 min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Description</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Qty</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Unit Price</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {items.map((it, i) => (
-                      <tr key={i}>
-                        <td className="px-4 py-2 text-sm text-gray-900">{it.description}</td>
-                        <td className="px-4 py-2 text-right text-sm text-gray-500">{it.quantity}</td>
-                        <td className="px-4 py-2 text-right text-sm text-gray-500">
-                          UGX {it.unit_price.toLocaleString()}
-                        </td>
-                        <td className="px-4 py-2 text-right text-sm text-gray-900">
-                          UGX {(it.quantity * it.unit_price).toLocaleString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+        <>
+          <div className="ux-notice ux-notice--ok">Draft invoice created. Add its line items below.</div>
+
+          <section className="ux-fin-formsec">
+            <div className="ux-section-head">
+              <h2>Client and dates</h2>
+            </div>
+            <dl className="ux-dl">
+              <div>
+                <dt>Client</dt>
+                <dd>{meta.client}</dd>
               </div>
-            )}
+              <div>
+                <dt>Issue date</dt>
+                <dd>{fmtDate(meta.issue)}</dd>
+              </div>
+              <div>
+                <dt>Due date</dt>
+                <dd>{fmtDate(meta.due)}</dd>
+              </div>
+              <div>
+                <dt>Tax rate</dt>
+                <dd>{meta.tax}%</dd>
+              </div>
+            </dl>
+          </section>
 
-            <form action={handleAddItem} className="mt-4 flex flex-wrap gap-3">
-              <input
-                name="description"
-                placeholder="Description"
-                required
-                className="flex-1 rounded-md border-gray-300 shadow-sm px-3 py-2"
-              />
-              <input
-                name="quantity"
-                type="number"
-                defaultValue={1}
-                min={1}
-                className="w-20 rounded-md border-gray-300 shadow-sm px-3 py-2"
-              />
-              <input
-                name="unit_price"
-                type="number"
-                placeholder="Unit price"
-                min={0}
-                required
-                className="w-32 rounded-md border-gray-300 shadow-sm px-3 py-2"
-              />
-              <button
-                type="submit"
-                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500"
-              >
-                Add Item
-              </button>
-            </form>
-          </div>
+          <section className="ux-fin-formsec">
+            <div className="ux-section-head">
+              <h2>Line items</h2>
+            </div>
+            <div className="ux-tablewrap">
+              <table className="ux-table ux-table--stack ux-fin-table">
+                <thead>
+                  <tr>
+                    <th>Description</th>
+                    <th className="ux-num">Qty</th>
+                    <th className="ux-num">Unit price</th>
+                    <th className="ux-num">Amount</th>
+                    <th>
+                      <span className="sr-only">Actions</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((it, i) => (
+                    <tr key={i}>
+                      <td>{it.description}</td>
+                      <td className="ux-num" data-label="Qty">{it.quantity}</td>
+                      <td className="ux-num" data-label="Unit price">{ugx(it.unit_price)}</td>
+                      <td className="ux-num" data-label="Amount">{ugx(it.quantity * it.unit_price)}</td>
+                      <td />
+                    </tr>
+                  ))}
+                  <tr className="ux-fin-addrow">
+                    <td data-label="Description">
+                      <input form="ni-add" className="ux-input" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="New line item" aria-label="Description" required />
+                    </td>
+                    <td className="ux-num" data-label="Qty" style={{ width: 90 }}>
+                      <input form="ni-add" className="ux-input" type="number" value={qty} onChange={(e) => setQty(Number(e.target.value))} min={1} aria-label="Quantity" />
+                    </td>
+                    <td className="ux-num" data-label="Unit price (UGX)" style={{ width: 170 }}>
+                      <input form="ni-add" className="ux-input" type="number" value={price} onChange={(e) => setPrice(e.target.value === "" ? "" : Number(e.target.value))} min={0} aria-label="Unit price in UGX" required />
+                    </td>
+                    <td className="ux-num" data-label="Amount">
+                      {desc.trim() && Number(price) > 0 ? ugx((Number(qty) || 0) * Number(price)) : <span className="ux-muted">—</span>}
+                    </td>
+                    <td>
+                      <div className="ux-rowactions">
+                        <button type="submit" form="ni-add" className="ux-textbtn" disabled={adding}>
+                          {adding ? "Adding…" : "Add item"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <form id="ni-add" onSubmit={handleAddItem} />
 
-          <div className="flex gap-3">
-            <a
-              href={`/api/invoices/${invoiceId}/pdf`}
-              className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-            >
+            <div className="ux-fin-totals">
+              <div>
+                <span>Subtotal</span>
+                <span>{ugx(subtotal)}</span>
+              </div>
+              {meta.tax > 0 && (
+                <div>
+                  <span>Tax ({meta.tax}%)</span>
+                  <span>{ugx(tax)}</span>
+                </div>
+              )}
+              <div>
+                <span>Total</span>
+                <span>{ugx(subtotal + tax)}</span>
+              </div>
+              <small>Sum of the items added so far</small>
+            </div>
+          </section>
+
+          <div className="ux-fin-submitbar">
+            <button type="button" className="ux-btn ux-btn--primary" onClick={() => router.push(`/admin/invoices/${invoiceId}`)}>
+              Open invoice
+            </button>
+            <a href={`/api/invoices/${invoiceId}/pdf`} className="ux-btn ux-btn--secondary">
               Download PDF
             </a>
-            <button
-              onClick={() => router.push(`/admin/invoices/${invoiceId}`)}
-              className="rounded-md bg-gray-200 px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-300"
-            >
-              Open Invoice
-            </button>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

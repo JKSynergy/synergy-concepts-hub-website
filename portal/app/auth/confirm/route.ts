@@ -9,9 +9,8 @@ export async function GET(request: Request) {
   const error = searchParams.get("error_description") || searchParams.get("error");
 
   if (error) {
-    return NextResponse.redirect(
-      `${origin}/login?error=${encodeURIComponent(error)}`
-    );
+    // Never reflect provider/attacker-controlled text into the login page.
+    return NextResponse.redirect(`${origin}/login?error=auth_failed`);
   }
 
   if (!tokenHash || !type) {
@@ -25,9 +24,8 @@ export async function GET(request: Request) {
   });
 
   if (verifyError) {
-    return NextResponse.redirect(
-      `${origin}/login?error=${encodeURIComponent(verifyError.message)}`
-    );
+    console.error("auth link failed:", verifyError.status ?? "unknown");
+    return NextResponse.redirect(`${origin}/login?error=auth_failed`);
   }
 
   if (type === "invite" || type === "recovery" || type === "signup") {

@@ -1,28 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-
-// Generate a readable temporary password (12 chars, mixed case + digits + symbol)
-function generateTempPassword(): string {
-  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-  const lower = "abcdefghijkmnpqrstuvwxyz";
-  const digits = "23456789";
-  const symbols = "!@#$%&*";
-  const all = upper + lower + digits + symbols;
-
-  const pick = (set: string) =>
-    set[Math.floor(Math.random() * set.length)];
-
-  let pwd =
-    pick(upper) + pick(lower) + pick(digits) + pick(symbols);
-  for (let i = 0; i < 8; i++) pwd += pick(all);
-
-  // Shuffle
-  return pwd
-    .split("")
-    .sort(() => Math.random() - 0.5)
-    .join("");
-}
+import { generateTempPassword } from "@/lib/security/temp-password";
+import { isOperationalStaff } from "@/lib/security/roles";
 
 export async function POST(request: Request) {
   // Verify caller is an authenticated admin/staff
@@ -41,7 +21,7 @@ export async function POST(request: Request) {
     .eq("id", user.id)
     .single();
 
-  if (!profile || (profile.role !== "admin" && profile.role !== "staff")) {
+  if (!profile || !isOperationalStaff(profile.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -76,7 +56,6 @@ export async function POST(request: Request) {
     password: tempPassword,
     email_confirm: true,
     user_metadata: {
-      role: "client",
       full_name: fullName,
       company_name: companyName,
       phone,

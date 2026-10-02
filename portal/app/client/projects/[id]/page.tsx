@@ -1,13 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import { NavLink as Link } from "@/components/nav-link";
-import { ProgressBar } from "@/components/progress-bar";
+import { PageHeader, PROJECT_TONE, StatusMark } from "@/components/ux/primitives";
 import ClientMilestones from "./client-milestones";
 import UpdatesSection from "@/components/updates-section";
 import DeliverablesSection from "@/components/deliverables-section";
 import {
-  STATUS_BADGE,
-  type ProjectStatus,
   type Milestone,
   type ProjectUpdate,
   type Deliverable,
@@ -62,57 +60,50 @@ export default async function ClientProjectDetailPage({
     author_name: u.author_id === user.id ? "You" : "Team",
   }));
 
+  const fmt = (d: string) =>
+    new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  const done = (milestones ?? []).filter((m) => m.status === "approved").length;
+
   return (
-    <div className="space-y-6">
-      <Link
-        href="/client/projects"
-        className="text-sm text-sch-blue hover:underline"
-      >
-        ← Back to My Projects
+    <div className="ux-page">
+      <Link href="/client/projects" className="ux-back">
+        ← Projects
       </Link>
 
-      <div className="rounded-xl bg-white p-6 shadow">
-        <div className="flex items-start justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">{project.title}</h1>
-          <span
-            className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
-              STATUS_BADGE[project.status as ProjectStatus]
-            }`}
-          >
-            {project.status}
-          </span>
+      <PageHeader eyebrow="Project" title={project.title} description={project.description || undefined} />
+
+      <div className="ux-figures">
+        <div className="ux-figure">
+          <span>Status</span>
+          <b>
+            <StatusMark tone={PROJECT_TONE[project.status] ?? "neutral"}>{project.status}</StatusMark>
+          </b>
         </div>
-        {project.description && (
-          <p className="mt-3 text-sm text-gray-600">{project.description}</p>
-        )}
-        <div className="mt-4 max-w-md">
-          <ProgressBar value={project.progress_percent} />
+        <div className="ux-figure">
+          <span>Progress</span>
+          <b>{project.progress_percent ?? 0}%</b>
         </div>
-        {project.target_date && (
-          <p className="mt-3 text-xs text-gray-400">
-            Target completion:{" "}
-            {new Date(project.target_date).toLocaleDateString()}
-          </p>
-        )}
+        <div className="ux-figure">
+          <span>Milestones approved</span>
+          <b>
+            {done} of {(milestones ?? []).length}
+          </b>
+        </div>
+        <div className="ux-figure">
+          <span>Target date</span>
+          <b>{project.target_date ? fmt(project.target_date) : "—"}</b>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <ClientMilestones
-          projectId={id}
-          milestones={(milestones ?? []) as Milestone[]}
-        />
-        <DeliverablesSection
-          projectId={id}
-          deliverables={(deliverables ?? []) as Deliverable[]}
-          isStaff={false}
-        />
-      </div>
+      <ClientMilestones projectId={id} milestones={(milestones ?? []) as Milestone[]} />
 
-      <UpdatesSection
+      <DeliverablesSection
         projectId={id}
-        updates={updatesWithAuthor}
+        deliverables={(deliverables ?? []) as Deliverable[]}
         isStaff={false}
       />
+
+      <UpdatesSection projectId={id} updates={updatesWithAuthor} isStaff={false} />
     </div>
   );
 }

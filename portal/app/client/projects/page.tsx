@@ -1,8 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { NavLink as Link } from "@/components/nav-link";
-import { ProgressBar } from "@/components/progress-bar";
-import { STATUS_BADGE, type ProjectStatus } from "@/lib/types";
+import { EmptyState, PageHeader, PROJECT_TONE, StatusMark } from "@/components/ux/primitives";
 
 export default async function ClientProjectsPage() {
   const supabase = await createClient();
@@ -19,43 +18,50 @@ export default async function ClientProjectsPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">My Projects</h1>
+    <div className="ux-page">
+      <PageHeader title="Projects" description="Follow progress, milestones and deliverables for your work with us." />
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {projects && projects.length > 0 ? (
-          projects.map((p) => (
-            <Link
-              key={p.id}
-              href={`/client/projects/${p.id}`}
-              className="block rounded-xl bg-white p-5 shadow transition hover:shadow-md"
-            >
-              <div className="flex items-start justify-between">
-                <h3 className="font-semibold text-gray-900">{p.title}</h3>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
-                    STATUS_BADGE[p.status as ProjectStatus]
-                  }`}
-                >
-                  {p.status}
-                </span>
-              </div>
-              <div className="mt-4">
-                <ProgressBar value={p.progress_percent} />
-              </div>
-              {p.target_date && (
-                <p className="mt-3 text-xs text-gray-400">
-                  Target: {new Date(p.target_date).toLocaleDateString()}
-                </p>
-              )}
-            </Link>
-          ))
-        ) : (
-          <div className="col-span-full rounded-xl bg-white p-8 text-center text-sm text-gray-500 shadow">
-            No projects yet.
-          </div>
-        )}
-      </div>
+      {projects && projects.length > 0 ? (
+        <div className="ux-tablewrap">
+          <table className="ux-table ux-table--stack">
+            <thead>
+              <tr>
+                <th>Project</th>
+                <th>Status</th>
+                <th>Progress</th>
+                <th>Target date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {projects.map((p) => (
+                <tr key={p.id}>
+                  <td data-label="Project">
+                    <Link href={`/client/projects/${p.id}`} className="ux-cell-main">{p.title}</Link>
+                  </td>
+                  <td data-label="Status">
+                    <StatusMark tone={PROJECT_TONE[p.status] ?? "neutral"}>{p.status}</StatusMark>
+                  </td>
+                  <td data-label="Progress">
+                    <div className="ux-progress-cell">
+                      <div className="ux-progress" role="progressbar" aria-valuenow={p.progress_percent ?? 0} aria-valuemin={0} aria-valuemax={100}>
+                        <i style={{ width: `${p.progress_percent ?? 0}%` }} />
+                      </div>
+                      <span>{p.progress_percent ?? 0}%</span>
+                    </div>
+                  </td>
+                  <td data-label="Target date">
+                    {p.target_date
+                      ? new Date(p.target_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+                      : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <EmptyState title="No projects yet">When we start work together, your projects will appear here.</EmptyState>
+      )}
     </div>
   );
 }

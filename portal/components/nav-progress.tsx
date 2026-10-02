@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
    Top navigation progress bar (Linear / Stripe / Vercel style)
    - Triggered on client-side navigation start via startNavProgress()
    - Completes automatically when the pathname changes
-   - SCH brand gradient + soft glow, GPU-friendly transforms
+   - Flat SCH orange line, no gradient or glow
    ───────────────────────────────────────────────────────────── */
 
 let token = 0;
@@ -68,7 +68,7 @@ export function NavProgress() {
           top: 0;
           left: 0;
           right: 0;
-          height: 3px;
+          height: 2px;
           z-index: 100;
           pointer-events: none;
         }
@@ -76,10 +76,7 @@ export function NavProgress() {
           height: 100%;
           width: 0%;
           transform-origin: 0 50%;
-          border-radius: 0 3px 3px 0;
-          background: linear-gradient(90deg, #0ea5e9, #38bdf8 60%, #f59e0b);
-          box-shadow: 0 0 10px rgba(14, 165, 233, 0.6),
-            0 0 4px rgba(14, 165, 233, 0.8);
+          background: #ed8c22;
           opacity: 0;
           transition: width 0.2s ease, opacity 0.3s ease;
         }

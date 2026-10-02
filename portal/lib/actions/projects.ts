@@ -4,7 +4,10 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail, projectUpdateEmail } from "@/lib/email/notify";
+import { deliverableStoragePath, isUuid, safeFileName } from "@/lib/security/access";
+import { MILESTONE_STATUSES } from "@/lib/types";
 import type { MilestoneStatus, ProjectStatus } from "@/lib/types";
+import { isAdmin as isAdminRole, isOperationalStaff } from "@/lib/security/roles";
 
 type ActionResult = { error?: string; success?: boolean; id?: string };
 
@@ -21,8 +24,8 @@ async function requireStaff() {
     .eq("id", user.id)
     .single();
 
-  const isStaff = profile?.role === "admin" || profile?.role === "staff";
-  const isAdmin = profile?.role === "admin";
+  const isStaff = isOperationalStaff(profile?.role);
+  const isAdmin = isAdminRole(profile?.role);
   return { supabase, user, isStaff, isAdmin };
 }
 
@@ -129,14 +132,30 @@ export async function addMilestone(
 
 export async function setMilestoneStatus(
   milestoneId: string,
-  projectId: string,
+  _projectId: string,
   status: MilestoneStatus
 ): Promise<ActionResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user, isStaff } = await requireStaff();
   if (!user) return { error: "Unauthorized" };
+  if (!isUuid(milestoneId)) return { error: "Invalid milestone" };
+  if (!(MILESTONE_STATUSES as readonly string[]).includes(status)) return { error: "Invalid status" };
+
+  // Load the milestone through the caller's session (row-level security): the
+  // project id used below comes from the database record, not from the browser.
+  const { data: milestone } = await supabase
+    .from("project_milestones")
+    .select("id, project_id, status")
+    .eq("id", milestoneId)
+    .maybeSingle();
+  if (!milestone) return { error: "Milestone not found" };
+  const projectId = milestone.project_id as string;
+
+  // Clients may only respond to a milestone that staff have submitted.
+  if (!isStaff) {
+    if (milestone.status !== "submitted" || (status !== "approved" && status !== "revision_requested")) {
+      return { error: "Forbidden" };
+    }
+  }
 
   const { error } = await supabase
     .from("project_milestones")
@@ -148,7 +167,9 @@ export async function setMilestoneStatus(
 
   if (error) return { error: error.message };
 
-  // Recalculate project progress from approved milestone weights
+  // Recalculate project progress from approved milestone weights. Clients have no
+  // write access to projects, so this derived value is written with the service
+  // role, only after the caller has been authorised above.
   const { data: allMilestones } = await supabase
     .from("project_milestones")
     .select("weight_percent, status")
@@ -159,7 +180,7 @@ export async function setMilestoneStatus(
       .filter((m) => m.status === "approved")
       .reduce((sum, m) => sum + (m.weight_percent ?? 0), 0);
 
-    await supabase
+    await createAdminClient()
       .from("projects")
       .update({ progress_percent: Math.min(progress, 100) })
       .eq("id", projectId);
@@ -174,16 +195,15 @@ export async function addUpdate(
   projectId: string,
   formData: FormData
 ): Promise<ActionResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user, isStaff } = await requireStaff();
   if (!user) return { error: "Unauthorized" };
+  if (!isUuid(projectId)) return { error: "Invalid project" };
 
   const content = (formData.get("content") as string)?.trim();
   if (!content) return { error: "Update content is required" };
 
-  const is_internal = formData.get("is_internal") === "on";
+  // Only staff can write internal notes (the database enforces this as well).
+  const is_internal = isStaff && formData.get("is_internal") === "on";
 
   const { error } = await supabase.from("project_updates").insert({
     project_id: projectId,
@@ -241,8 +261,9 @@ export async function uploadDeliverable(
   const name = ((formData.get("name") as string) || file?.name || "").trim();
   if (!file || file.size === 0) return { error: "A file is required" };
 
+  if (!isUuid(projectId)) return { error: "Invalid project" };
   const admin = createAdminClient();
-  const path = `${projectId}/${Date.now()}-${file.name}`;
+  const path = `${projectId}/${Date.now()}-${safeFileName(file.name)}`;
   const buffer = Buffer.from(await file.arrayBuffer());
 
   const { error: uploadError } = await admin.storage
@@ -303,21 +324,37 @@ export async function removeStaffAssignment(
 }
 
 export async function getDeliverableDownloadUrl(
-  filePath: string
+  deliverableId: string
 ): Promise<{ url?: string; error?: string }> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Unauthorized" };
+  if (!isUuid(deliverableId)) return { error: "File not found" };
 
-  // RLS on the deliverables table already gates visibility; we use the
-  // service-role client only to mint a short-lived signed URL.
+  // Authorise from the database record. This read runs under the caller's own
+  // session, so row-level security returns the row only to staff, or to the
+  // owning client when the deliverable is visible. A hidden file, another
+  // client's file or a made-up id all come back empty.
+  const { data: deliverable } = await supabase
+    .from("deliverables")
+    .select("id, project_id, file_url, is_visible_to_client")
+    .eq("id", deliverableId)
+    .maybeSingle();
+  if (!deliverable) return { error: "File not found" };
+
+  // The storage path is taken from that record, never from the browser, and
+  // must sit inside the deliverable's own project folder.
+  const path = deliverableStoragePath(deliverable);
+  if (!path) return { error: "File not found" };
+
+  // Only now use the service role, purely to sign a short-lived URL.
   const admin = createAdminClient();
   const { data, error } = await admin.storage
     .from("deliverables")
-    .createSignedUrl(filePath, 60 * 15); // 15 minutes
+    .createSignedUrl(path, 60 * 5); // 5 minutes
 
-  if (error) return { error: error.message };
+  if (error) return { error: "Could not generate download link" };
   return { url: data.signedUrl };
 }

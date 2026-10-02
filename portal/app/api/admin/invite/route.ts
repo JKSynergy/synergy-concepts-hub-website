@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getInviteRedirectUrl } from "@/lib/portal-url";
+import { isOperationalStaff } from "@/lib/security/roles";
 
 export async function POST(request: Request) {
   try {
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
       .eq("id", user.id)
       .single();
 
-    if (!profile || (profile.role !== "admin" && profile.role !== "staff")) {
+    if (!profile || !isOperationalStaff(profile.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -48,7 +49,6 @@ export async function POST(request: Request) {
 
     const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
       data: {
-        role: "client",
         full_name: body.full_name ?? null,
         company_name: body.company_name ?? null,
         phone: body.phone ?? null,

@@ -1,28 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-
-// Generate a readable temporary password (12 chars, mixed case + digits + symbol)
-function generateTempPassword(): string {
-  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-  const lower = "abcdefghijkmnpqrstuvwxyz";
-  const digits = "23456789";
-  const symbols = "!@#$%&*";
-  const all = upper + lower + digits + symbols;
-
-  const pick = (set: string) =>
-    set[Math.floor(Math.random() * set.length)];
-
-  let pwd =
-    pick(upper) + pick(lower) + pick(digits) + pick(symbols);
-  for (let i = 0; i < 8; i++) pwd += pick(all);
-
-  // Shuffle
-  return pwd
-    .split("")
-    .sort(() => Math.random() - 0.5)
-    .join("");
-}
+import { generateTempPassword } from "@/lib/security/temp-password";
+import { writeAuditLog } from "@/lib/audit";
+import { isAdmin as isAdminRole, isTeamRole } from "@/lib/security/roles";
 
 export async function POST(request: Request) {
   // Verify caller is an authenticated admin
@@ -41,7 +22,7 @@ export async function POST(request: Request) {
     .eq("id", user.id)
     .single();
 
-  if (!profile || profile.role !== "admin") {
+  if (!profile || !isAdminRole(profile.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -49,12 +30,20 @@ export async function POST(request: Request) {
   let body: {
     email?: string;
     full_name?: string;
+    role?: string;
   };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
+
+  // Only "staff" and "finance" can be assigned here. Admin and client are never accepted.
+  const requestedRole = body.role ?? "staff";
+  if (!isTeamRole(requestedRole)) {
+    return NextResponse.json({ error: "Role must be staff or finance" }, { status: 400 });
+  }
+  const teamRole = requestedRole;
 
   const email = body.email?.trim().toLowerCase();
   if (!email) {
@@ -72,7 +61,6 @@ export async function POST(request: Request) {
     password: tempPassword,
     email_confirm: true,
     user_metadata: {
-      role: "staff",
       full_name: fullName,
     },
   });
@@ -81,15 +69,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  // Update the profile row (created by the auth trigger) with extra details
+  // The sign-up trigger always creates a client. Staff role is assigned here,
+  // server-side with the service role, after the admin check above.
   if (data.user) {
-    await admin
+    const { error: roleError } = await admin
       .from("profiles")
       .update({
-        role: "staff",
+        role: teamRole,
         full_name: fullName,
       })
       .eq("id", data.user.id);
+
+    if (roleError) {
+      await admin.auth.admin.deleteUser(data.user.id);
+      return NextResponse.json({ error: "Could not assign the team role. Nothing was created." }, { status: 500 });
+    }
+
+    await writeAuditLog(admin, {
+      actorId: user.id,
+      actorRole: "admin",
+      action: "staff.created",
+      table: "profiles",
+      recordId: data.user.id,
+      details: { email, role: teamRole },
+    });
   }
 
   return NextResponse.json({

@@ -2,7 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import InviteForm from "./invite-form";
 import AddClientForm from "./add-client-form";
-import ClientActions from "./client-actions";
+import ClientsTable, { type ClientRow } from "./clients-table";
+import { PageHeader } from "@/components/ux/primitives";
+import { canAccessFinance, isInternal, isOperationalStaff } from "@/lib/security/roles";
 
 export default async function ClientsPage() {
   const supabase = await createClient();
@@ -10,10 +12,7 @@ export default async function ClientsPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
+  if (!user) redirect("/login");
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -21,9 +20,11 @@ export default async function ClientsPage() {
     .eq("id", user.id)
     .single();
 
-  if (!profile || (profile.role !== "admin" && profile.role !== "staff")) {
+  if (!profile || !isInternal(profile.role)) {
     redirect("/client");
   }
+  const canFinance = canAccessFinance(profile.role);
+  const canWrite = isOperationalStaff(profile.role); // finance sees clients read-only
 
   const { data: clients } = await supabase
     .from("profiles")
@@ -31,109 +32,77 @@ export default async function ClientsPage() {
       "id, email, full_name, company_name, phone, billing_address, tax_id, external_portal_url, created_at"
     )
     .eq("role", "client")
+    .is("archived_at", null)
     .order("created_at", { ascending: false });
 
+  const list = clients ?? [];
+  const ids = list.map((c) => c.id);
+
+  // Active work per client (RLS already scopes what staff can see).
+  const activeByClient = new Map<string, number>();
+  const lastByClient = new Map<string, string>();
+  const openByClient = new Map<string, number>();
+
+  if (ids.length > 0) {
+    const { data: projects } = await supabase
+      .from("projects")
+      .select("client_id, status, updated_at")
+      .in("client_id", ids);
+    for (const p of projects ?? []) {
+      if (p.status === "active" || p.status === "review") {
+        activeByClient.set(p.client_id, (activeByClient.get(p.client_id) ?? 0) + 1);
+      }
+      const prev = lastByClient.get(p.client_id);
+      if (p.updated_at && (!prev || p.updated_at > prev)) lastByClient.set(p.client_id, p.updated_at);
+    }
+
+    if (canFinance) {
+      const { data: invoices } = await supabase
+        .from("invoices")
+        .select("id, client_id, total")
+        .in("client_id", ids)
+        .in("status", ["sent", "partially paid", "overdue"]);
+      const inv = invoices ?? [];
+      const invIds = inv.map((i) => i.id);
+      const paidByInvoice = new Map<string, number>();
+      if (invIds.length > 0) {
+        const { data: pays } = await supabase
+          .from("payments")
+          .select("invoice_id, amount")
+          .in("invoice_id", invIds);
+        for (const p of pays ?? []) {
+          paidByInvoice.set(p.invoice_id, (paidByInvoice.get(p.invoice_id) ?? 0) + Number(p.amount));
+        }
+      }
+      for (const i of inv) {
+        const due = Number(i.total) - (paidByInvoice.get(i.id) ?? 0);
+        if (due > 0) openByClient.set(i.client_id, (openByClient.get(i.client_id) ?? 0) + due);
+      }
+    }
+  }
+
+  const rows: ClientRow[] = list.map((c) => ({
+    ...c,
+    active_work: activeByClient.get(c.id) ?? 0,
+    outstanding: canFinance ? openByClient.get(c.id) ?? 0 : null,
+    last_activity: lastByClient.get(c.id) ?? c.created_at,
+  }));
+
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold" style={{ color: "var(--p-text-strong)" }}>
-          Clients
-        </h1>
-        <p className="mt-2 text-sm" style={{ color: "var(--p-muted)" }}>
-          Manage client accounts, contact details, and portal access
-        </p>
-      </div>
-
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="text-sm font-medium" style={{ color: "var(--p-text-strong)" }}>
-          {clients?.length || 0} client{clients?.length !== 1 ? "s" : ""}
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <AddClientForm />
-          <InviteForm />
-        </div>
-      </div>
-
-      <div className="glass-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full">
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--p-border)" }}>
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--p-muted)" }}>
-                  Company
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--p-muted)" }}>
-                  Name
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--p-muted)" }}>
-                  Email
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--p-muted)" }}>
-                  Phone
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--p-muted)" }}>
-                  External Portal
-                </th>
-                <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--p-muted)" }}>
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {clients && clients.length > 0 ? (
-                clients.map((c) => (
-                  <tr
-                    key={c.id}
-                    className="transition-colors hover:bg-white/5"
-                    style={{ borderBottom: "1px solid var(--p-border)" }}
-                  >
-                    <td className="px-6 py-4 text-sm font-medium" style={{ color: "var(--p-text-strong)" }}>
-                      {c.company_name ?? "—"}
-                    </td>
-                    <td className="px-6 py-4 text-sm" style={{ color: "var(--p-text)" }}>
-                      {c.full_name ?? "—"}
-                    </td>
-                    <td className="px-6 py-4 text-sm" style={{ color: "var(--p-muted)" }}>
-                      {c.email}
-                    </td>
-                    <td className="px-6 py-4 text-sm" style={{ color: "var(--p-muted)" }}>
-                      {c.phone ?? "—"}
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      {c.external_portal_url ? (
-                        <a
-                          href={c.external_portal_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sch-blue hover:underline"
-                        >
-                          Open →
-                        </a>
-                      ) : (
-                        <span style={{ color: "var(--p-muted)" }}>—</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <ClientActions client={c} />
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={6} className="px-6 py-16 text-center">
-                    <p className="text-base font-medium" style={{ color: "var(--p-text-strong)" }}>
-                      No clients yet
-                    </p>
-                    <p className="mt-1 text-sm" style={{ color: "var(--p-muted)" }}>
-                      Add or invite your first client above
-                    </p>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+    <div className="ux-page ux-page--wide">
+      <PageHeader
+        title="Clients"
+        description="The companies and people Synergy works with."
+        actions={
+          canWrite ? (
+            <>
+              <InviteForm />
+              <AddClientForm />
+            </>
+          ) : undefined
+        }
+      />
+      <ClientsTable rows={rows} showFinancial={canFinance} readOnly={!canWrite} />
     </div>
   );
 }

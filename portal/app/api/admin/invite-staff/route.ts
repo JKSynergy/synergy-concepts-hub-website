@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getInviteRedirectUrl } from "@/lib/portal-url";
+import { writeAuditLog } from "@/lib/audit";
+import { isAdmin as isAdminRole, isTeamRole } from "@/lib/security/roles";
 
 export async function POST(request: Request) {
   try {
@@ -21,7 +23,7 @@ export async function POST(request: Request) {
       .eq("id", user.id)
       .single();
 
-    if (!profile || profile.role !== "admin") {
+    if (!profile || !isAdminRole(profile.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -29,12 +31,20 @@ export async function POST(request: Request) {
     let body: {
       email?: string;
       full_name?: string;
+      role?: string;
     };
     try {
       body = await request.json();
     } catch {
       return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
+
+    // Only "staff" and "finance" can be assigned here. Admin and client are never accepted.
+    const requestedRole = body.role ?? "staff";
+    if (!isTeamRole(requestedRole)) {
+      return NextResponse.json({ error: "Role must be staff or finance" }, { status: 400 });
+    }
+    const teamRole = requestedRole;
 
     const email = body.email?.trim();
     if (!email) {
@@ -46,7 +56,6 @@ export async function POST(request: Request) {
 
     const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
       data: {
-        role: "staff",
         full_name: body.full_name ?? null,
       },
       redirectTo,
@@ -57,16 +66,33 @@ export async function POST(request: Request) {
     }
 
     if (data.user) {
+      // The sign-up trigger creates every account as a client; the staff role is
+      // assigned here, server-side, after the admin check above.
       const { error: profileError } = await admin
         .from("profiles")
         .update({
+          role: teamRole,
           full_name: body.full_name ?? null,
         })
         .eq("id", data.user.id);
 
       if (profileError) {
-        console.error("Staff invite profile update failed:", profileError);
+        console.error("Staff invite role assignment failed:", profileError.message);
+        await admin.auth.admin.deleteUser(data.user.id);
+        return NextResponse.json(
+          { error: "Could not assign the team role. The invite was cancelled." },
+          { status: 500 }
+        );
       }
+
+      await writeAuditLog(admin, {
+        actorId: user.id,
+        actorRole: "admin",
+        action: "staff.invited",
+        table: "profiles",
+        recordId: data.user.id,
+        details: { email, role: teamRole },
+      });
     }
 
     return NextResponse.json({ success: true, userId: data.user?.id });

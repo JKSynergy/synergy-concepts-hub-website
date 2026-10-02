@@ -1,15 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
-import { NavLink as Link } from "@/components/nav-link";
-import {
-  INVOICE_STATUS_BADGE,
-  type InvoiceStatus,
-} from "@/lib/types";
-import { setInvoiceStatus, updateInvoice } from "@/lib/actions/invoices";
-import { recordPayment } from "@/lib/actions/payments";
+import Link from "next/link";
+import { PageHeader, Section, StatusMark, EmptyState, INVOICE_TONE, ugx } from "@/components/ux/primitives";
 import { InvoiceActions } from "@/components/invoice-actions";
 import { LineItemsManager } from "@/components/line-items-manager";
+import { RecordPaymentButton, StatusActions } from "./invoice-controls";
+import { fmtDate, isPastDue, methodLabel, todayIso, OPEN_STATUSES } from "../fin-utils";
+import { canAccessFinance, isAdmin as isAdminRole } from "@/lib/security/roles";
 
 export default async function InvoiceDetailPage({
   params,
@@ -30,7 +28,7 @@ export default async function InvoiceDetailPage({
     .eq("id", user.id)
     .single();
 
-  if (!profile || (profile.role !== "admin" && profile.role !== "staff")) {
+  if (!profile || !canAccessFinance(profile.role)) {
     redirect("/client");
   }
 
@@ -44,8 +42,9 @@ export default async function InvoiceDetailPage({
 
   if (!invoice) {
     return (
-      <div className="rounded-xl bg-white p-8 text-center text-sm text-gray-500 shadow">
-        Invoice not found.
+      <div className="ux-page">
+        <Link href="/admin/invoices" className="ux-back">← Invoices</Link>
+        <EmptyState title="Invoice not found">It may have been deleted. Go back to the invoice list.</EmptyState>
       </div>
     );
   }
@@ -74,152 +73,147 @@ export default async function InvoiceDetailPage({
     .single();
 
   const receiptMap = new Map((receipts ?? []).map((r) => [r.payment_id, r]));
+  const payList = payments ?? [];
+  const total = Number(invoice.total) || 0;
+  const paid = payList.reduce((s, p) => s + Number(p.amount), 0);
+  const cancelled = invoice.status === "cancelled";
+  const balance = cancelled ? null : Math.max(0, total - paid);
+  const pastDue = isPastDue(invoice.status, invoice.due_date, todayIso());
+  const clientName = client?.company_name || client?.full_name || client?.email || "Unknown client";
+  const isOpen = OPEN_STATUSES.includes(invoice.status);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-gray-900">{invoice.invoice_number}</h1>
-        <div className="flex flex-wrap items-center gap-2">
-          <span
-            className={`rounded-full px-3 py-1 text-xs font-medium capitalize ${
-              INVOICE_STATUS_BADGE[invoice.status as InvoiceStatus]
-            }`}
-          >
-            {invoice.status}
-          </span>
-          <a
-            href={`/api/invoices/${id}/pdf`}
-            className="rounded-md bg-gray-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-800"
-          >
-            Download PDF
-          </a>
-          <InvoiceActions invoiceId={id} redirectTo="/admin/invoices" />
-        </div>
+    <div className="ux-page">
+      <Link href="/admin/invoices" className="ux-back">← Invoices</Link>
+      <PageHeader
+        eyebrow="Invoice"
+        title={invoice.invoice_number}
+        description={
+          <>
+            <StatusMark tone={INVOICE_TONE[invoice.status] ?? "neutral"}>{invoice.status}</StatusMark>
+            {" · "}
+            {client ? <Link href={`/admin/clients/${client.id}`}>{clientName}</Link> : clientName}
+            {" · Issued "}
+            {fmtDate(invoice.issue_date)}
+          </>
+        }
+        actions={
+          <>
+            <a href={`/api/invoices/${id}/pdf`} className="ux-btn ux-btn--secondary">
+              Download PDF
+            </a>
+            {!cancelled && <RecordPaymentButton invoiceId={id} suggested={isOpen ? balance : null} />}
+          </>
+        }
+      />
+
+      <div className="ux-fin-actionbar" style={{ marginBottom: 8 }}>
+        <StatusActions invoiceId={id} status={invoice.status} hasPayments={payList.some((p) => p.paid_at)} />
+        <InvoiceActions
+          invoiceId={id}
+          redirectTo="/admin/invoices"
+          canDelete={isAdminRole(profile.role) && invoice.status === "draft" && payList.length === 0}
+        />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        <div className="rounded-xl bg-white p-5 shadow md:col-span-2">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Bill To</h2>
-          <p className="mt-1 text-base font-medium text-gray-900">
-            {client?.company_name || client?.full_name || client?.email}
-          </p>
-          <p className="text-sm text-gray-500">{client?.email}</p>
-          {client?.billing_address && <p className="text-sm text-gray-500">{client.billing_address}</p>}
-          {client?.phone && <p className="text-sm text-gray-500">{client.phone}</p>}
-
-          <LineItemsManager
-            invoiceId={id}
-            initialItems={lineItems ?? []}
-            taxRate={Number(invoice.tax_rate)}
-            storedSubtotal={Number(invoice.subtotal)}
-            storedTaxAmount={Number(invoice.tax_amount)}
-            storedTotal={Number(invoice.total)}
-          />
-        </div>
-
-        <div className="space-y-4">
-          <div className="rounded-xl bg-white p-5 shadow">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Actions</h2>
-            <div className="mt-3 space-y-2">
-              <form action={async (fd) => { "use server"; await updateInvoice(id, fd); }}>
-                <input type="hidden" name="status" value="sent" />
-                <button
-                  type="submit"
-                  disabled={invoice.status === "sent"}
-                  className="w-full rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
-                >
-                  Mark as Sent
-                </button>
-              </form>
-              <form action={async (fd) => { "use server"; await updateInvoice(id, fd); }}>
-                <input type="hidden" name="status" value="overdue" />
-                <button
-                  type="submit"
-                  disabled={invoice.status !== "sent"}
-                  className="w-full rounded-md bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-500 disabled:opacity-50"
-                >
-                  Mark Overdue
-                </button>
-              </form>
-              <form action={async (fd) => { "use server"; await updateInvoice(id, fd); }}>
-                <input type="hidden" name="status" value="cancelled" />
-                <button
-                  type="submit"
-                  disabled={invoice.status === "cancelled"}
-                  className="w-full rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-              </form>
-            </div>
+      <Section title="Summary">
+        <div className="ux-figures">
+          <div className="ux-figure">
+            <span>Total</span>
+            <b>{ugx(total)}</b>
+            <small className="ux-cell-sub">
+              {Number(invoice.tax_rate) > 0 ? `Includes ${Number(invoice.tax_rate)}% tax` : "No tax"}
+            </small>
           </div>
-
-          <div className="rounded-xl bg-white p-5 shadow">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Record Payment</h2>
-            <form action={async (fd) => { "use server"; await recordPayment(id, fd); }} className="mt-3 space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-700">Amount (UGX)</label>
-                <input name="amount" type="number" min={1} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700">Method</label>
-                <select name="method" required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm">
-                  <option value="mobile_money">Mobile Money</option>
-                  <option value="bank_transfer">Bank Transfer</option>
-                  <option value="cash">Cash</option>
-                  <option value="paystack">Paystack</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700">Reference</label>
-                <input name="reference" type="text" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm" />
-              </div>
-              <button
-                type="submit"
-                className="w-full rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-500"
-              >
-                Record Payment
-              </button>
-            </form>
+          <div className="ux-figure">
+            <span>Paid</span>
+            <b>{ugx(paid)}</b>
+            <small className="ux-cell-sub">
+              {payList.length} recorded payment{payList.length === 1 ? "" : "s"}
+            </small>
+          </div>
+          <div className="ux-figure">
+            <span>Balance</span>
+            <b>{balance === null ? "—" : ugx(balance)}</b>
+            <small className="ux-cell-sub">
+              {cancelled
+                ? "Invoice cancelled"
+                : invoice.status === "paid" && balance! > 0
+                  ? "Marked paid, but recorded payments are less than the total"
+                  : "Total minus recorded payments"}
+            </small>
+          </div>
+          <div className="ux-figure">
+            <span>Due date</span>
+            <b className={pastDue ? "ux-late" : undefined}>{fmtDate(invoice.due_date)}</b>
+            {pastDue && invoice.due_date && <small className="ux-cell-sub ux-late">Past due and unpaid</small>}
           </div>
         </div>
-      </div>
+      </Section>
 
-      {(payments ?? []).length > 0 && (
-        <div className="rounded-xl bg-white p-5 shadow">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Payments</h2>
-          <div className="overflow-x-auto">
-            <table className="mt-3 min-w-[640px] divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+      <Section title="Bill to">
+        <dl className="ux-dl">
+          <div>
+            <dt>Client</dt>
+            <dd>{client ? <Link href={`/admin/clients/${client.id}`}>{clientName}</Link> : clientName}</dd>
+          </div>
+          <div>
+            <dt>Email</dt>
+            <dd>{client?.email || "—"}</dd>
+          </div>
+          <div>
+            <dt>Billing address</dt>
+            <dd>{client?.billing_address || "—"}</dd>
+          </div>
+          <div>
+            <dt>Phone</dt>
+            <dd>{client?.phone || "—"}</dd>
+          </div>
+        </dl>
+      </Section>
+
+      <Section title="Line items">
+        <LineItemsManager
+          invoiceId={id}
+          initialItems={lineItems ?? []}
+          taxRate={Number(invoice.tax_rate)}
+          storedSubtotal={Number(invoice.subtotal)}
+          storedTaxAmount={Number(invoice.tax_amount)}
+          storedTotal={Number(invoice.total)}
+        />
+      </Section>
+
+      <Section title="Payments">
+        {payList.length === 0 ? (
+          <EmptyState title="No payments recorded">Payments recorded against this invoice appear here.</EmptyState>
+        ) : (
+          <div className="ux-tablewrap">
+            <table className="ux-table ux-table--stack ux-fin-table">
+              <thead>
                 <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Date</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Method</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Reference</th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Amount</th>
-                  <th className="px-4 py-2" />
+                  <th>Date</th>
+                  <th>Method</th>
+                  <th>Reference</th>
+                  <th className="ux-num">Amount</th>
+                  <th>Receipt</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
-                {payments!.map((p) => {
+              <tbody>
+                {payList.map((p) => {
                   const receipt = receiptMap.get(p.id);
                   return (
                     <tr key={p.id}>
-                      <td className="px-4 py-2 text-sm text-gray-500">
-                        {p.paid_at ? new Date(p.paid_at).toLocaleDateString() : "—"}
-                      </td>
-                      <td className="px-4 py-2 text-sm text-gray-500 capitalize">{p.method.replace("_", " ")}</td>
-                      <td className="px-4 py-2 text-sm text-gray-500">{p.reference ?? p.paystack_reference ?? "—"}</td>
-                      <td className="px-4 py-2 text-right text-sm font-medium text-gray-900">
-                        UGX {Number(p.amount).toLocaleString()}
-                      </td>
-                      <td className="px-4 py-2 text-right">
-                        {receipt && (
-                          <a
-                            href={`/api/receipts/${receipt.id}/pdf`}
-                            className="text-xs text-blue-600 hover:underline"
-                          >
-                            Receipt
+                      <td>{fmtDate(p.paid_at)}</td>
+                      <td data-label="Method">{methodLabel(p.method)}</td>
+                      <td data-label="Reference" className="ux-muted">{p.reference ?? p.paystack_reference ?? "—"}</td>
+                      <td className="ux-num" data-label="Amount">{ugx(Number(p.amount))}</td>
+                      <td data-label="Receipt">
+                        {receipt ? (
+                          <a href={`/api/receipts/${receipt.id}/pdf`} className="ux-link">
+                            Download receipt
                           </a>
+                        ) : (
+                          <span className="ux-muted">—</span>
                         )}
                       </td>
                     </tr>
@@ -228,8 +222,16 @@ export default async function InvoiceDetailPage({
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
+      </Section>
+
+      <Section title="Notes">
+        {invoice.notes ? (
+          <p className="ux-fin-note" style={{ margin: 0 }}>{invoice.notes}</p>
+        ) : (
+          <p className="ux-muted" style={{ margin: 0 }}>No notes on this invoice.</p>
+        )}
+      </Section>
     </div>
   );
 }

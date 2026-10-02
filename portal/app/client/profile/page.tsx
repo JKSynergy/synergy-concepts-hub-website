@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ProfileForm from "./profile-form";
+import { PageHeader, Section } from "@/components/ux/primitives";
 
 export default async function ClientProfilePage() {
   const supabase = await createClient();
@@ -10,32 +11,22 @@ export default async function ClientProfilePage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
+  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
 
   if (!profile) redirect("/login");
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
+    <div className="ux-page ux-page--narrow">
+      <PageHeader title="Profile" description="Your contact and billing details. We use these on invoices." />
       <ProfileForm profile={profile} />
       {profile.external_portal_url && (
-        <div className="rounded-xl bg-white p-6 shadow">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-            External Portal
-          </h3>
-          <a
-            href={profile.external_portal_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-2 inline-block text-sch-blue hover:underline"
-          >
-            Open your dedicated portal →
-          </a>
-        </div>
+        <Section title="External portal">
+          <p className="ux-desc">
+            <a href={profile.external_portal_url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--ux-blue)" }}>
+              Open your dedicated portal →
+            </a>
+          </p>
+        </Section>
       )}
     </div>
   );

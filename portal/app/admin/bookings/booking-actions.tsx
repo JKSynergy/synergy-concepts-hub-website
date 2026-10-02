@@ -1,47 +1,66 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { NavLink as Link } from "@/components/nav-link";
 import { setBookingStatus } from "@/lib/actions/bookings";
+import { useFeedback } from "@/components/ux/feedback";
 import type { BookingStatus } from "@/lib/types";
 
 export default function BookingActions({
   bookingId,
   status,
+  title,
 }: {
   bookingId: string;
   status: BookingStatus;
+  title?: string;
 }) {
-  async function change(next: BookingStatus) {
-    await setBookingStatus(bookingId, next);
-  }
+  const router = useRouter();
+  const { toast, confirm: askConfirm } = useFeedback();
+  const [loading, setLoading] = useState(false);
 
-  if (status === "completed" || status === "cancelled") {
-    return null;
+  async function change(next: BookingStatus) {
+    if (next === "cancelled") {
+      const ok = await askConfirm({
+        title: "Cancel this booking request?",
+        body: `${title ?? "This request"} will be marked cancelled.`,
+        confirmLabel: "Cancel request",
+        destructive: true,
+      });
+      if (!ok) return;
+    }
+    setLoading(true);
+    const res = await setBookingStatus(bookingId, next);
+    setLoading(false);
+    if (res.error) {
+      toast(res.error, "error");
+      return;
+    }
+    toast(`Booking marked ${next}.`);
+    router.refresh();
   }
 
   return (
-    <div className="flex gap-2">
+    <div className="ux-rowactions">
+      <Link href={`/admin/bookings/${bookingId}`} className="ux-textbtn ux-textbtn--strong">
+        Open
+      </Link>
       {status === "pending" && (
-        <button
-          onClick={() => change("confirmed")}
-          className="rounded-md bg-sch-blue px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
-        >
+        <button type="button" disabled={loading} onClick={() => change("confirmed")} className="ux-textbtn">
           Confirm
         </button>
       )}
       {status === "confirmed" && (
-        <button
-          onClick={() => change("completed")}
-          className="rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700"
-        >
+        <button type="button" disabled={loading} onClick={() => change("completed")} className="ux-textbtn">
           Complete
         </button>
       )}
-      <button
-        onClick={() => change("cancelled")}
-        className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
-      >
-        Cancel
-      </button>
+      {(status === "pending" || status === "confirmed") && (
+        <button type="button" disabled={loading} onClick={() => change("cancelled")} className="ux-textbtn ux-textbtn--danger">
+          Cancel
+        </button>
+      )}
     </div>
   );
 }

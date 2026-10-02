@@ -6,15 +6,18 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getInviteRedirectUrlFromEnv } from "@/lib/portal-url";
 import { sendEmail } from "@/lib/email/notify";
 import type { BookingStatus, BookingType } from "@/lib/types";
+import { canManageServices, isOperationalStaff } from "@/lib/security/roles";
 
 type ActionResult = { error?: string; success?: boolean; id?: string };
+
+const BOOKING_STATUSES: BookingStatus[] = ["pending", "confirmed", "completed", "cancelled"];
 
 async function requireStaff() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { supabase, user: null, isStaff: false };
+  if (!user) return { supabase, user: null, isStaff: false, role: null as string | null };
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -22,8 +25,8 @@ async function requireStaff() {
     .eq("id", user.id)
     .single();
 
-  const isStaff = profile?.role === "admin" || profile?.role === "staff";
-  return { supabase, user, isStaff };
+  const isStaff = isOperationalStaff(profile?.role);
+  return { supabase, user, isStaff, role: (profile?.role ?? null) as string | null };
 }
 
 // ── Service catalog ──
@@ -31,8 +34,9 @@ export async function saveService(
   serviceId: string | null,
   formData: FormData
 ): Promise<ActionResult> {
-  const { supabase, isStaff } = await requireStaff();
-  if (!isStaff) return { error: "Forbidden" };
+  // Services are read-only for ordinary staff; only an administrator changes the catalogue.
+  const { supabase, role } = await requireStaff();
+  if (!canManageServices(role)) return { error: "Only an administrator can change services." };
 
   const name = (formData.get("name") as string)?.trim();
   if (!name) return { error: "Name is required" };
@@ -72,8 +76,8 @@ export async function toggleServiceActive(
   serviceId: string,
   isActive: boolean
 ): Promise<ActionResult> {
-  const { supabase, isStaff } = await requireStaff();
-  if (!isStaff) return { error: "Forbidden" };
+  const { supabase, role } = await requireStaff();
+  if (!canManageServices(role)) return { error: "Only an administrator can change services." };
 
   const { error } = await supabase
     .from("service_catalog")
@@ -187,6 +191,9 @@ export async function setBookingStatus(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Unauthorized" };
 
+  if (!BOOKING_STATUSES.includes(status)) return { error: "Invalid status" };
+
+  // Clients may only cancel their own booking; the database enforces this too.
   const { error } = await supabase
     .from("bookings")
     .update({ status })
@@ -229,6 +236,12 @@ export async function convertBookingToProject(
     .single();
 
   if (!booking) return { error: "Booking not found" };
+  if (!booking.client_id) {
+    return {
+      error:
+        "This enquiry is not linked to a client account yet. Invite or create the client first, then convert it.",
+    };
+  }
 
   const { data: project, error: projectError } = await supabase
     .from("projects")
@@ -290,7 +303,6 @@ export async function convertLead(leadId: string): Promise<ActionResult> {
 
   const { data, error } = await admin.auth.admin.inviteUserByEmail(lead.email, {
     data: {
-      role: "client",
       full_name: lead.name,
       phone: lead.phone,
     },

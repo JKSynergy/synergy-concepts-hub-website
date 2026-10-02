@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { isAdmin as isAdminRole } from "@/lib/security/roles";
 
 type ActionResult = { error?: string; success?: boolean };
 
@@ -18,7 +19,7 @@ async function requireAdmin() {
     .eq("id", user.id)
     .single();
 
-  const isAdmin = profile?.role === "admin";
+  const isAdmin = isAdminRole(profile?.role);
   return { supabase, user, isAdmin };
 }
 

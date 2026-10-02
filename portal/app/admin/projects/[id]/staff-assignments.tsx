@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { assignStaff, removeStaffAssignment } from "@/lib/actions/projects";
+import { useFeedback } from "@/components/ux/feedback";
+import { EmptyState, Section } from "@/components/ux/primitives";
 
 interface StaffMember {
   id: string;
@@ -26,84 +28,81 @@ export default function StaffAssignments({
   assignments: Assignment[];
 }) {
   const router = useRouter();
-  const [error, setError] = useState("");
+  const { toast, confirm: askConfirm } = useFeedback();
   const [loading, setLoading] = useState(false);
+  const assigned = new Set(assignments.map((a) => a.staff_id));
+  const available = staff.filter((s) => !assigned.has(s.id));
 
   async function add(formData: FormData) {
     setLoading(true);
-    setError("");
     const res = await assignStaff(projectId, formData);
     setLoading(false);
     if (res.error) {
-      setError(res.error);
+      toast(res.error, "error");
       return;
     }
+    toast("Team member assigned");
     router.refresh();
   }
 
-  async function remove(assignmentId: string) {
-    const res = await removeStaffAssignment(assignmentId);
+  async function remove(a: Assignment) {
+    const name = a.profiles?.full_name || a.profiles?.email || "this person";
+    const ok = await askConfirm({
+      title: `Remove ${name} from this project?`,
+      body: "They will no longer see this project. Their earlier updates stay.",
+      confirmLabel: "Remove",
+      destructive: true,
+    });
+    if (!ok) return;
+    const res = await removeStaffAssignment(a.id);
     if (res.error) {
-      setError(res.error);
+      toast(res.error, "error");
       return;
     }
+    toast("Removed from project");
     router.refresh();
   }
 
   return (
-    <div className="rounded-xl bg-white p-6 shadow">
-      <h3 className="mb-4 text-lg font-semibold text-gray-900">Assigned Staff</h3>
-
-      {error && (
-        <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>
+    <Section title="Assigned team">
+      {assignments.length === 0 ? (
+        <EmptyState title="No one assigned">Staff only see projects they are assigned to.</EmptyState>
+      ) : (
+        <div>
+          {assignments.map((a) => (
+            <div key={a.id} className="ux-row" style={{ cursor: "default" }}>
+              <span className="ux-row-main">
+                {a.profiles?.full_name || a.profiles?.email || "Unknown"}
+                {a.profiles?.full_name && <small>{a.profiles.email}</small>}
+              </span>
+              <button type="button" className="ux-textbtn ux-textbtn--danger" onClick={() => remove(a)}>
+                Remove
+              </button>
+            </div>
+          ))}
+        </div>
       )}
 
-      <div className="space-y-2">
-        {assignments.length === 0 && (
-          <p className="text-sm text-gray-500">No staff assigned yet.</p>
-        )}
-        {assignments.map((a) => (
-          <div
-            key={a.id}
-            className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2"
-          >
-            <span className="text-sm text-gray-700">
-              {a.profiles?.full_name || a.profiles?.email || "Unknown"}
-            </span>
-            <button
-              onClick={() => remove(a.id)}
-              className="text-xs text-red-600 hover:text-red-800"
-            >
-              Remove
-            </button>
-          </div>
-        ))}
-      </div>
-
-      <form action={add} className="mt-4 flex items-end gap-2">
-        <div className="flex-1">
-          <label className="block text-xs font-medium text-gray-700">Add staff</label>
-          <select
-            name="staff_id"
-            required
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sch-orange focus:outline-none focus:ring-1 focus:ring-sch-orange"
-          >
-            <option value="">Select staff</option>
-            {staff.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.full_name || s.email}
+      {available.length > 0 && (
+        <form action={add} className="ux-inline-form">
+          <label className="ux-field" style={{ flex: 1, maxWidth: 360 }}>
+            <span>Assign a team member</span>
+            <select name="staff_id" required defaultValue="" className="ux-input ux-select">
+              <option value="" disabled>
+                Select a team member
               </option>
-            ))}
-          </select>
-        </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded-md bg-sch-blue px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-        >
-          Add
-        </button>
-      </form>
-    </div>
+              {available.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.full_name || s.email}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button type="submit" disabled={loading} className="ux-btn ux-btn--secondary">
+            {loading ? "Assigning…" : "Assign"}
+          </button>
+        </form>
+      )}
+    </Section>
   );
 }

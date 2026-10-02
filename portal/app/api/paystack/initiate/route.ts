@@ -1,5 +1,10 @@
+import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { fromMinor, validatePaymentIntent } from "@/lib/finance/payments";
+import { isUuid } from "@/lib/security/access";
+import { getPortalBaseUrl } from "@/lib/portal-url";
 
 export async function POST(req: NextRequest) {
   const secret = process.env.PAYSTACK_SECRET_KEY;
@@ -15,37 +20,63 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json();
-  const { invoiceId, amount, email } = body;
+  let body: { invoiceId?: unknown; amount?: unknown };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  }
+  if (!isUuid(body.invoiceId)) {
+    return NextResponse.json({ error: "Missing invoice" }, { status: 400 });
+  }
+  const invoiceId = body.invoiceId;
 
-  if (!invoiceId || !amount) {
-    return NextResponse.json({ error: "Missing invoice or amount" }, { status: 400 });
+  // Both reads use the caller's own session, so row-level security also applies:
+  // a client only ever sees their own non-draft invoices and settled payments.
+  const [{ data: invoice }, { data: settled }] = await Promise.all([
+    supabase.from("invoices").select("client_id, status, total").eq("id", invoiceId).maybeSingle(),
+    supabase.from("payments").select("amount").eq("invoice_id", invoiceId).not("paid_at", "is", null),
+  ]);
+
+  // The server decides the amount. The browser may only ask for less than the
+  // outstanding balance; by default the whole balance is paid.
+  const intent = validatePaymentIntent({
+    invoice,
+    userId: user.id,
+    settledAmounts: (settled ?? []).map((p) => p.amount),
+    requestedAmount: body.amount,
+  });
+  if (!intent.ok) {
+    return NextResponse.json({ error: intent.error }, { status: intent.status });
   }
 
-  // Verify invoice belongs to user
-  const { data: invoice } = await supabase
-    .from("invoices")
-    .select("client_id")
-    .eq("id", invoiceId)
-    .single();
-
-  if (!invoice || invoice.client_id !== user.id) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("email")
-    .eq("id", user.id)
-    .single();
-
-  const customerEmail = profile?.email || email;
+  // The customer e-mail comes from the signed-in account, never from the request.
+  const { data: profile } = await supabase.from("profiles").select("email").eq("id", user.id).single();
+  const customerEmail = profile?.email;
   if (!customerEmail) {
     return NextResponse.json({ error: "No email for customer" }, { status: 400 });
   }
 
-  // Call Paystack API to initialize transaction
-  const base = process.env.NEXT_PUBLIC_PORTAL_URL ?? "http://localhost:3000";
+  // Create the payment record BEFORE calling Paystack, under a reference we
+  // generate, so the webhook can only ever match this exact row. The insert uses
+  // the service role because clients have no INSERT policy on payments.
+  const admin = createAdminClient();
+  const reference = `SCH-${randomUUID()}`;
+  const { data: pending, error: insertError } = await admin
+    .from("payments")
+    .insert({
+      invoice_id: invoiceId,
+      amount: fromMinor(intent.amountMinor),
+      method: "paystack",
+      paystack_reference: reference,
+    })
+    .select("id")
+    .single();
+  if (insertError || !pending) {
+    console.error("Could not create pending payment:", insertError?.message);
+    return NextResponse.json({ error: "Could not start payment" }, { status: 500 });
+  }
+
   const paystackRes = await fetch("https://api.paystack.co/transaction/initialize", {
     method: "POST",
     headers: {
@@ -54,24 +85,20 @@ export async function POST(req: NextRequest) {
     },
     body: JSON.stringify({
       email: customerEmail,
-      amount: Math.round(amount * 100), // kobo
-      callback_url: `${base}/client/invoices/${invoiceId}`,
+      amount: intent.amountMinor, // minor units, computed on the server
+      reference,
+      ...(process.env.PAYSTACK_CURRENCY ? { currency: process.env.PAYSTACK_CURRENCY } : {}),
+      callback_url: `${getPortalBaseUrl()}/client/invoices/${invoiceId}`,
       metadata: { invoice_id: invoiceId, user_id: user.id },
     }),
   });
 
-  const paystackData = await paystackRes.json();
-  if (!paystackData.status) {
-    return NextResponse.json({ error: paystackData.message || "Paystack error" }, { status: 500 });
+  const paystackData = await paystackRes.json().catch(() => null);
+  if (!paystackData?.status || !paystackData.data?.authorization_url) {
+    // Nothing was charged: remove the unused pending attempt.
+    await admin.from("payments").delete().eq("id", pending.id).is("paid_at", null);
+    return NextResponse.json({ error: "Payment provider error. Please try again." }, { status: 502 });
   }
-
-  // Store reference for webhook matching
-  await supabase.from("payments").insert({
-    invoice_id: invoiceId,
-    amount,
-    method: "paystack",
-    paystack_reference: paystackData.data.reference,
-  });
 
   return NextResponse.json({ authorization_url: paystackData.data.authorization_url });
 }

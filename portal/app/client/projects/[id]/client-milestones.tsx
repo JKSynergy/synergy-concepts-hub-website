@@ -1,14 +1,26 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { setMilestoneStatus } from "@/lib/actions/projects";
+import { useFeedback } from "@/components/ux/feedback";
+import { EmptyState, Section, StatusMark, type Tone } from "@/components/ux/primitives";
 import type { Milestone, MilestoneStatus } from "@/lib/types";
 
-const STATUS_COLOR: Record<MilestoneStatus, string> = {
-  pending: "bg-gray-100 text-gray-600",
-  in_progress: "bg-amber-100 text-amber-700",
-  submitted: "bg-blue-100 text-blue-700",
-  approved: "bg-green-100 text-green-700",
-  revision_requested: "bg-red-100 text-red-700",
+const TONE: Record<MilestoneStatus, Tone> = {
+  pending: "neutral",
+  in_progress: "info",
+  submitted: "warning",
+  approved: "success",
+  revision_requested: "danger",
+};
+
+const LABEL: Record<MilestoneStatus, string> = {
+  pending: "not started",
+  in_progress: "in progress",
+  submitted: "awaiting your approval",
+  approved: "approved",
+  revision_requested: "revision requested",
 };
 
 export default function ClientMilestones({
@@ -18,55 +30,84 @@ export default function ClientMilestones({
   projectId: string;
   milestones: Milestone[];
 }) {
-  async function act(id: string, status: MilestoneStatus) {
-    await setMilestoneStatus(id, projectId, status);
+  const router = useRouter();
+  const { toast, confirm: askConfirm } = useFeedback();
+  const [busy, setBusy] = useState<string | null>(null);
+
+  async function act(m: Milestone, status: MilestoneStatus) {
+    const approve = status === "approved";
+    const ok = await askConfirm({
+      title: approve ? `Approve "${m.title}"?` : `Request a revision of "${m.title}"?`,
+      body: approve
+        ? "This tells the team you are happy with this milestone."
+        : "This sends the milestone back to the team for changes.",
+      confirmLabel: approve ? "Approve" : "Request revision",
+      destructive: !approve,
+    });
+    if (!ok) return;
+    setBusy(m.id);
+    try {
+      const res = await setMilestoneStatus(m.id, projectId, status);
+      if (res?.error) {
+        toast(res.error, "error");
+      } else {
+        toast(approve ? "Milestone approved." : "Revision requested.");
+        router.refresh();
+      }
+    } catch {
+      toast("Could not update the milestone. Please try again.", "error");
+    } finally {
+      setBusy(null);
+    }
   }
 
   return (
-    <div className="rounded-xl bg-white p-6 shadow">
-      <h2 className="mb-4 text-lg font-semibold text-gray-900">Milestones</h2>
-      <div className="space-y-3">
-        {milestones.length === 0 ? (
-          <p className="text-sm text-gray-500">No milestones yet.</p>
-        ) : (
-          milestones.map((m) => (
-            <div
-              key={m.id}
-              className="flex items-start justify-between rounded-lg border border-gray-100 p-3"
-            >
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-900">{m.title}</span>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLOR[m.status]}`}
-                  >
-                    {m.status.replace("_", " ")}
-                  </span>
-                </div>
-                {m.description && (
-                  <p className="mt-1 text-sm text-gray-500">{m.description}</p>
-                )}
-              </div>
-              {m.status === "submitted" && (
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => act(m.id, "approved")}
-                    className="rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700"
-                  >
-                    Approve
-                  </button>
-                  <button
-                    onClick={() => act(m.id, "revision_requested")}
-                    className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
-                  >
-                    Request Revision
-                  </button>
-                </div>
-              )}
-            </div>
-          ))
-        )}
-      </div>
-    </div>
+    <Section title="Milestones">
+      {milestones.length === 0 ? (
+        <EmptyState title="No milestones yet">The team will add milestones as the project is planned.</EmptyState>
+      ) : (
+        <div className="ux-tablewrap">
+          <table className="ux-table ux-table--stack">
+            <thead>
+              <tr>
+                <th>Milestone</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {milestones.map((m) => (
+                <tr key={m.id}>
+                  <td data-label="Milestone">
+                    <span className="ux-cell-main">{m.title}</span>
+                    {m.description && <span className="ux-cell-sub">{m.description}</span>}
+                  </td>
+                  <td data-label="Status">
+                    <StatusMark tone={TONE[m.status]}>{LABEL[m.status] ?? m.status}</StatusMark>
+                  </td>
+                  <td data-label="Actions">
+                    {m.status === "submitted" && (
+                      <div className="ux-rowactions">
+                        <button type="button" className="ux-textbtn" disabled={busy === m.id} onClick={() => act(m, "approved")}>
+                          Approve
+                        </button>
+                        <button
+                          type="button"
+                          className="ux-textbtn ux-textbtn--danger"
+                          disabled={busy === m.id}
+                          onClick={() => act(m, "revision_requested")}
+                        >
+                          Request revision
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Section>
   );
 }

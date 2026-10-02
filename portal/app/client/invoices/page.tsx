@@ -1,10 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { NavLink as Link } from "@/components/nav-link";
-import {
-  INVOICE_STATUS_BADGE,
-  type InvoiceStatus,
-} from "@/lib/types";
+import { EmptyState, INVOICE_TONE, PageHeader, StatusMark, ugx } from "@/components/ux/primitives";
+
+const fmt = (d: string) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
 export default async function ClientInvoicesPage() {
   const supabase = await createClient();
@@ -21,50 +20,40 @@ export default async function ClientInvoicesPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <div>
-      <header className="mb-8">
-        <p className="section-title">Billing</p>
-        <h1 className="page-title mt-1">Invoices</h1>
-        <p className="page-subtitle">View and download your invoices and receipts.</p>
-      </header>
+    <div className="ux-page">
+      <PageHeader title="Invoices" description="View, pay and download your invoices and receipts." />
 
       {invoices && invoices.length > 0 ? (
-        <div className="data-table-wrap">
-          <table className="data-table">
+        <div className="ux-tablewrap">
+          <table className="ux-table ux-table--stack">
             <thead>
               <tr>
                 <th>Invoice</th>
+                <th>Issued</th>
+                <th>Due</th>
                 <th>Status</th>
-                <th>Total</th>
-                <th>Due Date</th>
-                <th className="text-right">Actions</th>
+                <th className="ux-num">Total</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
               {invoices.map((inv) => (
                 <tr key={inv.id}>
-                  <td>
-                    <span className="font-semibold" style={{ color: "var(--p-text-strong)" }}>
+                  <td data-label="Invoice">
+                    <Link href={`/client/invoices/${inv.id}`} className="ux-cell-main">
                       {inv.invoice_number ?? "—"}
-                    </span>
+                    </Link>
                   </td>
-                  <td>
-                    <span className={`badge ${INVOICE_STATUS_BADGE[inv.status as InvoiceStatus]}`}>
-                      {inv.status}
-                    </span>
+                  <td data-label="Issued">{inv.issue_date ? fmt(inv.issue_date) : "—"}</td>
+                  <td data-label="Due">{inv.due_date ? fmt(inv.due_date) : "—"}</td>
+                  <td data-label="Status">
+                    <StatusMark tone={INVOICE_TONE[inv.status] ?? "neutral"}>{inv.status}</StatusMark>
                   </td>
-                  <td>UGX {Number(inv.total).toLocaleString()}</td>
-                  <td style={{ color: "var(--p-muted)" }}>
-                    {inv.due_date ? new Date(inv.due_date).toLocaleDateString() : "—"}
-                  </td>
-                  <td>
-                    <div className="flex items-center justify-end gap-2">
-                      <a href={`/api/invoices/${inv.id}/pdf`} className="btn-ghost">
-                        PDF
-                      </a>
-                      <Link href={`/client/invoices/${inv.id}`} className="btn-primary">
-                        View
-                      </Link>
+                  <td className="ux-num" data-label="Total">{ugx(Number(inv.total))}</td>
+                  <td data-label="Action">
+                    <div className="ux-rowactions">
+                      <Link href={`/client/invoices/${inv.id}`} className="ux-textbtn">View</Link>
+                      <a href={`/api/invoices/${inv.id}/pdf`} className="ux-textbtn">PDF</a>
                     </div>
                   </td>
                 </tr>
@@ -73,9 +62,7 @@ export default async function ClientInvoicesPage() {
           </table>
         </div>
       ) : (
-        <div className="glass-card p-10 text-center text-sm" style={{ color: "var(--p-muted)" }}>
-          No invoices yet.
-        </div>
+        <EmptyState title="No invoices yet">Invoices we send you will appear here.</EmptyState>
       )}
     </div>
   );

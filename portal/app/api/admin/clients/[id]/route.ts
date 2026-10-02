@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { requireStaffApi } from "@/lib/api/require-staff";
 import { getClientOrError } from "./get-client";
-import { deleteClientAccount } from "@/lib/admin/delete-client-account";
+import {
+  archiveClientAccount,
+  deleteClientWithoutHistory,
+  restoreClientAccount,
+} from "@/lib/admin/client-lifecycle";
+import { isAdmin } from "@/lib/security/roles";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -82,25 +87,54 @@ export async function PATCH(request: Request, context: RouteContext) {
   return NextResponse.json({ success: true, client });
 }
 
-export async function DELETE(_request: Request, context: RouteContext) {
+// DELETE archives the client (sign-in blocked, history kept). Only an
+// administrator may do this; staff cannot. `?permanent=1` removes an account
+// only when it has no project or invoice history at all.
+export async function DELETE(request: Request, context: RouteContext) {
   const auth = await requireStaffApi();
   if ("error" in auth && auth.error) return auth.error;
+  if (!isAdmin(auth.role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const { id } = await context.params;
 
   if (id === auth.user!.id) {
-    return NextResponse.json({ error: "You cannot delete your own account" }, { status: 400 });
+    return NextResponse.json({ error: "You cannot archive your own account" }, { status: 400 });
   }
 
   const result = await getClientOrError(id);
   if ("error" in result && result.error) return result.error;
 
   const admin = result.admin!;
-  const { error } = await deleteClientAccount(admin, id);
+  const permanent = new URL(request.url).searchParams.get("permanent") === "1";
+
+  const outcome: { error: string | null; hasHistory?: boolean } = permanent
+    ? await deleteClientWithoutHistory(admin, id, auth.user!.id)
+    : await archiveClientAccount(admin, id, auth.user!.id);
+
+  const { error, hasHistory } = outcome;
 
   if (error) {
-    return NextResponse.json({ error }, { status: 400 });
+    return NextResponse.json({ error }, { status: hasHistory ? 409 : 400 });
   }
 
+  return NextResponse.json({ success: true, archived: !permanent });
+}
+
+// POST restores an archived client.
+export async function POST(_request: Request, context: RouteContext) {
+  const auth = await requireStaffApi();
+  if ("error" in auth && auth.error) return auth.error;
+  if (!isAdmin(auth.role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { id } = await context.params;
+  const result = await getClientOrError(id);
+  if ("error" in result && result.error) return result.error;
+
+  const { error } = await restoreClientAccount(result.admin!, id, auth.user!.id);
+  if (error) return NextResponse.json({ error }, { status: 400 });
   return NextResponse.json({ success: true });
 }

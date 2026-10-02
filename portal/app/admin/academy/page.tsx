@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import AcademyManager from "./academy-manager";
 import type { AcademyCourse } from "@/lib/types";
+import { isAdmin as isAdminRole } from "@/lib/security/roles";
 
 export default async function AdminAcademyPage() {
   const supabase = await createClient();
@@ -17,7 +18,7 @@ export default async function AdminAcademyPage() {
     .eq("id", user.id)
     .single();
 
-  if (!profile || profile.role !== "admin") {
+  if (!profile || !isAdminRole(profile.role)) {
     redirect("/admin");
   }
 
@@ -27,8 +28,7 @@ export default async function AdminAcademyPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Academy Courses</h1>
+    <div className="ux-page">
       <AcademyManager courses={(courses ?? []) as AcademyCourse[]} />
     </div>
   );

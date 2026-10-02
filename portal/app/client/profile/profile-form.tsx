@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { updateProfile } from "@/lib/actions/profile";
+import { useFeedback } from "@/components/ux/feedback";
 
 interface Profile {
   id: string;
@@ -14,99 +16,74 @@ interface Profile {
 }
 
 export default function ProfileForm({ profile }: { profile: Profile }) {
-  const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const router = useRouter();
+  const { toast } = useFeedback();
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   async function action(formData: FormData) {
-    setMsg(null);
+    setError("");
+    setSaving(true);
     const res = await updateProfile(formData);
+    setSaving(false);
     if (res.error) {
-      setMsg({ type: "err", text: res.error });
+      setError(res.error);
+      toast(res.error, "error");
       return;
     }
-    setMsg({ type: "ok", text: "Profile updated." });
+    toast("Profile saved.");
+    router.refresh();
   }
 
   return (
-    <div className="rounded-xl bg-white p-6 shadow">
-      {msg && (
-        <div
-          className={`mb-4 rounded-md p-3 text-sm ${
-            msg.type === "ok"
-              ? "bg-green-50 text-green-700"
-              : "bg-red-50 text-red-700"
-          }`}
-        >
-          {msg.text}
-        </div>
-      )}
+    <form action={action}>
+      {error && <div className="ux-notice ux-notice--error">{error}</div>}
 
-      <form action={action} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Email</label>
-          <input
-            readOnly
-            defaultValue={profile.email}
-            className="mt-1 block w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500"
-          />
+      <section className="ux-section">
+        <div className="ux-section-head">
+          <h2>Contact</h2>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Full Name
+        <div className="ux-formgrid">
+          <label className="ux-field ux-full">
+            <span>Email</span>
+            <input readOnly defaultValue={profile.email} className="ux-input" />
           </label>
-          <input
-            name="full_name"
-            defaultValue={profile.full_name ?? ""}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sch-orange focus:outline-none focus:ring-1 focus:ring-sch-orange"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Company Name
+          <label className="ux-field">
+            <span>Full name</span>
+            <input name="full_name" defaultValue={profile.full_name ?? ""} className="ux-input" />
           </label>
-          <input
-            name="company_name"
-            defaultValue={profile.company_name ?? ""}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sch-orange focus:outline-none focus:ring-1 focus:ring-sch-orange"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Phone</label>
-          <input
-            name="phone"
-            defaultValue={profile.phone ?? ""}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sch-orange focus:outline-none focus:ring-1 focus:ring-sch-orange"
-          />
-        </div>
-        <div className="sm:col-span-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Billing Address
+          <label className="ux-field">
+            <span>Phone</span>
+            <input name="phone" type="tel" defaultValue={profile.phone ?? ""} className="ux-input" />
           </label>
-          <textarea
-            name="billing_address"
-            rows={2}
-            defaultValue={profile.billing_address ?? ""}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sch-orange focus:outline-none focus:ring-1 focus:ring-sch-orange"
-          />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Tax ID
+      </section>
+
+      <section className="ux-section">
+        <div className="ux-section-head">
+          <h2>Billing</h2>
+        </div>
+        <div className="ux-formgrid">
+          <label className="ux-field">
+            <span>Company name</span>
+            <input name="company_name" defaultValue={profile.company_name ?? ""} className="ux-input" />
           </label>
-          <input
-            name="tax_id"
-            defaultValue={profile.tax_id ?? ""}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sch-orange focus:outline-none focus:ring-1 focus:ring-sch-orange"
-          />
+          <label className="ux-field">
+            <span>Tax ID</span>
+            <input name="tax_id" defaultValue={profile.tax_id ?? ""} className="ux-input" />
+          </label>
+          <label className="ux-field ux-full">
+            <span>Billing address</span>
+            <textarea name="billing_address" rows={3} defaultValue={profile.billing_address ?? ""} className="ux-input" />
+          </label>
         </div>
-        <div className="sm:col-span-2">
-          <button
-            type="submit"
-            className="rounded-md bg-sch-orange px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600"
-          >
-            Save Changes
-          </button>
-        </div>
-      </form>
-    </div>
+      </section>
+
+      <div className="ux-actions">
+        <button type="submit" disabled={saving} className="ux-btn ux-btn--primary">
+          {saving ? "Saving…" : "Save changes"}
+        </button>
+      </div>
+    </form>
   );
 }

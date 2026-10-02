@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { updateInvoice } from "@/lib/actions/invoices";
+import { useFeedback } from "@/components/ux/feedback";
 
 type ClientOption = {
   id: string;
@@ -28,99 +30,76 @@ export default function EditInvoiceForm({
   clients: ClientOption[];
 }) {
   const router = useRouter();
+  const { toast } = useFeedback();
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   async function handleSubmit(formData: FormData) {
     setError("");
+    setSaving(true);
     const res = await updateInvoice(invoice.id, formData);
+    setSaving(false);
     if (res.error) {
       setError(res.error);
+      toast(res.error, "error");
     } else {
+      toast("Invoice updated");
       router.push(`/admin/invoices/${invoice.id}`);
     }
   }
 
   return (
-    <form action={handleSubmit} className="space-y-4 rounded-xl bg-white p-6 shadow">
-      {error && (
-        <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>
-      )}
+    <form action={handleSubmit}>
+      {error && <div className="ux-notice ux-notice--error">{error}</div>}
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Client</label>
-        <select
-          name="client_id"
-          required
-          defaultValue={invoice.client_id}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-        >
-          <option value="">Select client</option>
-          {clients.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.company_name || c.full_name || c.email}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Issue Date</label>
-          <input
-            type="date"
-            name="issue_date"
-            required
-            defaultValue={invoice.issue_date}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-          />
+      <section className="ux-fin-formsec">
+        <div className="ux-section-head">
+          <h2>Client and dates</h2>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Due Date</label>
-          <input
-            type="date"
-            name="due_date"
-            defaultValue={invoice.due_date ?? ""}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-          />
+        <div className="ux-formgrid">
+          <label className="ux-field ux-full">
+            <span>Client</span>
+            <select name="client_id" required defaultValue={invoice.client_id} className="ux-input ux-select">
+              <option value="">Select client</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.company_name || c.full_name || c.email}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="ux-field">
+            <span>Issue date</span>
+            <input type="date" name="issue_date" required defaultValue={invoice.issue_date} className="ux-input" />
+          </label>
+          <label className="ux-field">
+            <span>Due date</span>
+            <input type="date" name="due_date" defaultValue={invoice.due_date ?? ""} className="ux-input" />
+          </label>
+          <label className="ux-field">
+            <span>Tax rate (%)</span>
+            <input type="number" name="tax_rate" defaultValue={invoice.tax_rate} min={0} max={100} className="ux-input" />
+          </label>
         </div>
-      </div>
+      </section>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Tax Rate (%)</label>
-        <input
-          type="number"
-          name="tax_rate"
-          defaultValue={invoice.tax_rate}
-          min={0}
-          max={100}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-        />
-      </div>
+      <section className="ux-fin-formsec">
+        <div className="ux-section-head">
+          <h2>Notes</h2>
+        </div>
+        <label className="ux-field">
+          <span className="sr-only">Notes</span>
+          <textarea name="notes" rows={3} defaultValue={invoice.notes ?? ""} className="ux-input" />
+        </label>
+      </section>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Notes</label>
-        <textarea
-          name="notes"
-          rows={3}
-          defaultValue={invoice.notes ?? ""}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-        />
-      </div>
-
-      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        <button
-          type="button"
-          onClick={() => router.push(`/admin/invoices/${invoice.id}`)}
-          className="rounded-md bg-gray-200 px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-300"
-        >
+      <div className="ux-fin-submitbar">
+        <button type="submit" className="ux-btn ux-btn--primary" disabled={saving}>
+          {saving ? "Saving…" : "Save changes"}
+        </button>
+        <Link href={`/admin/invoices/${invoice.id}`} className="ux-btn ux-btn--secondary">
           Cancel
-        </button>
-        <button
-          type="submit"
-          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-        >
-          Save Changes
-        </button>
+        </Link>
       </div>
     </form>
   );

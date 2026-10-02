@@ -3,35 +3,22 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { InvoiceStatus } from "@/lib/types";
+import { canAccessFinance, isAdmin as isAdminRole } from "@/lib/security/roles";
+import { invoiceTransitionError } from "@/lib/finance/lifecycle";
 
 type ActionResult = { error?: string; success?: boolean; id?: string };
 
-async function recalcInvoiceTotals(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  invoiceId: string
-) {
-  const [{ data: items }, { data: inv }] = await Promise.all([
-    supabase.from("invoice_line_items").select("amount").eq("invoice_id", invoiceId),
-    supabase.from("invoices").select("tax_rate").eq("id", invoiceId).single(),
-  ]);
+// Invoice subtotal, tax and total are calculated in ONE place: the database
+// (migration 010 triggers). Actions only change line items, tax rate and status;
+// they never compute or write totals.
 
-  const subtotal = (items ?? []).reduce((sum, i) => sum + Number(i.amount), 0);
-  const taxRate = Number(inv?.tax_rate ?? 0);
-  const tax_amount = subtotal * (taxRate / 100);
-  const total = subtotal + tax_amount;
-
-  await supabase
-    .from("invoices")
-    .update({ subtotal, tax_amount, total })
-    .eq("id", invoiceId);
-}
-
-async function requireAdmin() {
+// Finance and admin operate invoices; deleting a draft stays admin-only.
+async function requireFinance() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { supabase, user: null, isAdmin: false };
+  if (!user) return { supabase, user: null, role: null as string | null, allowed: false };
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -39,13 +26,13 @@ async function requireAdmin() {
     .eq("id", user.id)
     .single();
 
-  const isAdmin = profile?.role === "admin";
-  return { supabase, user, isAdmin };
+  const role = (profile?.role ?? null) as string | null;
+  return { supabase, user, role, allowed: canAccessFinance(role) };
 }
 
 export async function createInvoice(formData: FormData): Promise<ActionResult> {
-  const { supabase, isAdmin } = await requireAdmin();
-  if (!isAdmin) return { error: "Forbidden" };
+  const { supabase, allowed } = await requireFinance();
+  if (!allowed) return { error: "Forbidden" };
 
   const client_id = formData.get("client_id") as string;
   const project_id = (formData.get("project_id") as string) || null;
@@ -56,16 +43,12 @@ export async function createInvoice(formData: FormData): Promise<ActionResult> {
 
   if (!client_id) return { error: "Client is required" };
 
-  // Generate invoice number via DB function
-  const { data: numData, error: numError } = await supabase.rpc("generate_invoice_number");
-  if (numError) return { error: numError.message };
-
+  // The invoice number is assigned atomically by the database on insert.
   const { data, error } = await supabase
     .from("invoices")
     .insert({
       client_id,
       project_id,
-      invoice_number: numData as string,
       status: "draft",
       issue_date,
       due_date,
@@ -84,8 +67,8 @@ export async function updateInvoice(
   invoiceId: string,
   formData: FormData
 ): Promise<ActionResult> {
-  const { supabase, isAdmin } = await requireAdmin();
-  if (!isAdmin) return { error: "Forbidden" };
+  const { supabase, allowed } = await requireFinance();
+  if (!allowed) return { error: "Forbidden" };
 
   const client_id = formData.get("client_id") as string;
 
@@ -102,7 +85,6 @@ export async function updateInvoice(
     .eq("id", invoiceId);
 
   if (error) return { error: error.message };
-  await recalcInvoiceTotals(supabase, invoiceId);
   revalidatePath("/admin/invoices");
   revalidatePath(`/admin/invoices/${invoiceId}`);
   revalidatePath(`/client/invoices/${invoiceId}`);
@@ -113,32 +95,32 @@ export async function addLineItem(
   invoiceId: string,
   formData: FormData
 ): Promise<ActionResult> {
-  const { supabase, isAdmin } = await requireAdmin();
-  if (!isAdmin) return { error: "Forbidden" };
+  const { supabase, allowed } = await requireFinance();
+  if (!allowed) return { error: "Forbidden" };
 
   const description = (formData.get("description") as string)?.trim();
   const quantity = Number(formData.get("quantity") || 1);
   const unit_price = Number(formData.get("unit_price") || 0);
 
   if (!description) return { error: "Description is required" };
+  if (!Number.isFinite(quantity) || quantity <= 0) return { error: "Quantity must be greater than 0" };
+  if (!Number.isFinite(unit_price) || unit_price < 0) return { error: "Unit price cannot be negative" };
 
   const { error } = await supabase.from("invoice_line_items").insert({
     invoice_id: invoiceId,
     description,
     quantity,
     unit_price,
-    amount: quantity * unit_price,
   });
 
   if (error) return { error: error.message };
-  await recalcInvoiceTotals(supabase, invoiceId);
   revalidatePath(`/admin/invoices/${invoiceId}`);
   return { success: true };
 }
 
 export async function deleteLineItem(lineItemId: string, invoiceId: string): Promise<ActionResult> {
-  const { supabase, isAdmin } = await requireAdmin();
-  if (!isAdmin) return { error: "Forbidden" };
+  const { supabase, allowed } = await requireFinance();
+  if (!allowed) return { error: "Forbidden" };
 
   const { error } = await supabase
     .from("invoice_line_items")
@@ -146,7 +128,6 @@ export async function deleteLineItem(lineItemId: string, invoiceId: string): Pro
     .eq("id", lineItemId);
 
   if (error) return { error: error.message };
-  await recalcInvoiceTotals(supabase, invoiceId);
   revalidatePath(`/admin/invoices/${invoiceId}`);
   return { success: true };
 }
@@ -155,8 +136,24 @@ export async function setInvoiceStatus(
   invoiceId: string,
   status: InvoiceStatus
 ): Promise<ActionResult> {
-  const { supabase, isAdmin } = await requireAdmin();
-  if (!isAdmin) return { error: "Forbidden" };
+  const { supabase, allowed } = await requireFinance();
+  if (!allowed) return { error: "Forbidden" };
+
+  // Readable error first; the database trigger remains the source of truth.
+  const { data: current } = await supabase
+    .from("invoices")
+    .select("status, total")
+    .eq("id", invoiceId)
+    .single();
+  if (!current) return { error: "Invoice not found" };
+  const { data: paidRows } = await supabase
+    .from("payments")
+    .select("amount")
+    .eq("invoice_id", invoiceId)
+    .not("paid_at", "is", null);
+  const paid = (paidRows ?? []).reduce((sum, p) => sum + Number(p.amount), 0);
+  const blocked = invoiceTransitionError(current.status, status, paid, Number(current.total));
+  if (blocked) return { error: blocked };
 
   const { error } = await supabase
     .from("invoices")
@@ -171,9 +168,11 @@ export async function setInvoiceStatus(
 }
 
 export async function deleteInvoice(invoiceId: string): Promise<ActionResult> {
-  const { supabase, isAdmin } = await requireAdmin();
-  if (!isAdmin) return { error: "Forbidden" };
+  const { supabase, allowed, role } = await requireFinance();
+  if (!allowed || !isAdminRole(role)) return { error: "Forbidden" };
 
+  // The database only allows deleting a draft with no payments; anything else
+  // must be cancelled so the financial record survives.
   const { error } = await supabase
     .from("invoices")
     .delete()

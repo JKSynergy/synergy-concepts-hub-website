@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ServicesManager from "./services-manager";
+import { PageHeader } from "@/components/ux/primitives";
 import type { Service } from "@/lib/types";
+import { canManageServices, isOperationalStaff } from "@/lib/security/roles";
 
 export default async function AdminServicesPage() {
   const supabase = await createClient();
@@ -17,7 +19,7 @@ export default async function AdminServicesPage() {
     .eq("id", user.id)
     .single();
 
-  if (!profile || (profile.role !== "admin" && profile.role !== "staff")) {
+  if (!profile || !isOperationalStaff(profile.role)) {
     redirect("/client");
   }
 
@@ -27,9 +29,8 @@ export default async function AdminServicesPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Service Catalog</h1>
-      <ServicesManager services={(services ?? []) as Service[]} />
+    <div className="ux-page ux-page--wide">
+      <ServicesManager services={(services ?? []) as Service[]} canEdit={canManageServices(profile.role)} />
     </div>
   );
 }

@@ -7,28 +7,34 @@ import {
   StyleSheet,
 } from "@react-pdf/renderer";
 import type { Invoice, InvoiceLineItem, Payment } from "@/lib/types";
+import {
+  SCH_BRAND,
+  DEFAULT_PAYMENT_TERMS,
+  DEFAULT_STANDARD_TERMS,
+  DEFAULT_PAYMENT_METHODS,
+  DEFAULT_SIGNATURE,
+  type InvoiceDoc,
+} from "./invoice-doc";
 
 const C = {
-  primary: "#1A2E5A",
+  navy: "#1A2E5A",
   dark: "#0F172A",
   body: "#374151",
   muted: "#6B7280",
-  border: "#E5E7EB",
+  line: "#E5E7EB",
   bgLight: "#F9FAFB",
-  bgStripe: "#F3F4F6",
   white: "#FFFFFF",
-  tableHead: "#1A2E5A",
+  orange: "#ED8C22",
 };
 
 const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
-  draft: { bg: "#1A2E5A", text: "#FFFFFF" },
+  draft: { bg: "#F3F4F6", text: "#374151" },
   sent: { bg: "#EFF6FF", text: "#1E40AF" },
   paid: { bg: "#ECFDF5", text: "#065F46" },
   "partially paid": { bg: "#FEF3C7", text: "#92400E" },
   overdue: { bg: "#FEF2F2", text: "#991B1B" },
   cancelled: { bg: "#F3F4F6", text: "#9CA3AF" },
 };
-
 
 const styles = StyleSheet.create({
   page: {
@@ -37,224 +43,144 @@ const styles = StyleSheet.create({
     color: C.dark,
     backgroundColor: C.white,
     flexDirection: "column",
-    paddingTop: 36,
+    paddingTop: 30,
+    paddingBottom: 56,
   },
   content: {
     flex: 1,
     paddingHorizontal: 44,
-    paddingBottom: 24,
   },
+
+  // Page-1 header
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 24,
+    marginBottom: 14,
   },
-  brandBlock: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  logo: {
-    width: 60,
-    height: 60,
-    objectFit: "contain",
-    marginRight: 12,
-  },
-  brandName: {
-    fontSize: 13,
-    fontWeight: "bold",
-    color: C.dark,
-    marginBottom: 3,
-  },
-  brandTagline: {
-    fontSize: 8.5,
-    color: C.muted,
-    letterSpacing: 0.4,
-  },
-  brandContact: {
-    fontSize: 8,
-    color: C.body,
-    marginTop: 4,
-  },
-  titleBlock: {
-    alignItems: "flex-start",
-  },
+  brandBlock: { flexDirection: "row", alignItems: "center" },
+  logo: { width: 54, height: 54, objectFit: "contain", marginRight: 12 },
+  brandName: { fontSize: 13, fontWeight: "bold", color: C.dark, marginBottom: 3 },
+  brandTagline: { fontSize: 8.5, color: C.muted, letterSpacing: 0.4 },
+  brandContact: { fontSize: 8, color: C.body, marginTop: 3 },
+  titleBlock: { alignItems: "flex-end" },
   invoiceTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "bold",
-    color: C.primary,
+    color: C.navy,
     letterSpacing: 2,
     marginBottom: 12,
   },
-  metaRow: {
-    flexDirection: "row",
-    justifyContent: "flex-start",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  metaLabel: {
-    fontSize: 8.5,
-    color: C.muted,
-    marginRight: 8,
-    minWidth: 58,
-    textAlign: "left",
-  },
-  metaValue: {
-    fontSize: 8.5,
-    fontWeight: "bold",
-    color: C.dark,
-    minWidth: 80,
-    textAlign: "left",
-  },
-  badge: {
-    marginTop: 10,
-    paddingVertical: 5,
-    paddingHorizontal: 14,
-    borderRadius: 3,
-    alignSelf: "flex-start",
-  },
-  badgeText: {
+  metaRow: { flexDirection: "row", alignItems: "center", marginBottom: 3 },
+  metaLabel: { fontSize: 8.5, color: C.muted, marginRight: 8, minWidth: 58, textAlign: "right" },
+  metaValue: { fontSize: 8.5, fontWeight: "bold", color: C.dark, textAlign: "left" },
+  statusText: {
     fontSize: 8,
     fontWeight: "bold",
     textTransform: "uppercase",
     letterSpacing: 1.5,
+    marginTop: 8,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
   },
-  divider: {
-    height: 1,
-    backgroundColor: C.border,
-    marginBottom: 26,
-  },
-  infoRow: {
+
+  // Compact continuation header (pages 2+)
+  contHeader: {
+    position: "absolute",
+    top: 16,
+    left: 44,
+    right: 44,
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 30,
+    alignItems: "center",
+    paddingBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: C.line,
   },
-  infoBlock: {
-    width: "46%",
-  },
+  contBrand: { fontSize: 8.5, fontWeight: "bold", color: C.navy },
+  contMeta: { fontSize: 8.5, color: C.muted },
+
+  divider: { height: 1, backgroundColor: C.navy, marginBottom: 14 },
+  thinRule: { height: 1, backgroundColor: C.line, marginVertical: 14 },
+
+  // Bill To / From
+  infoRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 14 },
+  infoBlock: { width: "46%" },
   infoLabel: {
     fontSize: 7.5,
-    color: C.primary,
+    color: C.navy,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+    letterSpacing: 1.8,
+    marginBottom: 6,
+  },
+  infoName: { fontSize: 12.5, fontWeight: "bold", color: C.dark, marginBottom: 5, lineHeight: 1.3 },
+  infoSub: { fontSize: 9, color: C.body, marginBottom: 2, lineHeight: 1.5 },
+
+  // Sections
+  section: { marginBottom: 13 },
+  sectionHead: {
+    fontSize: 8,
+    color: C.navy,
     fontWeight: "bold",
     textTransform: "uppercase",
     letterSpacing: 1.8,
     marginBottom: 8,
+    paddingBottom: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: C.line,
   },
-  infoName: {
-    fontSize: 13,
-    fontWeight: "bold",
-    color: C.dark,
-    marginBottom: 5,
-    lineHeight: 1.3,
-  },
-  infoSub: {
-    fontSize: 9,
-    color: C.body,
-    marginBottom: 2,
-    lineHeight: 1.5,
-  },
-  projectCard: {
-    backgroundColor: C.bgLight,
-    padding: 14,
-    marginBottom: 26,
-    borderLeftWidth: 3,
-    borderLeftColor: C.primary,
-  },
-  sectionLabel: {
-    fontSize: 7.5,
-    color: C.primary,
-    fontWeight: "bold",
-    textTransform: "uppercase",
-    letterSpacing: 1.5,
-    marginBottom: 5,
-  },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: "bold",
-    color: C.dark,
-    marginBottom: 3,
-  },
-  sectionBody: {
-    fontSize: 9.5,
-    color: C.body,
-    lineHeight: 1.5,
-  },
-  table: {
-    marginBottom: 26,
-  },
+  sectionBody: { fontSize: 9.5, color: C.body, lineHeight: 1.55 },
+  bulletRow: { flexDirection: "row", marginBottom: 3 },
+  bulletDot: { width: 12, fontSize: 9.5, color: C.orange },
+  bulletText: { flex: 1, fontSize: 9.5, color: C.body, lineHeight: 1.45 },
+  scopeTitle: { fontSize: 10.5, fontWeight: "bold", color: C.dark, marginBottom: 5 },
+
+  // Line items
+  table: { marginBottom: 14 },
   tableHeader: {
     flexDirection: "row",
-    paddingVertical: 9,
-    paddingHorizontal: 12,
-    backgroundColor: C.tableHead,
+    paddingVertical: 8,
+    paddingHorizontal: 0,
+    borderBottomWidth: 1.5,
+    borderBottomColor: C.navy,
   },
   tableHeaderCell: {
     fontSize: 8,
     fontWeight: "bold",
-    color: C.white,
+    color: C.navy,
     textTransform: "uppercase",
     letterSpacing: 1,
   },
   tableRow: {
     flexDirection: "row",
-    paddingVertical: 11,
-    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: C.border,
-  },
-  tableRowAlt: {
-    backgroundColor: C.bgLight,
+    borderBottomColor: C.line,
   },
   cellDesc: { flex: 3.2, paddingRight: 10 },
   cellQty: { flex: 0.8, textAlign: "right", paddingRight: 10 },
   cellPrice: { flex: 1.6, textAlign: "right", paddingRight: 10 },
   cellAmount: { flex: 1.6, textAlign: "right" },
-  cellText: {
-    fontSize: 9.5,
-    color: C.body,
-  },
-  cellTextBold: {
-    fontSize: 9.5,
-    fontWeight: "bold",
-    color: C.dark,
-  },
-  cellDescText: {
-    fontSize: 9.5,
-    color: C.dark,
-  },
-  totalsSection: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 28,
-  },
-  totalsCard: {
-    width: 268,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-    paddingTop: 14,
-  },
-  totalRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 5,
-  },
-  totalLabel: {
-    fontSize: 8.5,
-    color: C.muted,
-  },
-  totalValue: {
-    fontSize: 8.5,
-    fontWeight: "bold",
-    color: C.dark,
-  },
+  cellText: { fontSize: 9.5, color: C.body, lineHeight: 1.45 },
+  cellTextBold: { fontSize: 9.5, fontWeight: "bold", color: C.dark },
+  cellDescText: { fontSize: 9.5, color: C.dark, lineHeight: 1.45 },
+
+  // Totals
+  totalsSection: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
+  stampArea: { flex: 1, alignItems: "center", justifyContent: "center" },
+  stampImage: { width: 80, height: 80, objectFit: "contain" },
+  totalsCard: { width: 270 },
+  totalRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 4 },
+  totalLabel: { fontSize: 8.5, color: C.muted },
+  totalValue: { fontSize: 8.5, fontWeight: "bold", color: C.dark },
   grandTotalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingTop: 10,
-    paddingBottom: 4,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
+    borderTopWidth: 1.5,
+    borderTopColor: C.navy,
     marginTop: 6,
   },
   grandTotalLabel: {
@@ -264,231 +190,52 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 1.5,
   },
-  grandTotalValue: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: C.primary,
-  },
-  paymentCard: {
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 4,
-    backgroundColor: C.bgLight,
-    padding: 16,
-  },
-  paymentCardTitle: {
-    fontSize: 8,
-    color: C.primary,
-    fontWeight: "bold",
-    textTransform: "uppercase",
-    letterSpacing: 1.8,
-    marginBottom: 12,
-  },
-  paymentCardBody: {
-    flexDirection: "row",
-  },
-  paymentRow: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "flex-start",
-  },
-  bankIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#D1D5DB",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  bankIconText: {
-    fontSize: 16,
-    color: "#6B7280",
-  },
-  bankDetails: {
-    flex: 1,
-  },
-  bankDetailLabel: {
-    fontSize: 8.5,
-    fontWeight: "bold",
-    color: C.dark,
-    marginBottom: 1,
-  },
-  bankDetailValue: {
-    fontSize: 8.5,
-    color: C.body,
-    marginBottom: 5,
-  },
-  paymentCardDivider: {
-    width: 1,
-    backgroundColor: C.border,
-    marginHorizontal: 16,
-  },
-  notesCard: {
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 4,
-    backgroundColor: C.bgLight,
-    padding: 16,
-  },
-  notesTitle: {
-    fontSize: 8,
-    color: C.dark,
-    fontWeight: "bold",
-    textTransform: "uppercase",
-    letterSpacing: 1.5,
-    marginBottom: 8,
-  },
-  notesBody: {
-    fontSize: 9,
-    color: C.body,
-    lineHeight: 1.6,
-    marginBottom: 4,
-  },
-  termsCard: {
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 4,
-    backgroundColor: C.bgLight,
-    padding: 16,
-  },
-  termsTitle: {
-    fontSize: 8,
-    color: C.dark,
-    fontWeight: "bold",
-    textTransform: "uppercase",
-    letterSpacing: 1.5,
-    marginBottom: 8,
-  },
-  termsBody: {
-    fontSize: 9,
-    color: C.body,
-    lineHeight: 1.6,
-    marginBottom: 4,
-  },
-  stampContainer: {
-    marginTop: 14,
-    alignItems: "flex-start",
-  },
-  stampImage: {
-    width: 80,
-    height: 80,
-    objectFit: "contain",
-    transform: "rotate(12deg)",
-    transformOrigin: "center",
-    opacity: 0.82,
-  },
-  stampArea: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  totalsStamp: {
-    marginTop: 0,
-    padding: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  signatureSection: {
-    marginTop: 20,
-    alignItems: "flex-end",
-  },
-  signatureBlock: {
-    alignItems: "center",
-  },
-  signatureImage: {
-    width: 160,
-    height: 50,
-    objectFit: "contain",
-  },
-  signatureLine: {
-    width: 160,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-    marginTop: 2,
-    marginBottom: 4,
-  },
-  signatureName: {
-    fontSize: 9,
-    color: C.dark,
-    fontWeight: "bold",
-    marginTop: 2,
-  },
-  signatureTitle: {
-    fontSize: 8,
-    color: C.muted,
-    marginTop: 2,
-  },
+  grandTotalValue: { fontSize: 14, fontWeight: "bold", color: C.navy },
+
+  // Payment details — flat ruled block, not a card
+  paymentBlock: { marginBottom: 13 },
+  paymentMethods: { flexDirection: "row", flexWrap: "wrap" },
+  paymentMethod: { width: "46%", marginRight: "4%", marginBottom: 8 },
+  paymentMethodTitle: { fontSize: 9, fontWeight: "bold", color: C.dark, marginBottom: 3 },
+  paymentField: { fontSize: 8.5, color: C.body, marginBottom: 2 },
+
+  // Signature
+  signatureSection: { marginTop: 2, alignItems: "flex-end" },
+  signatureBlock: { alignItems: "center" },
+  signatureImage: { width: 110, height: 32, objectFit: "contain" },
+  signatureLine: { width: 160, borderBottomWidth: 1, borderBottomColor: C.line, marginTop: 2, marginBottom: 4 },
+  signatureName: { fontSize: 9, color: C.dark, fontWeight: "bold", marginTop: 2 },
+  signatureTitle: { fontSize: 8, color: C.muted, marginTop: 2 },
+
+  // Footer (every page)
   footer: {
-    paddingHorizontal: 44,
-    paddingTop: 14,
-    paddingBottom: 20,
+    position: "absolute",
+    bottom: 20,
+    left: 44,
+    right: 44,
+    paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: C.border,
+    borderTopColor: C.line,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
   },
-  footerLeft: {
-    flexDirection: "column",
-    justifyContent: "center",
-    flex: 1,
-  },
-  footerIconCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: C.bgStripe,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: C.border,
-  },
-  footerIconText: {
-    fontSize: 11,
-    color: C.muted,
-  },
-  footerBrand: {
-    fontSize: 10,
-    fontWeight: "bold",
-    color: C.dark,
-    marginBottom: 2,
-  },
-  footerTagline: {
-    fontSize: 8,
-    color: C.muted,
-    letterSpacing: 0.4,
-  },
-  footerVerticalDivider: {
-    width: 1,
-    height: 36,
-    backgroundColor: C.border,
-    marginHorizontal: 24,
-  },
-  footerRight: {
-    flex: 1,
-    alignItems: "flex-end",
-  },
-  footerLinkRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 3,
-    justifyContent: "flex-end",
-  },
-  footerLinkIcon: {
-    fontSize: 9,
-    color: C.muted,
-    marginRight: 4,
-  },
-  footerLink: {
-    fontSize: 8.5,
-    color: C.muted,
-    textAlign: "right",
-  },
+  footerBrand: { fontSize: 8.5, color: C.muted },
+  footerPage: { fontSize: 8.5, color: C.muted, textAlign: "right" },
 });
+
+function SectionList({ items }: { items: string[] }) {
+  return (
+    <>
+      {items.map((item, i) => (
+        <View key={i} style={styles.bulletRow} wrap={false}>
+          <Text style={styles.bulletDot}>•</Text>
+          <Text style={styles.bulletText}>{item}</Text>
+        </View>
+      ))}
+    </>
+  );
+}
 
 export default function InvoicePDF({
   invoice,
@@ -501,7 +248,7 @@ export default function InvoicePDF({
   cancelledStampSrc,
   signatureSrc,
   project,
-  payments,
+  doc,
 }: {
   invoice: Invoice;
   lineItems: InvoiceLineItem[];
@@ -518,26 +265,24 @@ export default function InvoicePDF({
   unpaidStampSrc?: string;
   partialStampSrc?: string;
   cancelledStampSrc?: string;
+  /** @deprecated prefer doc.signature.imageSrc */
   signatureSrc?: string;
   project?: { title: string; description?: string | null } | null;
+  /** @deprecated unused — kept in signature for the caller */
   payments?: Payment[] | null;
+  doc?: InvoiceDoc | null;
 }) {
   const statusStyle = STATUS_STYLES[invoice.status] || STATUS_STYLES.draft;
 
-  // Compute totals from line items directly — the stored invoice fields may be stale (0)
-  // if line items were added after the invoice was created without a recalc trigger.
-  const computedSubtotal = lineItems.reduce((sum, item) => sum + Number(item.amount), 0);
-  const displaySubtotal = invoice.subtotal > 0 ? Number(invoice.subtotal) : computedSubtotal;
+  // Totals are stored by the database (migration 010); the document only
+  // displays them so it can never disagree with the invoice.
+  const cc = invoice.currency || "UGX";
+  const money = (n: number) => `${cc} ${Math.round(Number(n)).toLocaleString("en-US")}`;
+  const displaySubtotal = Number(invoice.subtotal);
   const displayTaxRate = Number(invoice.tax_rate) || 0;
-  const displayTaxAmount =
-    displayTaxRate > 0
-      ? invoice.tax_amount > 0
-        ? Number(invoice.tax_amount)
-        : displaySubtotal * (displayTaxRate / 100)
-      : 0;
-  const displayTotal =
-    invoice.total > 0 ? Number(invoice.total) : displaySubtotal + displayTaxAmount;
-  const discount = Math.max(0, displaySubtotal + displayTaxAmount - displayTotal);
+  const displayTaxAmount = Number(invoice.tax_amount);
+  const displayTotal = Number(invoice.total);
+
   const stampImageSrc =
     invoice.status === "paid" && paidStampSrc
       ? paidStampSrc
@@ -549,19 +294,47 @@ export default function InvoicePDF({
       ? cancelledStampSrc
       : null;
 
+  // Document sections — invoice-specific content wins; defaults fill gaps;
+  // empty sections are simply not rendered.
+  const scopeItems = doc?.scope?.items ?? [];
+  const scopeParagraphs = doc?.scope?.paragraphs ?? [];
+  const hasScope = !!doc?.scope && (scopeItems.length > 0 || scopeParagraphs.length > 0 || !!doc.scope.title);
+
+  const paymentTerms = doc?.paymentTerms ?? DEFAULT_PAYMENT_TERMS;
+  const standardTerms = doc?.standardTerms ?? DEFAULT_STANDARD_TERMS;
+  const additionalTerms = doc?.additionalTerms ?? [];
+  const projectNotes = doc?.projectNotes ?? [];
+  const paymentMethods = doc?.paymentMethods ?? DEFAULT_PAYMENT_METHODS;
+  const signature = doc && "signature" in doc
+    ? doc.signature
+    : signatureSrc
+      ? { ...DEFAULT_SIGNATURE, imageSrc: signatureSrc }
+      : null;
+
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" style={styles.page} wrap>
+        {/* Compact continuation header on pages 2+ */}
+        <View fixed style={styles.contHeader} render={({ pageNumber }) =>
+          pageNumber > 1 ? (
+            <>
+              <Text style={styles.contBrand}>{SCH_BRAND.name}</Text>
+              <Text style={styles.contMeta}>Invoice {invoice.invoice_number}</Text>
+            </>
+          ) : null
+        } />
+
         <View style={styles.content}>
-          <View style={styles.header}>
+          {/* Full header — page 1 only (flows, not fixed) */}
+          <View style={styles.header} wrap={false}>
             <View style={styles.brandBlock}>
               {logoSrc && <Image style={styles.logo} src={logoSrc} />}
               <View>
-                <Text style={styles.brandName}>Synergy Concepts Hub</Text>
-                <Text style={styles.brandTagline}>Where Ideas Come to Life</Text>
-                <Text style={styles.brandContact}>Phone: +256706739311</Text>
-                <Text style={styles.brandContact}>Email: synergyconceptshub@gmail.com</Text>
-                <Text style={styles.brandContact}>Website: www.synergyconceptshub.com</Text>
+                <Text style={styles.brandName}>{SCH_BRAND.name}</Text>
+                <Text style={styles.brandTagline}>{SCH_BRAND.tagline}</Text>
+                <Text style={styles.brandContact}>Phone: {SCH_BRAND.phone}</Text>
+                <Text style={styles.brandContact}>Email: {SCH_BRAND.email}</Text>
+                <Text style={styles.brandContact}>Website: {SCH_BRAND.website}</Text>
               </View>
             </View>
             <View style={styles.titleBlock}>
@@ -580,15 +353,15 @@ export default function InvoicePDF({
                   <Text style={styles.metaValue}>{invoice.due_date}</Text>
                 </View>
               )}
-              <View style={[styles.badge, { backgroundColor: statusStyle.bg }]}>
-                <Text style={[styles.badgeText, { color: statusStyle.text }]}>{invoice.status}</Text>
-              </View>
+              <Text style={[styles.statusText, { backgroundColor: statusStyle.bg, color: statusStyle.text }]}>
+                {invoice.status}
+              </Text>
             </View>
           </View>
 
           <View style={styles.divider} />
 
-          <View style={styles.infoRow}>
+          <View style={styles.infoRow} wrap={false}>
             <View style={styles.infoBlock}>
               <Text style={styles.infoLabel}>Bill To</Text>
               <Text style={styles.infoName}>{client.company_name || client.full_name || client.email}</Text>
@@ -599,156 +372,132 @@ export default function InvoicePDF({
             </View>
             <View style={styles.infoBlock}>
               <Text style={styles.infoLabel}>From</Text>
-              <Text style={styles.infoName}>Synergy Concepts Hub</Text>
-              <Text style={styles.infoSub}>synergyconceptshub@gmail.com</Text>
-              <Text style={styles.infoSub}>www.synergyconceptshub.com</Text>
+              <Text style={styles.infoName}>{SCH_BRAND.name}</Text>
+              <Text style={styles.infoSub}>{SCH_BRAND.email}</Text>
+              <Text style={styles.infoSub}>{SCH_BRAND.website}</Text>
             </View>
           </View>
 
-          {project && (
-            <View style={styles.projectCard}>
-              <Text style={styles.sectionLabel}>Project Summary</Text>
-              <Text style={styles.sectionTitle}>{project.title}</Text>
-              {project.description && <Text style={styles.sectionBody}>{project.description}</Text>}
+          {/* Scope of Work — before the pricing table */}
+          {hasScope && (
+            <View style={styles.section} minPresenceAhead={40}>
+              <Text style={styles.sectionHead}>Scope of Work</Text>
+              {doc!.scope!.title && <Text style={styles.scopeTitle}>{doc!.scope!.title}</Text>}
+              {scopeParagraphs.map((p, i) => (
+                <Text key={i} style={styles.sectionBody}>{p}</Text>
+              ))}
+              <SectionList items={scopeItems} />
             </View>
           )}
 
+          {/* Services / Fees — header repeats on continuation pages */}
           <View style={styles.table}>
-            <View style={styles.tableHeader}>
+            <View style={styles.tableHeader} fixed>
               <Text style={[styles.cellDesc, styles.tableHeaderCell]}>Description</Text>
               <Text style={[styles.cellQty, styles.tableHeaderCell]}>Qty</Text>
               <Text style={[styles.cellPrice, styles.tableHeaderCell]}>Unit Price</Text>
               <Text style={[styles.cellAmount, styles.tableHeaderCell]}>Amount</Text>
             </View>
-            {lineItems.map((item, index) => (
-              <View
-                style={[styles.tableRow, index % 2 !== 0 ? styles.tableRowAlt : {}]}
-                key={item.id}
-              >
+            {lineItems.map((item) => (
+              <View style={styles.tableRow} key={item.id} wrap={false}>
                 <Text style={[styles.cellDesc, styles.cellDescText]}>{item.description}</Text>
                 <Text style={[styles.cellQty, styles.cellText]}>{Number(item.quantity).toLocaleString()}</Text>
-                <Text style={[styles.cellPrice, styles.cellText]}>UGX {Number(item.unit_price).toLocaleString()}</Text>
-                <Text style={[styles.cellAmount, styles.cellTextBold]}>UGX {Number(item.amount).toLocaleString()}</Text>
+                <Text style={[styles.cellPrice, styles.cellText]}>{money(item.unit_price)}</Text>
+                <Text style={[styles.cellAmount, styles.cellTextBold]}>{money(item.amount)}</Text>
               </View>
             ))}
           </View>
 
-          <View style={styles.totalsSection}>
-            {stampImageSrc ? (
-              <View style={styles.stampArea}>
-                <View style={[styles.stampContainer, styles.totalsStamp]}>
-                  <Image style={styles.stampImage} src={stampImageSrc} />
-                </View>
-              </View>
-            ) : (
-              <View style={styles.stampArea} />
-            )}
+          <View style={styles.totalsSection} wrap={false}>
+            <View style={styles.stampArea}>
+              {stampImageSrc && <Image style={styles.stampImage} src={stampImageSrc} />}
+            </View>
             <View style={styles.totalsCard}>
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Subtotal</Text>
-                <Text style={styles.totalValue}>UGX {displaySubtotal.toLocaleString()}</Text>
+                <Text style={styles.totalValue}>{money(displaySubtotal)}</Text>
               </View>
               {displayTaxRate > 0 && (
                 <View style={styles.totalRow}>
                   <Text style={styles.totalLabel}>Tax ({displayTaxRate}%)</Text>
-                  <Text style={styles.totalValue}>UGX {displayTaxAmount.toLocaleString()}</Text>
-                </View>
-              )}
-              {discount > 0 && (
-                <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>Discount</Text>
-                  <Text style={styles.totalValue}>− UGX {discount.toLocaleString()}</Text>
+                  <Text style={styles.totalValue}>{money(displayTaxAmount)}</Text>
                 </View>
               )}
               <View style={styles.grandTotalRow}>
                 <Text style={styles.grandTotalLabel}>Total Due</Text>
-                <Text style={styles.grandTotalValue}>UGX {displayTotal.toLocaleString()}</Text>
+                <Text style={styles.grandTotalValue}>{money(displayTotal)}</Text>
               </View>
             </View>
           </View>
 
-          <View style={styles.paymentCard}>
-            <Text style={styles.paymentCardTitle}>Payment Details</Text>
-            <View style={styles.paymentCardBody}>
-              <View style={styles.paymentRow}>
-                <View style={styles.bankIconCircle}>
-                  <Text style={styles.bankIconText}>H</Text>
-                </View>
-                <View style={styles.bankDetails}>
-                  <Text style={styles.bankDetailLabel}>Account Name:</Text>
-                  <Text style={styles.bankDetailValue}>Joseph Sengendo</Text>
-                  <Text style={styles.bankDetailLabel}>Account Number:</Text>
-                  <Text style={styles.bankDetailValue}>0100823802201</Text>
-                  <Text style={styles.bankDetailLabel}>Bank:</Text>
-                  <Text style={styles.bankDetailValue}>Standard Chartered Bank Uganda</Text>
-                </View>
-              </View>
-              <View style={styles.paymentCardDivider} />
-              <View style={styles.paymentRow}>
-                <View style={styles.bankIconCircle}>
-                  <Text style={styles.bankIconText}>A</Text>
-                </View>
-                <View style={styles.bankDetails}>
-                  <Text style={styles.bankDetailLabel}>Airtel Money:</Text>
-                  <Text style={styles.bankDetailValue}>0704 783 724</Text>
-                  <Text style={styles.bankDetailLabel}>Account Name:</Text>
-                  <Text style={styles.bankDetailValue}>Joseph Sengendo</Text>
-                </View>
+          {paymentMethods.length > 0 && (
+            <View style={styles.paymentBlock} wrap={false}>
+              <Text style={styles.sectionHead}>Payment Details</Text>
+              <View style={styles.paymentMethods}>
+                {paymentMethods.map((m, i) => (
+                  <View key={i} style={styles.paymentMethod}>
+                    <Text style={styles.paymentMethodTitle}>{m.label}</Text>
+                    {m.fields.map((f, j) => (
+                      <Text key={j} style={styles.paymentField}>
+                        <Text style={{ color: C.muted }}>{f.label}: </Text>{f.value}
+                      </Text>
+                    ))}
+                  </View>
+                ))}
               </View>
             </View>
-          </View>
+          )}
 
-          <View style={styles.notesCard} wrap={false}>
-            <Text style={styles.notesTitle}>Notes</Text>
-            {invoice.notes?.trim() ? (
-              <Text style={styles.notesBody}>{invoice.notes.trim()}</Text>
-            ) : (
-              <>
-                <Text style={styles.notesBody}>Payment due by the due date.</Text>
-                <Text style={styles.notesBody}>Thank you for your business.</Text>
-              </>
-            )}
-          </View>
+          {projectNotes.length > 0 && (
+            <View style={styles.section} minPresenceAhead={40}>
+              <Text style={styles.sectionHead}>Project Notes</Text>
+              <SectionList items={projectNotes} />
+            </View>
+          )}
 
-          <View style={styles.termsCard} wrap={false}>
-            <Text style={styles.termsTitle}>Standard Terms</Text>
-            <Text style={styles.termsBody}>• An 80% deposit is required before commencement of work unless otherwise agreed in writing.</Text>
-            <Text style={styles.termsBody}>• The remaining 20% balance is payable upon project completion or prior to delivery of the final deliverables.</Text>
-            <Text style={styles.termsBody}>• Please quote the invoice number as the payment reference for all transactions.</Text>
-            <Text style={styles.termsBody}>• A remittance advice or proof of payment should be emailed to synergyconceptshub@gmail.com after payment.</Text>
-            <Text style={styles.termsBody}>• All deliverables remain the property of Synergy Concepts Hub until full payment has been received.</Text>
-            <Text style={styles.termsBody}>• We appreciate your business and look forward to serving you.</Text>
-          </View>
+          {paymentTerms.length > 0 && (
+            <View style={styles.section} minPresenceAhead={40}>
+              <Text style={styles.sectionHead}>Payment Terms</Text>
+              <SectionList items={paymentTerms} />
+            </View>
+          )}
 
-          <View style={styles.signatureSection} wrap={false}>
-            {signatureSrc && (
+          {additionalTerms.length > 0 && (
+            <View style={styles.section} minPresenceAhead={40}>
+              <Text style={styles.sectionHead}>Additional Terms</Text>
+              <SectionList items={additionalTerms} />
+            </View>
+          )}
+
+          {standardTerms.length > 0 && (
+            <View style={styles.section} minPresenceAhead={40}>
+              <Text style={styles.sectionHead}>Standard Terms</Text>
+              <SectionList items={standardTerms} />
+            </View>
+          )}
+
+          {signature && (signature.imageSrc || signature.name) && (
+            <View style={styles.signatureSection} wrap={false}>
               <View style={styles.signatureBlock}>
-                <Image style={styles.signatureImage} src={signatureSrc} />
+                {signature.imageSrc && <Image style={styles.signatureImage} src={signature.imageSrc} />}
                 <View style={styles.signatureLine} />
-                <Text style={styles.signatureName}>Joseph Sengendo</Text>
-                <Text style={styles.signatureTitle}>Authorized by</Text>
+                {signature.name && <Text style={styles.signatureName}>{signature.name}</Text>}
+                {(signature.title || signature.company) && (
+                  <Text style={styles.signatureTitle}>
+                    {[signature.title, signature.company].filter(Boolean).join(" · ")}
+                  </Text>
+                )}
               </View>
-            )}
-            {!signatureSrc && (
-              <>
-                <Text style={styles.signatureTitle}>Authorized by</Text>
-                <View style={styles.signatureLine} />
-                <Text style={styles.signatureName}>Joseph Sengendo</Text>
-              </>
-            )}
-          </View>
+            </View>
+          )}
         </View>
 
-        <View style={styles.footer}>
-          <View style={styles.footerLeft}>
-            <Text style={styles.footerBrand}>Synergy Concepts Hub</Text>
-            <Text style={styles.footerTagline}>Where Ideas Come to Life</Text>
-          </View>
-          <View style={styles.footerVerticalDivider} />
-          <View style={styles.footerRight}>
-            <Text style={styles.footerLink}>www.synergyconceptshub.com</Text>
-            <Text style={styles.footerLink}>synergyconceptshub@gmail.com</Text>
-          </View>
+        {/* Footer — every page */}
+        <View fixed style={styles.footer}>
+          <Text style={styles.footerBrand}>
+            {SCH_BRAND.name} · {SCH_BRAND.tagline} · {SCH_BRAND.website} · {SCH_BRAND.email}
+          </Text>
+          <Text style={styles.footerPage} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
         </View>
       </Page>
     </Document>

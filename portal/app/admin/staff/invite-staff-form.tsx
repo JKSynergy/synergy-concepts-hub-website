@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Dialog } from "@/components/ux/dialog";
 
 type Mode = "invite" | "manual";
 
@@ -25,6 +26,7 @@ export default function AddStaffForm() {
   const [mode, setMode] = useState<Mode>("invite");
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
+  const [role, setRole] = useState<"staff" | "finance">("staff");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<Message | null>(null);
 
@@ -54,6 +56,7 @@ export default function AddStaffForm() {
         body: JSON.stringify({
           email,
           full_name: fullName,
+          role,
         }),
         signal: AbortSignal.timeout(30_000),
       });
@@ -104,181 +107,94 @@ export default function AddStaffForm() {
     }
   }
 
-  if (!open) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
-        className="rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-all hover:scale-105"
-        style={{ background: "linear-gradient(135deg, #0ea5e9, #38bdf8)", boxShadow: "0 4px 12px rgba(14, 165, 233, 0.3)" }}
-      >
-        <span className="flex items-center gap-2">
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          Add Staff
-        </span>
-      </button>
-    );
-  }
-
   return (
-    <div className="glass-card p-6" style={{ minWidth: "320px", maxWidth: "420px" }}>
-      <div className="mb-6 flex items-start justify-between">
-        <div>
-          <h3 className="text-lg font-semibold" style={{ color: "var(--p-text-strong)" }}>Add Staff</h3>
-          <p className="mt-1 text-xs" style={{ color: "var(--p-muted)" }}>
-            Invite by email or create a login manually
-          </p>
-        </div>
-        <button
-          onClick={close}
-          className="rounded-lg px-3 py-1.5 text-xs font-medium transition-colors hover:bg-white/10"
-          style={{ color: "var(--p-muted)" }}
-        >
-          Cancel
-        </button>
-      </div>
+    <>
+      <button type="button" onClick={() => setOpen(true)} className="ux-btn ux-btn--primary">
+        Add team member
+      </button>
+      {open && (
+        <Dialog onClose={() => !loading && close()} labelledBy="add-staff-title" maxWidth={480}>
+          <>
+            <h3 id="add-staff-title">Add team member</h3>
+            <p className="ux-desc">Invite by email, or create a login manually and share a temporary password.</p>
 
-      <div className="mb-4 flex rounded-lg p-1" style={{ background: "rgba(255, 255, 255, 0.05)" }}>
-        <button
-          type="button"
-          onClick={() => {
-            setMode("invite");
-            setMessage(null);
-          }}
-          className="flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
-          style={{
-            background: mode === "invite" ? "rgba(14, 165, 233, 0.2)" : "transparent",
-            color: mode === "invite" ? "#0ea5e9" : "var(--p-muted)",
-          }}
-        >
-          Send Invite
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setMode("manual");
-            setMessage(null);
-          }}
-          className="flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
-          style={{
-            background: mode === "manual" ? "rgba(14, 165, 233, 0.2)" : "transparent",
-            color: mode === "manual" ? "#0ea5e9" : "var(--p-muted)",
-          }}
-        >
-          Create Manually
-        </button>
-      </div>
+            <div className="ux-tabs" role="tablist" style={{ padding: 0, margin: "16px 0 4px" }}>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={mode === "invite"}
+                className="ux-textbtn"
+                style={{ padding: "8px 0", marginRight: 20, color: "var(--ux-ink)", fontWeight: mode === "invite" ? 600 : 400, borderBottom: mode === "invite" ? "2px solid var(--ux-orange)" : "2px solid transparent" }}
+                onClick={() => {
+                  setMode("invite");
+                  setMessage(null);
+                }}
+              >
+                Send invite
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={mode === "manual"}
+                className="ux-textbtn"
+                style={{ padding: "8px 0", color: "var(--ux-ink)", fontWeight: mode === "manual" ? 600 : 400, borderBottom: mode === "manual" ? "2px solid var(--ux-orange)" : "2px solid transparent" }}
+                onClick={() => {
+                  setMode("manual");
+                  setMessage(null);
+                }}
+              >
+                Create manually
+              </button>
+            </div>
 
-      {message && !isManualSuccess(message) && (
-        <div
-          className={`mb-4 rounded-lg p-3 text-sm ${
-            message.type === "ok"
-              ? "bg-green-500/10 text-green-400 border border-green-500/20"
-              : "bg-red-500/10 text-red-400 border border-red-500/20"
-          }`}
-        >
-          {message.text}
-        </div>
+            <div style={{ marginTop: 16 }}>
+              {message && !isManualSuccess(message) && (
+                <div className={`ux-notice ${message.type === "ok" ? "ux-notice--ok" : "ux-notice--error"}`}>{message.text}</div>
+              )}
+
+              {isManualSuccess(message) && (
+                <div className="ux-notice ux-notice--ok">
+                  <b>Team account created.</b> Share these credentials with {message.email} securely.
+                  <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 12 }}>
+                    <span style={{ fontFamily: "ui-monospace, monospace" }}>{message.tempPassword}</span>
+                    <button type="button" className="ux-textbtn" onClick={() => navigator.clipboard.writeText(message.tempPassword)}>
+                      Copy
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit}>
+                <div className="ux-formgrid">
+                  <label className="ux-field ux-full">
+                    <span>Email *</span>
+                    <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" className="ux-input" />
+                  </label>
+                  <label className="ux-field ux-full">
+                    <span>Role</span>
+                    <select value={role} onChange={(e) => setRole(e.target.value as "staff" | "finance")} className="ux-input ux-select">
+                      <option value="staff">Staff — operational work, no finance</option>
+                      <option value="finance">Finance — invoices, payments, receipts, reports</option>
+                    </select>
+                  </label>
+                  <label className="ux-field ux-full">
+                    <span>Full name</span>
+                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} className="ux-input" />
+                  </label>
+                </div>
+                <div className="ux-dialog-actions">
+                  <button type="button" onClick={close} className="ux-btn ux-btn--secondary">
+                    {message ? "Done" : "Cancel"}
+                  </button>
+                  <button type="submit" disabled={loading} className="ux-btn ux-btn--primary">
+                    {loading ? (mode === "invite" ? "Sending…" : "Creating…") : mode === "invite" ? "Send invite" : "Create team member"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </>
+        </Dialog>
       )}
-
-      {isManualSuccess(message) && (
-        <div className="mb-4 rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-3 text-sm text-yellow-200">
-          <p className="mb-2 font-medium">Staff account created</p>
-          <p className="mb-1" style={{ color: "var(--p-muted)" }}>
-            Share these credentials with <strong>{message.email}</strong>:
-          </p>
-          <div className="flex items-center gap-2 rounded-md bg-black/30 px-3 py-2 font-mono text-sm">
-            <span className="flex-1">{message.tempPassword}</span>
-            <button
-              type="button"
-              onClick={() => navigator.clipboard.writeText(message.tempPassword)}
-              className="rounded px-2 py-1 text-xs font-medium hover:bg-white/10"
-              style={{ color: "#0ea5e9" }}
-            >
-              Copy
-            </button>
-          </div>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="mb-1.5 block text-sm font-medium" style={{ color: "var(--p-text-strong)" }}>
-            Email <span style={{ color: "#ef4444" }}>*</span>
-          </label>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="staff@example.com"
-            className="w-full rounded-lg border px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2"
-            style={{
-              background: "rgba(255, 255, 255, 0.05)",
-              borderColor: "var(--p-border)",
-              color: "var(--p-text)",
-            }}
-            onFocus={(e) => {
-              e.target.style.borderColor = "#0ea5e9";
-              e.target.style.boxShadow = "0 0 0 3px rgba(14, 165, 233, 0.15)";
-            }}
-            onBlur={(e) => {
-              e.target.style.borderColor = "var(--p-border)";
-              e.target.style.boxShadow = "none";
-            }}
-          />
-        </div>
-        <div>
-          <label className="mb-1.5 block text-sm font-medium" style={{ color: "var(--p-text-strong)" }}>
-            Full Name
-          </label>
-          <input
-            type="text"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            placeholder="John Doe"
-            className="w-full rounded-lg border px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2"
-            style={{
-              background: "rgba(255, 255, 255, 0.05)",
-              borderColor: "var(--p-border)",
-              color: "var(--p-text)",
-            }}
-            onFocus={(e) => {
-              e.target.style.borderColor = "#0ea5e9";
-              e.target.style.boxShadow = "0 0 0 3px rgba(14, 165, 233, 0.15)";
-            }}
-            onBlur={(e) => {
-              e.target.style.borderColor = "var(--p-border)";
-              e.target.style.boxShadow = "none";
-            }}
-          />
-        </div>
-        <div className="flex gap-3 pt-2">
-          <button
-            type="button"
-            onClick={close}
-            className="flex-1 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors hover:bg-white/10"
-            style={{ color: "var(--p-muted)" }}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
-            style={{ background: "linear-gradient(135deg, #0ea5e9, #38bdf8)", boxShadow: "0 4px 12px rgba(14, 165, 233, 0.3)" }}
-          >
-            {loading
-              ? mode === "invite"
-                ? "Sending..."
-                : "Creating..."
-              : mode === "invite"
-                ? "Send Invite"
-                : "Create Staff"}
-          </button>
-        </div>
-      </form>
-    </div>
+    </>
   );
 }

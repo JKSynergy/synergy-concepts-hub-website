@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { landingFor } from "@/lib/security/roles";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -8,9 +9,8 @@ export async function GET(request: Request) {
   const error = searchParams.get("error_description") || searchParams.get("error");
 
   if (error) {
-    return NextResponse.redirect(
-      `${origin}/login?error=${encodeURIComponent(error)}`
-    );
+    // Never reflect provider/attacker-controlled text into the login page.
+    return NextResponse.redirect(`${origin}/login?error=auth_failed`);
   }
 
   if (!code) {
@@ -21,9 +21,8 @@ export async function GET(request: Request) {
   const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
   if (exchangeError) {
-    return NextResponse.redirect(
-      `${origin}/login?error=${encodeURIComponent(exchangeError.message)}`
-    );
+    console.error("auth link failed:", exchangeError.status ?? "unknown");
+    return NextResponse.redirect(`${origin}/login?error=auth_failed`);
   }
 
   // Invited users and password resets must choose a password before dashboard access.
@@ -48,7 +47,7 @@ export async function GET(request: Request) {
       .eq("id", user.id)
       .single();
     const role = profile?.role ?? "client";
-    target = role === "admin" || role === "staff" ? "/admin" : "/client";
+    target = landingFor(role);
   }
 
   return NextResponse.redirect(`${origin}${target}`);

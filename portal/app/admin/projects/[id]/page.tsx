@@ -7,6 +7,7 @@ import UpdatesSection from "@/components/updates-section";
 import DeliverablesSection from "@/components/deliverables-section";
 import StaffAssignments from "./staff-assignments";
 import type { Milestone, Project, ProjectUpdate, Deliverable } from "@/lib/types";
+import { isFinance, isInternal, isAdmin as isAdminRole, isOperationalStaff } from "@/lib/security/roles";
 
 export default async function AdminProjectDetailPage({
   params,
@@ -27,11 +28,12 @@ export default async function AdminProjectDetailPage({
     .eq("id", user.id)
     .single();
 
-  if (!profile || (profile.role !== "admin" && profile.role !== "staff")) {
+  if (!profile || !isInternal(profile.role)) {
     redirect("/client");
   }
 
-  const isAdmin = profile.role === "admin";
+  const isAdmin = isAdminRole(profile.role);
+  const readOnly = isFinance(profile.role); // finance may view projects, nothing more
 
   const { data: project } = await supabase
     .from("projects")
@@ -94,7 +96,7 @@ export default async function AdminProjectDetailPage({
   const authorMap = new Map(
     (authors ?? []).map((a) => [
       a.id,
-      a.role === "admin" || a.role === "staff"
+      isOperationalStaff(a.role)
         ? "Team"
         : a.full_name || a.email,
     ])
@@ -109,17 +111,12 @@ export default async function AdminProjectDetailPage({
     client?.company_name || client?.full_name || client?.email || "Unknown";
 
   return (
-    <div className="space-y-6">
-      <Link
-        href="/admin/projects"
-        className="text-sm text-sch-blue hover:underline"
-      >
-        ← Back to Projects
+    <div className="ux-page">
+      <Link href="/admin/projects" className="ux-back">
+        ← Projects
       </Link>
 
-      <p className="text-sm text-gray-500">Client: {clientLabel}</p>
-
-      <EditProject project={project as Project} />
+      <EditProject project={project as Project} clientLabel={clientLabel} clientHref={`/admin/clients/${project.client_id}`} readOnly={readOnly} />
 
       {isAdmin && (
         <StaffAssignments
@@ -128,24 +125,27 @@ export default async function AdminProjectDetailPage({
           assignments={(assignments ?? []).map((a: { id: string; staff_id: string; profiles?: { id: string; full_name: string | null; email: string }[] }) => ({
             id: a.id,
             staff_id: a.staff_id,
-            profiles: a.profiles?.[0] ?? null,
+            profiles: (Array.isArray(a.profiles) ? a.profiles[0] : (a.profiles as unknown as { id: string; full_name: string | null; email: string } | undefined)) ?? null,
           })) as { id: string; staff_id: string; profiles: { id: string; full_name: string | null; email: string } | null }[]}
         />
       )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div>
         <MilestonesSection
           projectId={id}
           milestones={(milestones ?? []) as Milestone[]}
+          readOnly={readOnly}
         />
-        <DeliverablesSection
-          projectId={id}
-          deliverables={(deliverables ?? []) as Deliverable[]}
-          isStaff
-        />
+        {!readOnly && (
+          <DeliverablesSection
+            projectId={id}
+            deliverables={(deliverables ?? []) as Deliverable[]}
+            isStaff
+          />
+        )}
       </div>
 
-      <UpdatesSection projectId={id} updates={updatesWithAuthor} isStaff />
+      {!readOnly && <UpdatesSection projectId={id} updates={updatesWithAuthor} isStaff />}
     </div>
   );
 }

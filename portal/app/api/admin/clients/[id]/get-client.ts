@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isClient } from "@/lib/security/roles";
 
 export async function getClientOrError(id: string) {
   const admin = createAdminClient();
@@ -15,7 +16,7 @@ export async function getClientOrError(id: string) {
     return { error: NextResponse.json({ error: "Client not found" }, { status: 404 }) };
   }
 
-  if (client.role !== "client") {
+  if (!isClient(client.role)) {
     return { error: NextResponse.json({ error: "Not a client account" }, { status: 400 }) };
   }
 

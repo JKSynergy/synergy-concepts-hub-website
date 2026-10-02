@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
+import { NavLink as Link } from "@/components/nav-link";
+import { useFeedback } from "@/components/ux/feedback";
+import { INVOICE_TONE, PageHeader, Section, StatusMark, ugx } from "@/components/ux/primitives";
 import {
-  INVOICE_STATUS_BADGE,
-  type InvoiceStatus,
   type Invoice,
   type InvoiceLineItem,
   type Payment,
@@ -17,8 +18,12 @@ export default function ClientInvoiceDetailPage() {
   const [lineItems, setLineItems] = useState<InvoiceLineItem[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
+  const [outstanding, setOutstanding] = useState(0);
+  const [payable, setPayable] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [paying, setPaying] = useState(false);
+  const { toast } = useFeedback();
 
   useEffect(() => {
     async function fetchData() {
@@ -30,6 +35,8 @@ export default function ClientInvoiceDetailPage() {
         setLineItems(data.lineItems ?? []);
         setPayments(data.payments ?? []);
         setReceipts(data.receipts ?? []);
+        setOutstanding(Number(data.outstanding ?? 0));
+        setPayable(Boolean(data.payable));
       } catch (e) {
         setError((e as Error).message);
       } finally {
@@ -41,162 +48,170 @@ export default function ClientInvoiceDetailPage() {
 
   async function handlePaystack() {
     if (!invoice) return;
+    setPaying(true);
     try {
       const res = await fetch("/api/paystack/initiate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ invoiceId: invoice.id, amount: invoice.total, email: invoice.client_id }),
+        body: JSON.stringify({ invoiceId: invoice.id }),
       });
       const data = await res.json();
       if (data.authorization_url) {
         window.location.href = data.authorization_url;
       } else {
-        setError(data.error || "Payment initialization failed");
+        toast(data.error || "Payment initialization failed. Please try again.", "error");
+        setPaying(false);
       }
     } catch (e) {
-      setError((e as Error).message);
+      toast((e as Error).message || "Payment initialization failed. Please try again.", "error");
+      setPaying(false);
     }
   }
 
-  if (loading) return <div className="p-8 text-sm text-gray-500">Loading...</div>;
-  if (error) return <div className="p-8 text-sm text-red-600">{error}</div>;
-  if (!invoice) return <div className="p-8 text-sm text-gray-500">Invoice not found.</div>;
+  const back = (
+    <Link href="/client/invoices" className="ux-back">
+      ← Invoices
+    </Link>
+  );
+  if (loading) return <div className="ux-page"><div className="ux-loading">Loading…</div></div>;
+  if (error)
+    return (
+      <div className="ux-page">
+        {back}
+        <div className="ux-notice ux-notice--error">{error}</div>
+      </div>
+    );
+  if (!invoice)
+    return (
+      <div className="ux-page">
+        {back}
+        <div className="ux-empty"><b>Invoice not found</b></div>
+      </div>
+    );
 
   const receiptMap = new Map(receipts.map((r) => [r.payment_id, r]));
+  const fmt = (d: string) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  const paidTotal = payments.filter((p) => p.paid_at).reduce((sum, p) => sum + Number(p.amount), 0);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">{invoice.invoice_number}</h1>
-        <div className="flex items-center gap-2">
-          <span
-            className={`rounded-full px-3 py-1 text-xs font-medium capitalize ${
-              INVOICE_STATUS_BADGE[invoice.status as InvoiceStatus]
-            }`}
-          >
-            {invoice.status}
-          </span>
-          <a
-            href={`/api/invoices/${invoice.id}/pdf`}
-            className="rounded-md bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-200"
-          >
-            PDF
-          </a>
+    <div className="ux-page">
+      {back}
+      <PageHeader
+        eyebrow="Invoice"
+        title={invoice.invoice_number}
+        description={payable ? "Pay securely online with Paystack (cards and mobile money)." : undefined}
+        actions={
+          <>
+            <a href={`/api/invoices/${invoice.id}/pdf`} className="ux-btn ux-btn--secondary">
+              Download PDF
+            </a>
+            {payable && (
+              <button type="button" onClick={handlePaystack} disabled={paying} className="ux-btn ux-btn--primary">
+                {paying ? "Redirecting…" : `Pay ${ugx(outstanding)}`}
+              </button>
+            )}
+          </>
+        }
+      />
+
+      <div className="ux-figures">
+        <div className="ux-figure">
+          <span>Status</span>
+          <b><StatusMark tone={INVOICE_TONE[invoice.status] ?? "neutral"}>{invoice.status}</StatusMark></b>
+        </div>
+        <div className="ux-figure">
+          <span>Issued</span>
+          <b>{invoice.issue_date ? fmt(invoice.issue_date) : "—"}</b>
+        </div>
+        <div className="ux-figure">
+          <span>Due</span>
+          <b>{invoice.due_date ? fmt(invoice.due_date) : "—"}</b>
+        </div>
+        <div className="ux-figure">
+          <span>Total</span>
+          <b>{ugx(Number(invoice.total))}</b>
+        </div>
+        <div className="ux-figure">
+          <span>{payable ? "Balance due" : "Paid"}</span>
+          <b>{ugx(payable ? outstanding : paidTotal)}</b>
         </div>
       </div>
 
-      <div className="rounded-xl bg-white p-6 shadow">
-        <div className="grid gap-6 md:grid-cols-2">
-          <div>
-            <p className="text-sm text-gray-500">Issue Date</p>
-            <p className="text-base font-medium text-gray-900">{new Date(invoice.issue_date).toLocaleDateString()}</p>
-          </div>
-          {invoice.due_date && (
-            <div>
-              <p className="text-sm text-gray-500">Due Date</p>
-              <p className="text-base font-medium text-gray-900">{new Date(invoice.due_date).toLocaleDateString()}</p>
-            </div>
-          )}
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="mt-6 min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+      <Section title="Items">
+        <div className="ux-tablewrap">
+          <table className="ux-table ux-table--stack">
+            <thead>
               <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Description</th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Qty</th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Unit Price</th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Amount</th>
+                <th>Description</th>
+                <th className="ux-num">Qty</th>
+                <th className="ux-num">Unit price</th>
+                <th className="ux-num">Amount</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody>
               {lineItems.map((item) => (
                 <tr key={item.id}>
-                  <td className="px-4 py-2 text-sm text-gray-900">{item.description}</td>
-                  <td className="px-4 py-2 text-right text-sm text-gray-500">{Number(item.quantity).toLocaleString()}</td>
-                  <td className="px-4 py-2 text-right text-sm text-gray-500">UGX {Number(item.unit_price).toLocaleString()}</td>
-                  <td className="px-4 py-2 text-right text-sm text-gray-900">UGX {Number(item.amount).toLocaleString()}</td>
+                  <td data-label="Description">{item.description}</td>
+                  <td className="ux-num" data-label="Qty">{Number(item.quantity).toLocaleString()}</td>
+                  <td className="ux-num" data-label="Unit price">{ugx(Number(item.unit_price))}</td>
+                  <td className="ux-num" data-label="Amount">{ugx(Number(item.amount))}</td>
                 </tr>
               ))}
             </tbody>
+            <tfoot>
+              <tr>
+                <td colSpan={3} className="ux-num">Subtotal</td>
+                <td className="ux-num" data-label="Subtotal">{ugx(Number(invoice.subtotal))}</td>
+              </tr>
+              {invoice.tax_rate > 0 && (
+                <tr>
+                  <td colSpan={3} className="ux-num">Tax ({invoice.tax_rate}%)</td>
+                  <td className="ux-num" data-label="Tax">{ugx(Number(invoice.tax_amount))}</td>
+                </tr>
+              )}
+              <tr>
+                <td colSpan={3} className="ux-num"><b>Total</b></td>
+                <td className="ux-num" data-label="Total"><b>{ugx(Number(invoice.total))}</b></td>
+              </tr>
+            </tfoot>
           </table>
         </div>
-
-        <div className="mt-6 flex justify-end">
-          <div className="w-full max-w-xs space-y-2 text-right sm:w-64">
-            <div className="flex justify-between text-sm text-gray-500">
-              <span>Subtotal</span>
-              <span>UGX {Number(invoice.subtotal).toLocaleString()}</span>
-            </div>
-            {invoice.tax_rate > 0 && (
-              <div className="flex justify-between text-sm text-gray-500">
-                <span>Tax ({invoice.tax_rate}%)</span>
-                <span>UGX {Number(invoice.tax_amount).toLocaleString()}</span>
-              </div>
-            )}
-            <div className="flex justify-between text-base font-bold text-gray-900">
-              <span>Total</span>
-              <span>UGX {Number(invoice.total).toLocaleString()}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {invoice.status !== "paid" && invoice.status !== "cancelled" && (
-        <div className="rounded-xl bg-white p-6 shadow">
-          <h2 className="text-lg font-semibold text-gray-900">Pay Online</h2>
-          <p className="mt-1 text-sm text-gray-500">Secure payment via Paystack (cards + mobile money).</p>
-          <button
-            onClick={handlePaystack}
-            className="mt-4 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-500"
-          >
-            Pay UGX {Number(invoice.total).toLocaleString()} with Paystack
-          </button>
-        </div>
-      )}
+      </Section>
 
       {payments.length > 0 && (
-        <div className="rounded-xl bg-white p-6 shadow">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Payments</h2>
-          <div className="overflow-x-auto">
-            <table className="mt-3 min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+        <Section title="Payments">
+          <div className="ux-tablewrap">
+            <table className="ux-table ux-table--stack">
+              <thead>
                 <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Date</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Method</th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Amount</th>
-                  <th className="px-4 py-2" />
+                  <th>Date</th>
+                  <th>Method</th>
+                  <th>Receipt</th>
+                  <th className="ux-num">Amount</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody>
                 {payments.map((p) => {
                   const receipt = receiptMap.get(p.id);
                   return (
                     <tr key={p.id}>
-                      <td className="px-4 py-2 text-sm text-gray-500">
-                        {p.paid_at ? new Date(p.paid_at).toLocaleDateString() : "—"}
-                      </td>
-                      <td className="px-4 py-2 text-sm text-gray-500 capitalize">{p.method.replace("_", " ")}</td>
-                      <td className="px-4 py-2 text-right text-sm font-medium text-gray-900">
-                        UGX {Number(p.amount).toLocaleString()}
-                      </td>
-                      <td className="px-4 py-2 text-right">
+                      <td data-label="Date">{p.paid_at ? fmt(p.paid_at) : "—"}</td>
+                      <td data-label="Method" style={{ textTransform: "capitalize" }}>{p.method.replace("_", " ")}</td>
+                      <td data-label="Receipt">
                         {receipt && (
-                          <a
-                            href={`/api/receipts/${receipt.id}/pdf`}
-                            className="text-xs text-blue-600 hover:underline"
-                          >
-                            Receipt
+                          <a href={`/api/receipts/${receipt.id}/pdf`} className="ux-textbtn">
+                            Download receipt
                           </a>
                         )}
                       </td>
+                      <td className="ux-num" data-label="Amount">{ugx(Number(p.amount))}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
-        </div>
+        </Section>
       )}
     </div>
   );

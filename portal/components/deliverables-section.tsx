@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import {
-  uploadDeliverable,
-  getDeliverableDownloadUrl,
-} from "@/lib/actions/projects";
+import { useRouter } from "next/navigation";
+import { uploadDeliverable, getDeliverableDownloadUrl } from "@/lib/actions/projects";
 import type { Deliverable } from "@/lib/types";
+import { Dialog } from "@/components/ux/dialog";
+import { useFeedback } from "@/components/ux/feedback";
+import { EmptyState, Section } from "@/components/ux/primitives";
 
 function formatSize(bytes: number | null): string {
   if (!bytes) return "";
@@ -23,6 +24,9 @@ export default function DeliverablesSection({
   deliverables: Deliverable[];
   isStaff: boolean;
 }) {
+  const router = useRouter();
+  const { toast } = useFeedback();
+  const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -36,103 +40,99 @@ export default function DeliverablesSection({
       setError(res.error);
       return;
     }
-    const form = document.getElementById("deliverable-form") as HTMLFormElement;
-    form?.reset();
+    setOpen(false);
+    toast("Deliverable uploaded");
+    router.refresh();
   }
 
   async function download(d: Deliverable) {
     if (!d.file_url) return;
     setDownloadingId(d.id);
-    const res = await getDeliverableDownloadUrl(d.file_url);
+    const res = await getDeliverableDownloadUrl(d.id);
     setDownloadingId(null);
     if (res.url) {
-      window.open(res.url, "_blank");
+      // A short-lived signed file URL on the storage provider: genuinely external.
+      window.open(res.url, "_blank", "noopener");
     } else {
-      setError(res.error ?? "Could not generate download link");
+      toast(res.error ?? "Could not generate a download link", "error");
     }
   }
 
   return (
-    <div className="rounded-xl bg-white p-6 shadow">
-      <h2 className="mb-4 text-lg font-semibold text-gray-900">Deliverables</h2>
-
-      {error && (
-        <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700">
-          {error}
+    <Section
+      title="Deliverables"
+      aside={
+        isStaff ? (
+          <button type="button" className="ux-textbtn" onClick={() => setOpen(true)}>
+            Upload deliverable
+          </button>
+        ) : undefined
+      }
+    >
+      {deliverables.length === 0 ? (
+        <EmptyState title="No deliverables yet">{isStaff ? "Uploaded files appear here for the client to download." : "Files from Synergy will appear here."}</EmptyState>
+      ) : (
+        <div className="ux-tablewrap">
+          <table className="ux-table ux-table--stack">
+            <thead>
+              <tr>
+                <th>File</th>
+                <th>Type</th>
+                <th>Size</th>
+                <th aria-label="Actions" />
+              </tr>
+            </thead>
+            <tbody>
+              {deliverables.map((d) => (
+                <tr key={d.id}>
+                  <td>
+                    <span className="ux-cell-main" style={{ display: "block" }}>{d.name}</span>
+                    {isStaff && !d.is_visible_to_client && <span className="ux-cell-sub">Hidden from client</span>}
+                  </td>
+                  <td data-label="Type" className="ux-muted">{d.file_type || "—"}</td>
+                  <td data-label="Size" className="ux-muted">{formatSize(d.file_size_bytes) || "—"}</td>
+                  <td>
+                    <button type="button" className="ux-textbtn" onClick={() => download(d)} disabled={downloadingId === d.id}>
+                      {downloadingId === d.id ? "Preparing…" : "Download"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
-      {isStaff && (
-        <form
-          id="deliverable-form"
-          action={action}
-          className="mb-6 grid grid-cols-1 gap-3 rounded-lg bg-gray-50 p-4 sm:grid-cols-2"
-        >
-          <input
-            name="name"
-            placeholder="Display name (optional)"
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm"
-          />
-          <input
-            name="file"
-            type="file"
-            required
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm"
-          />
-          <label className="flex items-center gap-2 text-xs text-gray-500">
-            <input
-              type="checkbox"
-              name="is_visible_to_client"
-              defaultChecked
-              className="rounded"
-            />
-            Visible to client
-          </label>
-          <button
-            type="submit"
-            disabled={uploading}
-            className="justify-self-start rounded-md bg-sch-orange px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50 sm:col-span-2"
-          >
-            {uploading ? "Uploading..." : "Upload"}
-          </button>
-        </form>
-      )}
-
-      <div className="space-y-2">
-        {deliverables.length === 0 ? (
-          <p className="text-sm text-gray-500">No deliverables yet.</p>
-        ) : (
-          deliverables.map((d) => (
-            <div
-              key={d.id}
-              className="flex items-center justify-between rounded-lg border border-gray-100 p-3"
-            >
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-900">
-                    {d.name}
-                  </span>
-                  {isStaff && !d.is_visible_to_client && (
-                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium uppercase text-gray-500">
-                      Hidden
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-gray-400">
-                  {d.file_type} {formatSize(d.file_size_bytes)}
-                </p>
-              </div>
-              <button
-                onClick={() => download(d)}
-                disabled={downloadingId === d.id}
-                className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-              >
-                {downloadingId === d.id ? "..." : "Download"}
+      {open && (
+        <Dialog onClose={() => setOpen(false)} labelledBy="dl-title">
+          <h3 id="dl-title">Upload deliverable</h3>
+          {error && <div className="ux-notice ux-notice--error" style={{ marginTop: 16 }}>{error}</div>}
+          <form action={action} style={{ marginTop: 20 }}>
+            <div className="ux-formgrid">
+              <label className="ux-field ux-full">
+                <span>File</span>
+                <input name="file" type="file" required className="ux-input" />
+              </label>
+              <label className="ux-field ux-full">
+                <span>Display name (optional)</span>
+                <input name="name" className="ux-input" />
+              </label>
+              <label className="ux-tl-check ux-full">
+                <input type="checkbox" name="is_visible_to_client" defaultChecked />
+                Visible to the client
+              </label>
+            </div>
+            <div className="ux-dialog-actions">
+              <button type="button" className="ux-btn ux-btn--secondary" onClick={() => setOpen(false)}>
+                Cancel
+              </button>
+              <button type="submit" className="ux-btn ux-btn--primary" disabled={uploading}>
+                {uploading ? "Uploading…" : "Upload"}
               </button>
             </div>
-          ))
-        )}
-      </div>
-    </div>
+          </form>
+        </Dialog>
+      )}
+    </Section>
   );
 }

@@ -1,13 +1,17 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { canAccessFinance, isAdmin as isAdminRole, isOperationalStaff, type Role } from "@/lib/security/roles";
 
 type AuthResult = {
   supabase: Awaited<ReturnType<typeof createClient>>;
   user: { id: string; email?: string } | null;
-  role: "admin" | "staff" | "client" | null;
+  role: Role | null;
+  /** Operational staff rights (admin or staff). Finance is not included. */
   isStaff: boolean;
   isAdmin: boolean;
+  /** Admin or finance. */
+  canFinance: boolean;
 };
 
 export async function getAuthContext(): Promise<AuthResult> {
@@ -17,7 +21,7 @@ export async function getAuthContext(): Promise<AuthResult> {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { supabase, user: null, role: null, isStaff: false, isAdmin: false };
+    return { supabase, user: null, role: null, isStaff: false, isAdmin: false, canFinance: false };
   }
 
   const { data: profile } = await supabase
@@ -31,7 +35,8 @@ export async function getAuthContext(): Promise<AuthResult> {
     supabase,
     user: { id: user.id, email: user.email },
     role: role as AuthResult["role"],
-    isStaff: role === "admin" || role === "staff",
-    isAdmin: role === "admin",
+    isStaff: isOperationalStaff(role),
+    isAdmin: isAdminRole(role),
+    canFinance: canAccessFinance(role),
   };
 }

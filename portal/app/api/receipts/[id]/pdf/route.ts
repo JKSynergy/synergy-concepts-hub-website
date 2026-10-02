@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { canViewInvoiceDocument, isPortalRole, isUuid } from "@/lib/security/access";
 import { pdf } from "@react-pdf/renderer";
 import ReceiptPDF from "@/lib/pdf/receipt-template";
 import { readFileSync } from "fs";
@@ -11,6 +11,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  if (!isUuid(id)) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  // Same model as the invoice PDF: caller's own session (row-level security)
+  // plus an explicit ownership check. The service-role key is not used here.
   const supabase = await createClient();
   const {
     data: { user },
@@ -19,39 +25,44 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const admin = createAdminClient();
+  const { data: me } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  const role = isPortalRole(me?.role) ? me.role : null;
 
-  const { data: receipt } = await admin
+  const { data: receipt } = await supabase
     .from("receipts")
     .select("*")
     .eq("id", id)
-    .single();
+    .maybeSingle();
 
   if (!receipt) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const { data: payment } = await admin
-    .from("payments")
-    .select("*")
-    .eq("id", receipt.payment_id)
-    .single();
-
-  const { data: invoice } = await admin
+  const { data: invoice } = await supabase
     .from("invoices")
     .select("*")
     .eq("id", receipt.invoice_id)
-    .single();
+    .maybeSingle();
 
-  const { data: payments } = await admin
+  if (!canViewInvoiceDocument({ role, userId: user.id, invoice })) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const { data: payment } = await supabase
+    .from("payments")
+    .select("*")
+    .eq("id", receipt.payment_id)
+    .maybeSingle();
+
+  const { data: payments } = await supabase
     .from("payments")
     .select("*")
     .eq("invoice_id", receipt.invoice_id);
 
-  const { data: client } = await admin
+  const { data: client } = await supabase
     .from("profiles")
     .select("full_name, company_name, email")
-    .eq("id", invoice.client_id)
+    .eq("id", invoice!.client_id)
     .single();
 
   if (!payment || !invoice) {

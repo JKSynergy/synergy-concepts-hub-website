@@ -1,195 +1,204 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { saveService, toggleServiceActive } from "@/lib/actions/bookings";
+import { Dialog } from "@/components/ux/dialog";
+import { useFeedback } from "@/components/ux/feedback";
+import { EmptyState, PageHeader, StatusMark, ugx } from "@/components/ux/primitives";
 import type { Service } from "@/lib/types";
 
-export default function ServicesManager({ services }: { services: Service[] }) {
+export default function ServicesManager({ services, canEdit = false }: { services: Service[]; canEdit?: boolean }) {
+  const router = useRouter();
+  const { toast, confirm: askConfirm } = useFeedback();
   const [editing, setEditing] = useState<Service | null>(null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const showForm = creating || editing !== null;
+
+  function close() {
+    if (saving) return;
+    setEditing(null);
+    setCreating(false);
+    setError("");
+  }
 
   async function action(formData: FormData) {
     setError("");
+    setSaving(true);
+    const wasEditing = !!editing;
     const res = await saveService(editing?.id ?? null, formData);
+    setSaving(false);
     if (res.error) {
       setError(res.error);
       return;
     }
     setEditing(null);
     setCreating(false);
+    toast(wasEditing ? "Service updated." : "Service created.");
+    router.refresh();
   }
 
-  const showForm = creating || editing !== null;
+  async function toggle(s: Service) {
+    const next = !s.is_active;
+    const ok = await askConfirm({
+      title: next ? "Activate service?" : "Deactivate service?",
+      body: next
+        ? `${s.name} becomes available again for new bookings.`
+        : `${s.name} will no longer be offered for new bookings. Existing records are kept.`,
+      confirmLabel: next ? "Activate" : "Deactivate",
+      destructive: !next,
+    });
+    if (!ok) return;
+    setBusy(s.id);
+    const res = await toggleServiceActive(s.id, next);
+    setBusy(null);
+    if (res.error) {
+      toast(res.error, "error");
+      return;
+    }
+    toast(next ? "Service activated." : "Service deactivated.");
+    router.refresh();
+  }
 
   return (
-    <div className="space-y-6">
-      {!showForm && (
-        <button
-          onClick={() => {
-            setCreating(true);
-            setEditing(null);
-          }}
-          className="rounded-md bg-sch-orange px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600"
-        >
-          + New Service
-        </button>
-      )}
+    <>
+      <PageHeader
+        title="Services"
+        description="The catalogue of services Synergy offers. Active services can be selected when a booking is created."
+        actions={
+          !canEdit ? undefined : (
+          <button
+            type="button"
+            className="ux-btn ux-btn--primary"
+            onClick={() => {
+              setCreating(true);
+              setEditing(null);
+              setError("");
+            }}
+          >
+            New service
+          </button>
+          )
+        }
+      />
 
-      {showForm && (
-        <div className="rounded-xl bg-white p-6 shadow">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">
-              {editing ? "Edit Service" : "New Service"}
-            </h3>
-            <button
-              onClick={() => {
-                setEditing(null);
-                setCreating(false);
-              }}
-              className="text-sm text-gray-500 hover:text-gray-700"
-            >
-              Cancel
-            </button>
-          </div>
-
-          {error && (
-            <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700">
-              {error}
-            </div>
-          )}
-
-          <form action={action} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-gray-700">Name *</label>
-              <input
-                name="name"
-                required
-                defaultValue={editing?.name ?? ""}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sch-orange focus:outline-none focus:ring-1 focus:ring-sch-orange"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Price (UGX)</label>
-              <input
-                name="price_ugx"
-                type="number"
-                defaultValue={editing?.price_ugx ?? ""}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sch-orange focus:outline-none focus:ring-1 focus:ring-sch-orange"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Price (USD)</label>
-              <input
-                name="price_usd"
-                type="number"
-                defaultValue={editing?.price_usd ?? ""}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sch-orange focus:outline-none focus:ring-1 focus:ring-sch-orange"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Duration (days)</label>
-              <input
-                name="duration_days"
-                type="number"
-                defaultValue={editing?.duration_days ?? ""}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sch-orange focus:outline-none focus:ring-1 focus:ring-sch-orange"
-              />
-            </div>
-            <div className="flex items-end">
-              <label className="flex items-center gap-2 text-sm text-gray-600">
-                <input
-                  type="checkbox"
-                  name="is_active"
-                  defaultChecked={editing ? editing.is_active : true}
-                  className="rounded"
-                />
-                Active
-              </label>
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-gray-700">Description</label>
-              <textarea
-                name="description"
-                rows={2}
-                defaultValue={editing?.description ?? ""}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sch-orange focus:outline-none focus:ring-1 focus:ring-sch-orange"
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-gray-700">Deliverables</label>
-              <textarea
-                name="deliverables"
-                rows={2}
-                defaultValue={editing?.deliverables ?? ""}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sch-orange focus:outline-none focus:ring-1 focus:ring-sch-orange"
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <button
-                type="submit"
-                className="rounded-md bg-sch-orange px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600"
-              >
-                {editing ? "Save Changes" : "Create Service"}
-              </button>
-            </div>
-          </form>
+      {services.length === 0 ? (
+        <EmptyState title="No services yet">{canEdit ? "Add a service to make it available for booking." : "An administrator has not added any services yet."}</EmptyState>
+      ) : (
+        <div className="ux-tablewrap">
+          <table className="ux-table ux-table--stack">
+            <thead>
+              <tr>
+                <th>Service</th>
+                <th className="ux-num">Price</th>
+                <th style={{ paddingLeft: 32 }}>Duration</th>
+                <th>Status</th>
+                <th aria-label="Actions" />
+              </tr>
+            </thead>
+            <tbody>
+              {services.map((s) => (
+                <tr key={s.id}>
+                  <td>
+                    <span className="ux-cell-main">{s.name}</span>
+                    {s.description && <span className="ux-cell-sub">{s.description}</span>}
+                  </td>
+                  <td className="ux-num" data-label="Price">
+                    {s.price_ugx != null ? ugx(Number(s.price_ugx)) : s.price_usd == null ? <span className="ux-muted">Not priced</span> : <span className="ux-muted">No UGX price</span>}
+                    {s.price_usd != null && (
+                      <span className="ux-cell-sub">USD {Number(s.price_usd).toLocaleString("en-US")}</span>
+                    )}
+                  </td>
+                  <td data-label="Duration" className="ux-muted ux-enq-after-num">
+                    {s.duration_days != null ? `${s.duration_days} day${s.duration_days === 1 ? "" : "s"}` : "—"}
+                  </td>
+                  <td data-label="Status">
+                    <StatusMark tone={s.is_active ? "success" : "neutral"}>{s.is_active ? "Active" : "Inactive"}</StatusMark>
+                  </td>
+                  <td>
+                    {canEdit && (
+                    <div className="ux-rowactions">
+                      <button
+                        type="button"
+                        className="ux-textbtn"
+                        onClick={() => {
+                          setEditing(s);
+                          setCreating(false);
+                          setError("");
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className={`ux-textbtn${s.is_active ? " ux-textbtn--danger" : ""}`}
+                        disabled={busy === s.id}
+                        onClick={() => toggle(s)}
+                      >
+                        {s.is_active ? "Deactivate" : "Activate"}
+                      </button>
+                    </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {services.length === 0 ? (
-          <div className="col-span-full rounded-xl bg-white p-8 text-center text-sm text-gray-500 shadow">
-            No services yet. Add your first service above.
-          </div>
-        ) : (
-          services.map((s) => (
-            <div key={s.id} className="rounded-xl bg-white p-5 shadow">
-              <div className="flex items-start justify-between">
-                <h3 className="font-semibold text-gray-900">{s.name}</h3>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                    s.is_active
-                      ? "bg-green-100 text-green-700"
-                      : "bg-gray-100 text-gray-500"
-                  }`}
-                >
-                  {s.is_active ? "Active" : "Inactive"}
-                </span>
+      {canEdit && showForm && (
+        <Dialog onClose={close} labelledBy="service-title" maxWidth={600}>
+          <>
+            <h3 id="service-title">{editing ? "Edit service" : "New service"}</h3>
+            <form action={action} style={{ marginTop: 20 }}>
+              {error && <div className="ux-notice ux-notice--error">{error}</div>}
+              <div className="ux-formgrid">
+                <label className="ux-field ux-full">
+                  <span>Name *</span>
+                  <input name="name" required defaultValue={editing?.name ?? ""} className="ux-input" />
+                </label>
+                <label className="ux-field">
+                  <span>Price (UGX)</span>
+                  <input name="price_ugx" type="number" defaultValue={editing?.price_ugx ?? ""} className="ux-input" />
+                </label>
+                <label className="ux-field">
+                  <span>Price (USD, optional)</span>
+                  <input name="price_usd" type="number" defaultValue={editing?.price_usd ?? ""} className="ux-input" />
+                </label>
+                <label className="ux-field">
+                  <span>Duration (days)</span>
+                  <input name="duration_days" type="number" defaultValue={editing?.duration_days ?? ""} className="ux-input" />
+                </label>
+                <label className="ux-field" style={{ flexDirection: "row", alignItems: "center", gap: 8, alignSelf: "end" }}>
+                  <input type="checkbox" name="is_active" defaultChecked={editing ? editing.is_active : true} />
+                  <span>Active</span>
+                </label>
+                <label className="ux-field ux-full">
+                  <span>Description</span>
+                  <textarea name="description" rows={2} defaultValue={editing?.description ?? ""} className="ux-input" />
+                </label>
+                <label className="ux-field ux-full">
+                  <span>Deliverables</span>
+                  <textarea name="deliverables" rows={2} defaultValue={editing?.deliverables ?? ""} className="ux-input" />
+                </label>
               </div>
-              {s.description && (
-                <p className="mt-1 text-sm text-gray-500">{s.description}</p>
-              )}
-              <div className="mt-3 text-sm text-gray-700">
-                {s.price_ugx != null && (
-                  <span className="mr-3">UGX {s.price_ugx.toLocaleString()}</span>
-                )}
-                {s.price_usd != null && <span>USD {s.price_usd.toLocaleString()}</span>}
-              </div>
-              {s.duration_days != null && (
-                <p className="mt-1 text-xs text-gray-400">{s.duration_days} days</p>
-              )}
-              <div className="mt-4 flex gap-3">
-                <button
-                  onClick={() => {
-                    setEditing(s);
-                    setCreating(false);
-                  }}
-                  className="text-sm font-medium text-sch-blue hover:underline"
-                >
-                  Edit
+              <div className="ux-dialog-actions">
+                <button type="button" onClick={close} className="ux-btn ux-btn--secondary">
+                  Cancel
                 </button>
-                <button
-                  onClick={() => toggleServiceActive(s.id, !s.is_active)}
-                  className="text-sm font-medium text-gray-500 hover:underline"
-                >
-                  {s.is_active ? "Deactivate" : "Activate"}
+                <button type="submit" disabled={saving} className="ux-btn ux-btn--primary">
+                  {saving ? "Saving…" : editing ? "Save changes" : "Create service"}
                 </button>
               </div>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
+            </form>
+          </>
+        </Dialog>
+      )}
+    </>
   );
 }

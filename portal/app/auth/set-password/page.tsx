@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { Lock, ArrowLeft } from "lucide-react";
+import { AuthShell } from "@/components/ux/auth-shell";
+import { landingFor } from "@/lib/security/roles";
 
 export default function SetPasswordPage() {
   const router = useRouter();
@@ -66,7 +68,7 @@ export default function SetPasswordPage() {
           .eq("id", user.id)
           .single();
         const role = profile?.role ?? "client";
-        target = role === "admin" || role === "staff" ? "/admin" : "/client";
+        target = landingFor(role);
       }
 
       router.push(target);
@@ -79,101 +81,40 @@ export default function SetPasswordPage() {
   }
 
   return (
-    <main className="login-split">
-      <section className="login-right" style={{ width: "100%" }}>
-        <div className="login-glass-card login-fade-in mx-auto max-w-md">
-          <div className="mb-7 text-center">
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-sch-blue">
-              Secure Portal
-            </p>
-            <h1 className="font-display mt-2 text-[1.65rem] font-bold text-sch-white">
-              Create your password
-            </h1>
-            <p className="mt-1.5 text-sm text-sch-muted">
-              Set a password to finish activating your account
-            </p>
+    <AuthShell title="Set your password" description="Choose a password to finish setting up your account.">
+      {checkingSession ? (
+        <p className="ux-muted" role="status">Checking your invitation…</p>
+      ) : !hasSession ? (
+        <>
+          <div className="ux-notice ux-notice--error" role="alert">
+            This link is invalid or has expired. Ask Synergy Concepts Hub for a new invitation.
           </div>
-
-          {checkingSession ? (
-            <p className="text-center text-sm text-sch-muted">Loading...</p>
-          ) : !hasSession ? (
-            <div className="space-y-4 text-center">
-              <p className="text-sm text-sch-muted">
-                Open the invitation or password-reset link from your email first,
-                then return here to choose a password.
-              </p>
-              <a href="/login" className="login-link inline-flex items-center gap-1.5 text-sm">
-                <ArrowLeft size={14} />
-                Back to sign in
-              </a>
+          <div className="ux-login-links">
+            <Link href="/login">Back to sign in</Link>
+          </div>
+        </>
+      ) : (
+        <>
+          {error && (
+            <div className="ux-notice ux-notice--error" role="alert">
+              {error}
             </div>
-          ) : (
-            <>
-              {error && (
-                <div className="mb-5 rounded-xl border border-red-500/25 bg-red-500/10 p-3 text-sm text-red-300">
-                  {error}
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div>
-                  <label
-                    htmlFor="password"
-                    className="block text-[11px] font-semibold uppercase tracking-wide text-sch-muted"
-                  >
-                    New password
-                  </label>
-                  <div className="relative mt-1.5">
-                    <Lock
-                      size={16}
-                      className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sch-muted/60"
-                    />
-                    <input
-                      id="password"
-                      type="password"
-                      required
-                      minLength={8}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="At least 8 characters"
-                      className="login-input pl-10"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="confirmPassword"
-                    className="block text-[11px] font-semibold uppercase tracking-wide text-sch-muted"
-                  >
-                    Confirm password
-                  </label>
-                  <div className="relative mt-1.5">
-                    <Lock
-                      size={16}
-                      className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sch-muted/60"
-                    />
-                    <input
-                      id="confirmPassword"
-                      type="password"
-                      required
-                      minLength={8}
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Repeat password"
-                      className="login-input pl-10"
-                    />
-                  </div>
-                </div>
-
-                <button type="submit" disabled={loading} className="login-btn group">
-                  {loading ? "Saving..." : "Save password & continue"}
-                </button>
-              </form>
-            </>
           )}
-        </div>
-      </section>
-    </main>
+          <form onSubmit={handleSubmit} className="ux-stack">
+            <label className="ux-field">
+              <span>New password</span>
+              <input id="password" type="password" required minLength={8} autoComplete="new-password" className="ux-input" value={password} onChange={(e) => setPassword(e.target.value)} />
+            </label>
+            <label className="ux-field">
+              <span>Confirm password</span>
+              <input id="confirm-password" type="password" required minLength={8} autoComplete="new-password" className="ux-input" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+            </label>
+            <button type="submit" disabled={loading} className="ux-btn ux-btn--primary" style={{ width: "100%", minHeight: 42 }}>
+              {loading ? "Saving…" : "Save password"}
+            </button>
+          </form>
+        </>
+      )}
+    </AuthShell>
   );
 }

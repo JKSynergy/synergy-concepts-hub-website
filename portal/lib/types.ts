@@ -126,7 +126,7 @@ export const BOOKING_STATUS_BADGE: Record<BookingStatus, string> = {
 export interface Profile {
   id: string;
   email: string;
-  role: "admin" | "staff" | "client";
+  role: "admin" | "finance" | "staff" | "client";
   full_name: string | null;
   company_name: string | null;
   phone: string | null;
@@ -219,6 +219,7 @@ export interface Invoice {
   tax_rate: number;
   tax_amount: number;
   total: number;
+  currency: string;
   notes: string | null;
   pdf_url: string | null;
   created_at: string;

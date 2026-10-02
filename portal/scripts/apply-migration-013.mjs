@@ -20,7 +20,8 @@ export async function openPgConnection(dbUrl) {
   const Client = pg.Client || pg.default?.Client;
   const client = new Client({
     connectionString: dbUrl,
-    ssl: { rejectUnauthorized: false }
+    ssl: { rejectUnauthorized: false },
+    connectionTimeoutMillis: 30000
   });
   await client.connect();
   return client;

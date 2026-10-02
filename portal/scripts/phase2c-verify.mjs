@@ -21,7 +21,7 @@ async function openDb(dbUrl) {
   let pg;
   try { pg = await import("pg"); } catch { return { error: "the 'pg' package is not installed (run: npm install --no-save pg)" }; }
   const Client = pg.Client || pg.default?.Client;
-  const c = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+  const c = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 30000 });
   try { await c.connect(); await c.query("begin read only"); }
   catch (e) { return { error: `could not connect: ${e?.code || e?.message || "error"}` }; }
   return { query: async (sql) => (await c.query(sql)).rows, close: () => c.end().catch(() => {}) };

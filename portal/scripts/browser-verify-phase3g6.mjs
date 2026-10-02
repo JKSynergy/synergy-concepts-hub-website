@@ -211,9 +211,13 @@ async function run() {
       INSERT INTO public.provider_discovered_resources
         (provider_account_id, external_resource_id, resource_type, name, status, last_run_id, external_missing)
       VALUES ('${accountId}', '3g6-cdp-prj', 'project', '3g6-cdp-db', 'PAUSED', '${dRunId}', false) RETURNING id`)).rows[0].id;
-    await service.rpc("link_discovered_resource", {
+    const lr = await service.rpc("link_discovered_resource", {
       p_discovered_id: discId, p_client_id: clientAcc.id, p_system_id: sysId, p_linked_by: adminAcc.id });
-    resId = (await db.query(`SELECT linked_resource_id FROM public.provider_discovered_resources WHERE id=$1`, [discId])).rows[0]?.linked_resource_id;
+    const linkedFromDb = (await db.query(`SELECT linked_resource_id FROM public.provider_discovered_resources WHERE id=$1`, [discId])).rows[0]?.linked_resource_id;
+    resId = linkedFromDb || (typeof lr.body === "string" ? lr.body.replace(/"/g, "").trim() : null) || null;
+    if (!resId) {
+      throw new Error(`link_discovered_resource did not return a resource id (rpc ok=${lr.ok} status=${lr.status} body=${JSON.stringify(lr.body)} db=${linkedFromDb})`);
+    }
 
     for (let i = 0; i < 2; i++) {
       const rr = (await db.query(`

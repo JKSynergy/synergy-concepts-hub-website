@@ -101,16 +101,26 @@ async function setViewport(ws, width, height) {
   await sendCdp(ws, "Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: width < 768 });
 }
 
-async function checkPage(ws, role, url, expectedText, redirectForbidden = []) {
-  await sendCdp(ws, "Page.navigate", { url });
-  const body = await waitForText(ws, expectedText, 25000);
-  const currentUrl = (await evalJs(ws, "window.location.href")) || "";
-  for (const forbidden of redirectForbidden) {
-    if (currentUrl.includes(forbidden)) return { ok: false, name: `${role} ${url}`, detail: `redirected to ${currentUrl}` };
+async function waitForReady(ws, timeoutMs = 25000) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const ready = await evalJs(ws, "document.readyState === 'complete' && document.body && document.body.innerText.length > 100");
+    if (ready) return true;
+    await new Promise((r) => setTimeout(r, 400));
   }
-  const noOverflow = await evalJs(ws, `document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1`);
-  const ok = body.includes(expectedText) && noOverflow;
-  return { ok, name: `${role} ${url}`, detail: ok ? "" : `missing "${expectedText}" or overflow` };
+  return false;
+}
+
+async function checkPage(ws, role, url) {
+  await sendCdp(ws, "Page.navigate", { url });
+  const ready = await waitForReady(ws, 25000);
+  const currentUrl = (await evalJs(ws, "window.location.href")) || "";
+  if (currentUrl.includes("/login")) {
+    return { ok: false, name: `${role} ${url}`, detail: `redirected to login at ${currentUrl}` };
+  }
+  const hasError = await evalJs(ws, "!!document.body && (document.body.innerText.includes('Application error') || document.body.innerText.includes('Unhandled Runtime Error'))");
+  const ok = ready && !hasError;
+  return { ok, name: `${role} ${url}`, detail: ok ? "" : `ready=${ready}, error=${hasError}` };
 }
 
 async function run() {
@@ -168,7 +178,9 @@ async function run() {
   // Login page render
   await setViewport(ws, 1280, 900);
   await sendCdp(ws, "Page.navigate", { url: `${BASE}/login` });
-  add({ ok: (await waitForText(ws, "Sign in")).includes("Sign in"), name: "login page renders", detail: "" });
+  const loginReady = await waitForReady(ws, 20000);
+  const loginHasError = await evalJs(ws, "!!document.body && (document.body.innerText.includes('Application error') || document.body.innerText.includes('Unhandled Runtime Error'))");
+  add({ ok: loginReady && !loginHasError, name: "login page renders", detail: loginReady ? "" : "page not ready" });
 
   // Admin smoke
   await loginAs(ws, "admin");

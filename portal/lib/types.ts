@@ -221,6 +221,7 @@ export interface Invoice {
   total: number;
   currency: string;
   notes: string | null;
+  scope_of_work?: string | null;
   pdf_url: string | null;
   created_at: string;
   updated_at: string;

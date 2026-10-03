@@ -40,6 +40,7 @@ export async function createInvoice(formData: FormData): Promise<ActionResult> {
   const due_date = (formData.get("due_date") as string) || null;
   const tax_rate = Number(formData.get("tax_rate") || 0);
   const notes = (formData.get("notes") as string) || null;
+  const scope_of_work = (formData.get("scope_of_work") as string) || null;
 
   if (!client_id) return { error: "Client is required" };
 
@@ -54,6 +55,7 @@ export async function createInvoice(formData: FormData): Promise<ActionResult> {
       due_date,
       tax_rate,
       notes,
+      scope_of_work,
     })
     .select("id")
     .single();
@@ -81,6 +83,7 @@ export async function updateInvoice(
       due_date: (formData.get("due_date") as string) || null,
       tax_rate: Number(formData.get("tax_rate") || 0),
       notes: (formData.get("notes") as string) || null,
+      scope_of_work: (formData.get("scope_of_work") as string) || null,
     })
     .eq("id", invoiceId);
 

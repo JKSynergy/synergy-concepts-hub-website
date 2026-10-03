@@ -92,11 +92,15 @@ export async function GET(
   const signatureBuffer = readFileSync(signaturePath);
   const signatureSrc = `data:image/png;base64,${signatureBuffer.toString("base64")}`;
 
-  // Build the document model: scope comes from the linked project, notes from
-  // the invoice itself. Anything not supplied simply does not render.
+  // Build the document model: scope comes from the invoice's own Scope of Work
+  // field (falling back to the linked project), notes from the invoice itself.
+  // Anything not supplied simply does not render.
   const doc: InvoiceDoc = {};
 
-  if (project) {
+  const scopeOfWork = splitLines(invoice!.scope_of_work);
+  if (scopeOfWork.length > 0) {
+    doc.scope = { items: scopeOfWork };
+  } else if (project) {
     const scopeLines = splitLines(project.description);
     doc.scope = {
       title: project.title,

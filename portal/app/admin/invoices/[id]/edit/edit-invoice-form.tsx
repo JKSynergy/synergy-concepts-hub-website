@@ -20,6 +20,7 @@ type InvoiceData = {
   due_date: string | null;
   tax_rate: number;
   notes: string | null;
+  scope_of_work: string | null;
 };
 
 export default function EditInvoiceForm({
@@ -81,6 +82,16 @@ export default function EditInvoiceForm({
             <input type="number" name="tax_rate" defaultValue={invoice.tax_rate} min={0} max={100} className="ux-input" />
           </label>
         </div>
+      </section>
+
+      <section className="ux-fin-formsec">
+        <div className="ux-section-head">
+          <h2>Scope of work</h2>
+        </div>
+        <label className="ux-field">
+          <span className="sr-only">Scope of work</span>
+          <textarea name="scope_of_work" rows={6} defaultValue={invoice.scope_of_work ?? ""} className="ux-input" />
+        </label>
       </section>
 
       <section className="ux-fin-formsec">

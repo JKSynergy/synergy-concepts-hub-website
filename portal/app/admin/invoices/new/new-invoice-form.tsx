@@ -123,6 +123,16 @@ export default function NewInvoiceForm({
 
           <section className="ux-fin-formsec">
             <div className="ux-section-head">
+              <h2>Scope of work</h2>
+            </div>
+            <label className="ux-field">
+              <span className="sr-only">Scope of work</span>
+              <textarea name="scope_of_work" rows={6} className="ux-input" placeholder="What this invoice covers, one item per line (optional)" />
+            </label>
+          </section>
+
+          <section className="ux-fin-formsec">
+            <div className="ux-section-head">
               <h2>Notes</h2>
             </div>
             <label className="ux-field">

@@ -225,6 +225,14 @@ export default async function InvoiceDetailPage({
         )}
       </Section>
 
+      <Section title="Scope of work">
+        {invoice.scope_of_work ? (
+          <p className="ux-fin-note" style={{ margin: 0 }}>{invoice.scope_of_work}</p>
+        ) : (
+          <p className="ux-muted" style={{ margin: 0 }}>No scope of work on this invoice.</p>
+        )}
+      </Section>
+
       <Section title="Notes">
         {invoice.notes ? (
           <p className="ux-fin-note" style={{ margin: 0 }}>{invoice.notes}</p>

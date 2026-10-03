@@ -16,7 +16,7 @@ import zlib from "node:zlib";
 import React from "react";
 import ts from "typescript";
 import { renderToBuffer } from "@react-pdf/renderer";
-import { splitProjectNotes } from "../lib/pdf/invoice-doc.ts";
+import { splitLines, splitProjectNotes, defaultScheduleAmounts } from "../lib/pdf/invoice-doc.ts";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -98,7 +98,7 @@ const li = (i, description, unit_price) => ({
   description,
   quantity: 1,
   unit_price,
-  total_price: unit_price,
+  amount: unit_price,
   sort_order: i,
 });
 
@@ -195,8 +195,9 @@ test("invoice PDF: total due and payment details are visible", async () => {
     );
     const all = decodePages(buf).flat().join(" ");
     assert.match(all, /UGX 3,600,000/);
-    assert.match(all, /BANK TRANSFER/);
-    assert.match(all, /Airtel Money/i);
+    assert.match(all, /PAYMENT DETAILS/);
+    assert.match(all, /Bank Transfer/);
+    assert.match(all, /Airtel Money/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -223,7 +224,7 @@ test("invoice PDF: continuation header appears on page 2", async () => {
     const p2 = pages[1].join(" ");
     assert.match(p2, /Synergy Concepts Hub/);
     assert.match(p2, /Invoice/);
-    assert.match(p2, /PROJECT NOTES/);
+    assert.ok(pages.slice(1).flat().includes("NOTES"), "notes continue after page 1");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -265,7 +266,7 @@ test("invoice PDF: empty sections render nothing; no notes, no scope, no payment
         client,
         doc: {
           scope: null,
-          projectNotes: null,
+          projectNotes: [],
           paymentTerms: [],
           standardTerms: [],
           paymentMethods: [],
@@ -275,7 +276,7 @@ test("invoice PDF: empty sections render nothing; no notes, no scope, no payment
     );
     const all = decodePages(buf).flat().join(" ");
     assert.doesNotMatch(all, /SCOPE OF WORK/);
-    assert.doesNotMatch(all, /PROJECT NOTES/);
+    assert.doesNotMatch(all, /\bNOTES\b/);
     assert.doesNotMatch(all, /PAYMENT TERMS/);
     assert.doesNotMatch(all, /STANDARD TERMS/);
     assert.doesNotMatch(all, /PAYMENT DETAILS/);
@@ -356,4 +357,91 @@ test("invoice PDF: payment-schedule invoice notes do not appear in Project Notes
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+// ── SCH-2026-0006 shape: scope_of_work field, 80/20 schedule, data-driven status ──
+const SCOPE_0006 = [
+  "Professional room and property photography",
+  "Short-form video content / reels for social media and marketing",
+  "Staff portraits and environmental/location shots",
+  "General resort atmosphere and supporting visual content",
+  "Creation of a visual content bank for future marketing use",
+  "One-day on-location production at Master Peace Resort, Masindi",
+];
+const invoice0006 = (over = {}) => ({
+  ...invoice(),
+  invoice_number: "SCH-2026-0006",
+  subtotal: 3_600_000,
+  total: 3_600_000,
+  tax_rate: 0,
+  scope_of_work: SCOPE_0006.join("\n"),
+  notes: "75% booking payment upon confirmation.\n25% balance due on delivery of final content.",
+  ...over,
+});
+const items0006 = [
+  li(1, "Photography coverage – rooms, property, staff & locations", 1_500_000),
+  li(2, "Videography – property footage & short-form content", 1_500_000),
+  li(3, "Editing – photo retouching + 5 short reels", 300_000),
+  li(4, "Production / equipment / preparation", 300_000),
+];
+/** Builds the doc exactly as app/api/invoices/[id]/pdf/route.ts does. */
+function routeDoc(inv) {
+  const doc = {};
+  const scope = splitLines(inv.scope_of_work);
+  if (scope.length > 0) doc.scope = { items: scope };
+  const notes = splitProjectNotes(inv.notes);
+  if (notes.length > 0) doc.projectNotes = notes;
+  doc.signature = null;
+  return doc;
+}
+async function render0006(over = {}) {
+  const dir = buildTemplate();
+  ({ default: InvoicePDF } = await import(`file://${join(dir, "invoice-template.js")}`));
+  try {
+    const inv = invoice0006(over);
+    return decodePages(
+      await renderToBuffer(React.createElement(InvoicePDF, { invoice: inv, lineItems: items0006, client, doc: routeDoc(inv) }))
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+test("SCH-2026-0006: scope_of_work renders on page 1 immediately above Investment, with Total Due on page 1", async () => {
+  const pages = await render0006();
+  const p1 = pages[0];
+  const scopeIdx = p1.indexOf("SCOPE OF WORK");
+  const investIdx = p1.indexOf("INVESTMENT");
+  const tableIdx = p1.indexOf("DESCRIPTION");
+  assert.ok(scopeIdx > -1 && investIdx > -1 && tableIdx > -1, "scope, investment and table headings on page 1");
+  assert.ok(scopeIdx < investIdx && investIdx < tableIdx, "scope → investment → table");
+  // Every scope line sits between the scope heading and the investment heading — nothing else in between.
+  assert.deepEqual(p1.slice(scopeIdx + 1, investIdx), SCOPE_0006);
+  assert.ok(p1.includes("TOTAL DUE") && p1.includes("UGX 3,600,000"), "total due on page 1");
+  // Scope is not repeated further down the document.
+  assert.equal(pages.flat().filter((s) => s === SCOPE_0006[0]).length, 1);
+});
+
+test("SCH-2026-0006: only the official 80/20 schedule appears; 75/25 is gone", async () => {
+  const all = (await render0006()).flat().join(" ");
+  assert.match(all, /An 80% deposit is required/);
+  assert.match(all, /remaining 20% balance/);
+  assert.match(all, /Deposit \(80%\)/);
+  assert.match(all, /UGX 2,880,000/);
+  assert.match(all, /Balance \(20%\)/);
+  assert.match(all, /UGX 720,000/);
+  assert.doesNotMatch(all, /75%|25%/);
+  // With the schedule lines filtered out, Notes falls back to the standard notes.
+  assert.match(all, /Payment due by the due date\./);
+  assert.deepEqual(defaultScheduleAmounts(3_600_000), { deposit: 2_880_000, balance: 720_000 });
+  assert.deepEqual(defaultScheduleAmounts(1_000_001), { deposit: 800_001, balance: 200_000 }, "amounts always sum to the total");
+});
+
+test("invoice PDF: status label is taken from the invoice record, not the template", async () => {
+  for (const status of ["draft", "paid", "partially paid", "overdue", "cancelled"]) {
+    const p1 = (await render0006({ status }))[0];
+    assert.ok(p1.includes(status.toUpperCase()), `${status} shown`);
+    assert.ok(!p1.includes("SENT"), `${status}: no hardcoded SENT`);
+  }
+  assert.ok((await render0006({ status: "sent" }))[0].includes("SENT"));
 });

@@ -20,6 +20,7 @@ export type DocSignature = {
 /** All optional. Anything not supplied simply does not render. */
 export type InvoiceDoc = {
   scope?: { title?: string; paragraphs?: string[]; items?: string[] } | null;
+  /** Rendered under "Notes". Defaults when null; [] omits the section entirely. */
   projectNotes?: string[] | null;
   paymentTerms?: string[] | null;
   additionalTerms?: string[] | null;
@@ -37,11 +38,23 @@ export const SCH_BRAND = {
   website: "www.synergyconceptshub.com",
 } as const;
 
+/** The official Synergy Concepts Hub payment schedule — the single source for the default Payment Terms. */
+export const DEFAULT_PAYMENT_SCHEDULE = { depositPercent: 80, balancePercent: 20 } as const;
+
 /** Payment schedule terms used when the invoice carries none of its own. */
 export const DEFAULT_PAYMENT_TERMS: string[] = [
-  "An 80% deposit is required before commencement of work unless otherwise agreed in writing.",
-  "The remaining 20% balance is payable upon project completion or prior to delivery of the final deliverables.",
+  `An ${DEFAULT_PAYMENT_SCHEDULE.depositPercent}% deposit is required before commencement of work unless otherwise agreed in writing.`,
+  `The remaining ${DEFAULT_PAYMENT_SCHEDULE.balancePercent}% balance is payable upon project completion or prior to delivery of the final deliverables.`,
 ];
+
+/** Deposit / balance amounts for a total under the default schedule. They always sum to the total. */
+export function defaultScheduleAmounts(total: number): { deposit: number; balance: number } {
+  const deposit = Math.round((Number(total) * DEFAULT_PAYMENT_SCHEDULE.depositPercent) / 100);
+  return { deposit, balance: Math.round(Number(total)) - deposit };
+}
+
+/** Notes shown when the invoice has none of its own. */
+export const DEFAULT_NOTES: string[] = ["Payment due by the due date.", "Thank you for your business."];
 
 export const DEFAULT_STANDARD_TERMS: string[] = [
   "Please quote the invoice number as the payment reference for all transactions.",

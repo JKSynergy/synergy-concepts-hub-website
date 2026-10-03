@@ -30,7 +30,7 @@ export default async function EditInvoicePage({
 
   const { data: invoice } = await supabase
     .from("invoices")
-    .select("id, invoice_number, client_id, issue_date, due_date, tax_rate, notes")
+    .select("id, invoice_number, client_id, issue_date, due_date, tax_rate, notes, scope_of_work")
     .eq("id", id)
     .single();
 
@@ -50,7 +50,7 @@ export default async function EditInvoicePage({
       <PageHeader
         eyebrow="Invoice"
         title={`Edit ${invoice.invoice_number ?? "invoice"}`}
-        description="Change the client, dates, tax rate or notes. Line items are edited on the invoice page."
+        description="Change the client, dates, tax rate, scope of work or notes. Line items are edited on the invoice page."
       />
       <EditInvoiceForm invoice={invoice} clients={clients ?? []} />
     </div>

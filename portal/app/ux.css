@@ -101,10 +101,10 @@
 .ux-tabs a[aria-current="page"] { color: var(--ux-ink); font-weight: 500; border-bottom-color: var(--ux-orange); }
 
 /* migrated pages */
-.ux-page { padding: 44px 40px 72px; max-width: 1180px; }
+.ux-page { padding: 44px 40px 72px; max-width: 1180px; margin-inline: auto; }
 .ux-page--narrow { max-width: 860px; }
 /* Wide editorial pages (dashboard): wider container, centered in the content area. */
-.ux-page--wide { max-width: 1280px; margin-inline: auto; }
+.ux-page--wide { max-width: 1280px; }
 
 /* legacy (unmigrated) screens keep their old look in a contained frame */
 .ux-legacy.portal-shell { isolation: auto; min-height: calc(100vh - 0px); padding: 2rem 2.25rem 3rem; }

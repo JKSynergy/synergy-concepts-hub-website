@@ -16,6 +16,7 @@ import zlib from "node:zlib";
 import React from "react";
 import ts from "typescript";
 import { renderToBuffer } from "@react-pdf/renderer";
+import { splitProjectNotes } from "../lib/pdf/invoice-doc.ts";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -311,6 +312,47 @@ test("invoice PDF: scope renders before the pricing table", async () => {
     // Scope title and items rendered
     assert.ok(p1.includes("Engagement"));
     assert.ok(p1.includes("Alpha") && p1.includes("Gamma"));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("splitProjectNotes filters payment-schedule lines but keeps legitimate notes", () => {
+  const notes = [
+    "75% booking payment upon confirmation.",
+    "25% balance due on delivery of final content.",
+    "Shoot will start at 8am on location.",
+    "Deliverables include edited photos and reels.",
+  ].join("\n");
+  const result = splitProjectNotes(notes);
+  assert.deepEqual(result, [
+    "Shoot will start at 8am on location.",
+    "Deliverables include edited photos and reels.",
+  ]);
+});
+
+test("invoice PDF: payment-schedule invoice notes do not appear in Project Notes", async () => {
+  const dir = buildTemplate();
+  ({ default: InvoicePDF } = await import(`file://${join(dir, "invoice-template.js")}`));
+  try {
+    const buf = await renderToBuffer(
+      React.createElement(InvoicePDF, {
+        invoice: invoice(),
+        lineItems: [li(1, "Service", 100000)],
+        client,
+        doc: {
+          projectNotes: splitProjectNotes(
+            "75% booking payment upon confirmation.\n25% balance due on delivery.\nPlease provide parking access."
+          ),
+        },
+      })
+    );
+    const all = decodePages(buf).flat().join(" ");
+    assert.doesNotMatch(all, /75%/);
+    assert.doesNotMatch(all, /25%/);
+    assert.match(all, /Please provide parking access/);
+    assert.match(all, /80%/);
+    assert.match(all, /20%/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

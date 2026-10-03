@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { canViewInvoiceDocument, isPortalRole, isUuid } from "@/lib/security/access";
 import { pdf } from "@react-pdf/renderer";
 import InvoicePDF from "@/lib/pdf/invoice-template";
-import { splitLines, DEFAULT_SIGNATURE, type InvoiceDoc } from "@/lib/pdf/invoice-doc";
+import { splitLines, splitProjectNotes, DEFAULT_SIGNATURE, type InvoiceDoc } from "@/lib/pdf/invoice-doc";
 import { readFileSync } from "fs";
 import { join } from "path";
 
@@ -105,7 +105,7 @@ export async function GET(
     };
   }
 
-  const noteLines = splitLines(invoice!.notes);
+  const noteLines = splitProjectNotes(invoice!.notes);
   if (noteLines.length > 0) doc.projectNotes = noteLines;
 
   doc.signature = signatureSrc ? { ...DEFAULT_SIGNATURE, imageSrc: signatureSrc } : null;

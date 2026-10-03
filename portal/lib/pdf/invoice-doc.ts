@@ -81,3 +81,20 @@ export function splitLines(text: string | null | undefined): string[] {
     .map((l) => l.replace(/^\s*[•\-–*]\s*/, "").trim())
     .filter(Boolean);
 }
+
+/** True if a note line reads as a payment/deposit schedule. */
+function isPaymentScheduleLine(line: string): boolean {
+  const lower = line.toLowerCase();
+  const hasPercent = /\d+\s*%/.test(line);
+  const hasScheduleWord = /\b(deposit|booking|balance|down payment|final payment|payment schedule)\b/.test(lower);
+  return hasPercent && hasScheduleWord;
+}
+
+/**
+ * Split invoice notes into project notes, filtering out lines that express a
+ * payment schedule. This prevents invoice-specific deposit/balance wording
+ * from duplicating or contradicting the centralized Payment Terms.
+ */
+export function splitProjectNotes(text: string | null | undefined): string[] {
+  return splitLines(text).filter((line) => !isPaymentScheduleLine(line));
+}

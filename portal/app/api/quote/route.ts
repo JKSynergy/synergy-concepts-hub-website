@@ -1,30 +1,17 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/email/notify";
-
-// The marketing site lives on a different origin (Cloudflare Pages), so this
-// public endpoint must send CORS headers. Restrict to the configured origin
-// when set, otherwise allow all (useful in dev).
-function corsHeaders(origin: string | null): Record<string, string> {
-  const allowed = process.env.MARKETING_SITE_ORIGIN;
-  const allowOrigin = allowed ?? origin ?? "*";
-  return {
-    "Access-Control-Allow-Origin": allowOrigin,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Max-Age": "86400",
-  };
-}
+import { quoteCorsHeaders } from "@/lib/cors/quote";
 
 export async function OPTIONS(request: Request) {
   return new NextResponse(null, {
     status: 204,
-    headers: corsHeaders(request.headers.get("origin")),
+    headers: quoteCorsHeaders(request.headers.get("origin")),
   });
 }
 
 export async function POST(request: Request) {
-  const headers = corsHeaders(request.headers.get("origin"));
+  const headers = quoteCorsHeaders(request.headers.get("origin"));
 
   let body: {
     name?: string;

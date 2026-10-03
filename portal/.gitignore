@@ -22,3 +22,5 @@ admin-detailed-report.json
 phase2c-visual-audit.json
 scratch/
 nul
+
+.env*.local

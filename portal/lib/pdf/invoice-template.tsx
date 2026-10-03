@@ -6,8 +6,12 @@ import {
   View,
   Image,
   StyleSheet,
+  Svg,
+  Path,
+  Rect,
+  Line,
 } from "@react-pdf/renderer";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import type { Invoice, InvoiceLineItem, Payment } from "@/lib/types";
 import {
   SCH_BRAND,
@@ -22,7 +26,8 @@ import {
 } from "./invoice-doc";
 
 // Visual foundation: invoice SCH-2026-0005. Hierarchy comes from typography,
-// whitespace and hairline rules — no cards, fills or heavy borders.
+// whitespace and hairline rules; supporting sections sit on the Portal's
+// off-white (--ux-stone) as flat, borderless, sharp-cornered panels.
 const C = {
   navy: "#1A2E5A",
   dark: "#0F172A",
@@ -30,6 +35,8 @@ const C = {
   muted: "#6B7280",
   hairline: "#E5E7EB",
   rowRule: "#EEF0F3",
+  stone: "#F4F3F0",
+  stoneLine: "#E1DFDA",
   white: "#FFFFFF",
   orange: "#ED8C22",
 };
@@ -105,6 +112,8 @@ const styles = StyleSheet.create({
 
   // Sections
   section: { marginBottom: 22 },
+  panel: { backgroundColor: C.stone, paddingVertical: 14, paddingHorizontal: 16, marginBottom: 14 },
+  panelRule: { height: 0.5, backgroundColor: C.stoneLine, marginTop: 7, marginBottom: 10 },
   label: {
     fontSize: 7.5,
     fontFamily: "Helvetica-Bold",
@@ -123,18 +132,25 @@ const styles = StyleSheet.create({
   tableHead: {
     flexDirection: "row",
     marginTop: 10,
-    paddingBottom: 7,
-    borderBottomWidth: 0.75,
-    borderBottomColor: C.navy,
+    paddingVertical: 9,
+    paddingHorizontal: 10,
+    backgroundColor: C.navy,
   },
   th: {
     fontSize: 7.5,
     fontFamily: "Helvetica-Bold",
-    color: C.navy,
+    color: C.white,
     textTransform: "uppercase",
     letterSpacing: 1.2,
   },
-  tr: { flexDirection: "row", paddingVertical: 8, borderBottomWidth: 0.5, borderBottomColor: C.rowRule },
+  tr: {
+    flexDirection: "row",
+    paddingVertical: 9,
+    paddingHorizontal: 10,
+    borderBottomWidth: 0.5,
+    borderBottomColor: C.stoneLine,
+  },
+  trAlt: { backgroundColor: C.stone },
   cDesc: { flex: 4, paddingRight: 12 },
   cQty: { flex: 0.5, textAlign: "right", paddingRight: 12 },
   cPrice: { flex: 1.45, textAlign: "right", paddingRight: 12 },
@@ -171,10 +187,21 @@ const styles = StyleSheet.create({
 
   // Payment details
   payCols: { flexDirection: "row" },
-  payCol: { flex: 1, paddingRight: 28 },
+  payCol: { flex: 1, flexDirection: "row", alignItems: "flex-start" },
+  payDivider: { width: 0.5, backgroundColor: C.stoneLine, marginHorizontal: 14 },
+  payIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: C.white,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  payBody: { flex: 1 },
   payTitle: { fontSize: 9, fontFamily: "Helvetica-Bold", color: C.dark, marginBottom: 6 },
   payRow: { flexDirection: "row", marginBottom: 3 },
-  payLabel: { fontSize: 8.5, color: C.muted, width: 86 },
+  payLabel: { fontSize: 8.5, color: C.muted, width: 72 },
   payValue: { fontSize: 8.5, color: C.dark, flex: 1 },
 
   // Payment schedule amounts
@@ -213,16 +240,45 @@ function Section({
   title,
   children,
   keepTogether = false,
+  panel = false,
 }: {
   title: string;
   children: ReactNode;
   keepTogether?: boolean;
+  /** Flat off-white background (no border, sharp corners). */
+  panel?: boolean;
 }) {
   return (
-    <View style={styles.section} wrap={!keepTogether} minPresenceAhead={60}>
+    <View style={panel ? styles.panel : styles.section} wrap={!keepTogether} minPresenceAhead={60}>
       <Text style={styles.label}>{title}</Text>
-      <View style={styles.labelRule} />
+      <View style={panel ? styles.panelRule : styles.labelRule} />
       {children}
+    </View>
+  );
+}
+
+/** Simple navy line icons for the payment methods. */
+function PayIcon({ kind }: { kind?: "bank" | "mobile" }) {
+  if (!kind) return null;
+  const stroke = { stroke: C.navy, strokeWidth: 1.2, fill: "none" } as const;
+  return (
+    <View style={styles.payIcon}>
+      <Svg width={16} height={16} viewBox="0 0 16 16">
+        {kind === "bank" ? (
+          <>
+            <Path d="M2 6 L8 2.5 L14 6 Z" {...stroke} strokeLinejoin="round" />
+            <Line x1={4} y1={7.5} x2={4} y2={12} {...stroke} />
+            <Line x1={8} y1={7.5} x2={8} y2={12} {...stroke} />
+            <Line x1={12} y1={7.5} x2={12} y2={12} {...stroke} />
+            <Line x1={2} y1={13.5} x2={14} y2={13.5} {...stroke} />
+          </>
+        ) : (
+          <>
+            <Rect x={4.5} y={1.5} width={7} height={13} rx={1.2} {...stroke} />
+            <Line x1={7} y1={12.2} x2={9} y2={12.2} {...stroke} />
+          </>
+        )}
+      </Svg>
     </View>
   );
 }
@@ -416,8 +472,8 @@ export default function InvoicePDF({
             <Text style={[styles.cPrice, styles.th]}>Unit Price</Text>
             <Text style={[styles.cAmount, styles.th]}>Amount</Text>
           </View>
-          {lineItems.map((item) => (
-            <View style={styles.tr} key={item.id} wrap={false}>
+          {lineItems.map((item, index) => (
+            <View style={[styles.tr, index % 2 === 1 ? styles.trAlt : {}]} key={item.id} wrap={false}>
               <Text style={[styles.cDesc, styles.tdDesc]}>{item.description}</Text>
               <Text style={[styles.cQty, styles.td]}>{Number(item.quantity).toLocaleString()}</Text>
               <Text style={[styles.cPrice, styles.td]}>{money(item.unit_price)}</Text>
@@ -449,31 +505,43 @@ export default function InvoicePDF({
         </View>
 
         {paymentMethods.length > 0 && (
-          <Section title="Payment Details" keepTogether>
+          <Section title="Payment Details" keepTogether panel>
             <View style={styles.payCols}>
               {paymentMethods.map((m, i) => (
-                <View key={i} style={styles.payCol}>
-                  <Text style={styles.payTitle}>{m.label}</Text>
-                  {m.fields.map((f, j) => (
-                    <View key={j} style={styles.payRow}>
-                      <Text style={styles.payLabel}>{f.label}</Text>
-                      <Text style={styles.payValue}>{f.value}</Text>
+                <Fragment key={i}>
+                  {i > 0 && <View style={styles.payDivider} />}
+                  <View
+                    style={[
+                      styles.payCol,
+                      // Wider column for longer values (e.g. the bank name) so they stay on one line.
+                      { flex: Math.max(1, Math.max(...m.fields.map((f) => f.value.length)) / 22) },
+                    ]}
+                  >
+                    <PayIcon kind={m.icon} />
+                    <View style={styles.payBody}>
+                      <Text style={styles.payTitle}>{m.label}</Text>
+                      {m.fields.map((f, j) => (
+                        <View key={j} style={styles.payRow}>
+                          <Text style={styles.payLabel}>{f.label}</Text>
+                          <Text style={styles.payValue}>{f.value}</Text>
+                        </View>
+                      ))}
                     </View>
-                  ))}
-                </View>
+                  </View>
+                </Fragment>
               ))}
             </View>
           </Section>
         )}
 
         {notes.length > 0 && (
-          <Section title="Notes" keepTogether>
+          <Section title="Notes" keepTogether panel>
             <Lines items={notes} />
           </Section>
         )}
 
         {paymentTerms.length > 0 && (
-          <Section title="Payment Terms" keepTogether>
+          <Section title="Payment Terms" keepTogether panel>
             <Bullets items={paymentTerms} />
             {schedule && (
               <View style={styles.schedule}>
@@ -491,13 +559,13 @@ export default function InvoicePDF({
         )}
 
         {additionalTerms.length > 0 && (
-          <Section title="Additional Terms" keepTogether>
+          <Section title="Additional Terms" keepTogether panel>
             <Bullets items={additionalTerms} />
           </Section>
         )}
 
         {standardTerms.length > 0 && (
-          <Section title="Standard Terms" keepTogether>
+          <Section title="Standard Terms" keepTogether panel>
             <Bullets items={standardTerms} />
           </Section>
         )}

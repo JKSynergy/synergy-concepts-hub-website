@@ -7,6 +7,8 @@
 
 export type DocPaymentMethod = {
   label: string;
+  /** Simple line icon shown beside the method on the PDF. */
+  icon?: "bank" | "mobile";
   fields: { label: string; value: string }[];
 };
 
@@ -65,6 +67,7 @@ export const DEFAULT_STANDARD_TERMS: string[] = [
 export const DEFAULT_PAYMENT_METHODS: DocPaymentMethod[] = [
   {
     label: "Bank Transfer",
+    icon: "bank",
     fields: [
       { label: "Account Name", value: "Joseph Sengendo" },
       { label: "Account Number", value: "0100823802201" },
@@ -73,6 +76,7 @@ export const DEFAULT_PAYMENT_METHODS: DocPaymentMethod[] = [
   },
   {
     label: "Airtel Money",
+    icon: "mobile",
     fields: [
       { label: "Phone Number", value: "0704 783 724" },
       { label: "Account Name", value: "Joseph Sengendo" },

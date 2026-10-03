@@ -45,11 +45,16 @@ const securityHeaders = [
   { key: "Content-Security-Policy-Report-Only", value: csp },
 ];
 
-const nextConfig: NextConfig = {
+const nextConfig: NextConfig & { outputFileTracingIncludes?: Record<string, string[]> } = {
   // Vercel handles output automatically; do not set output: "standalone"
   poweredByHeader: false,
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
+  },
+  outputFileTracingIncludes: {
+    "/api/invoices/[id]/pdf": [
+      "./node_modules/pdfkit/js/standard-fonts/**/*",
+    ],
   },
 };
 

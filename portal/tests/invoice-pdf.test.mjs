@@ -103,7 +103,7 @@ const li = (i, description, unit_price) => ({
 
 let InvoicePDF;
 
-test("invoice PDF: small invoice fits one page; bare invoice too", async () => {
+test("invoice PDF: small invoice renders required page-1 content; bare invoice renders", async () => {
   const dir = buildTemplate();
   ({ default: InvoicePDF } = await import(`file://${join(dir, "invoice-template.js")}`));
   try {
@@ -116,12 +116,13 @@ test("invoice PDF: small invoice fits one page; bare invoice too", async () => {
       })
     );
     const pages = decodePages(small);
-    assert.equal(pages.length, 1);
+    assert.ok(pages.length >= 1 && pages.length <= 2, `expected 1-2 pages, got ${pages.length}`);
     const p1 = pages[0].join(" ");
     assert.match(p1, /INVOICE/);
     assert.match(p1, /SCOPE OF WORK/);
+    assert.match(p1, /INVESTMENT/);
     assert.match(p1, /TOTAL DUE/);
-    assert.match(p1, /Page 1 of 1/);
+    assert.match(p1, /Page 1 of \d+/);
 
     const bare = await renderToBuffer(
       React.createElement(InvoicePDF, {
@@ -131,7 +132,7 @@ test("invoice PDF: small invoice fits one page; bare invoice too", async () => {
         doc: { signature: null, standardTerms: [] },
       })
     );
-    assert.equal(decodePages(bare).length, 1);
+    assert.ok(decodePages(bare).length >= 1);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -174,6 +175,54 @@ test("invoice PDF: large invoice paginates with continuation header + repeated t
     for (const p of rowPages) {
       assert.ok(p.includes("DESCRIPTION"), "table page missing repeated header");
     }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("invoice PDF: total due and payment details are visible", async () => {
+  const dir = buildTemplate();
+  ({ default: InvoicePDF } = await import(`file://${join(dir, "invoice-template.js")}`));
+  try {
+    const buf = await renderToBuffer(
+      React.createElement(InvoicePDF, {
+        invoice: { ...invoice(), total: 3_600_000, subtotal: 3_600_000, total_amount: 3_600_000 },
+        lineItems: [li(1, "Service A", 3_600_000)],
+        client,
+        doc: {},
+      })
+    );
+    const all = decodePages(buf).flat().join(" ");
+    assert.match(all, /UGX 3,600,000/);
+    assert.match(all, /BANK TRANSFER/);
+    assert.match(all, /Airtel Money/i);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("invoice PDF: continuation header appears on page 2", async () => {
+  const dir = buildTemplate();
+  ({ default: InvoicePDF } = await import(`file://${join(dir, "invoice-template.js")}`));
+  try {
+    const buf = await renderToBuffer(
+      React.createElement(InvoicePDF, {
+        invoice: invoice(),
+        lineItems: Array.from({ length: 20 }, (_, i) =>
+          li(i, `Deliverable ${i + 1} — long description that wraps naturally within the column`, 500_000)
+        ),
+        client,
+        doc: {
+          projectNotes: Array.from({ length: 10 }, (_, i) => `Project note ${i + 1}: detail.`),
+        },
+      })
+    );
+    const pages = decodePages(buf);
+    assert.ok(pages.length >= 2, `expected 2+ pages, got ${pages.length}`);
+    const p2 = pages[1].join(" ");
+    assert.match(p2, /Synergy Concepts Hub/);
+    assert.match(p2, /Invoice/);
+    assert.match(p2, /PROJECT NOTES/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

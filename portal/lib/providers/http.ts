@@ -117,6 +117,52 @@ export async function providerRead(
   }
 }
 
+/**
+ * Same as `providerRead`, but returns the HTTP status with the parsed body so
+ * adapters can log or inspect it safely. Used by the Railway adapter for
+ * temporary GraphQL diagnostics.
+ */
+export async function providerReadWithStatus(
+  rules: EndpointRule[],
+  url: string,
+  token: string,
+  graphql?: string,
+  variables?: Record<string, unknown>
+): Promise<{ status: number; body: unknown }> {
+  const u = new URL(url);
+  const method = graphql ? "POST" : "GET";
+  assertAllowed(u, method, rules);
+  if (graphql) assertReadQuery(graphql);
+
+  let res: Response;
+  try {
+    res = await fetch(u.toString(), {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: graphql
+        ? JSON.stringify({ query: graphql, ...(variables ? { variables } : {}) })
+        : undefined,
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+  } catch {
+    throw new ProviderHttpError("network_error", "Provider endpoint unreachable");
+  }
+
+  if (!res.ok) {
+    throw new ProviderHttpError(normalizeStatus(res.status), `Provider returned HTTP ${res.status}`);
+  }
+
+  try {
+    return { status: res.status, body: await res.json() };
+  } catch {
+    throw new ProviderHttpError("malformed_response", "Provider returned non-JSON response");
+  }
+}
+
 // ============================================================================
 // Phase 3G-3 — typed mutation transport
 // ============================================================================

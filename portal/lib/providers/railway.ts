@@ -12,7 +12,7 @@
  * containing the word "mutation" before it reaches the network.
  */
 
-import { providerRead, ProviderHttpError, type EndpointRule } from "./http.ts";
+import { providerReadWithStatus, ProviderHttpError, type EndpointRule } from "./http.ts";
 import type {
   ConnectionErrorCategory,
   ConnectionTestResult,
@@ -57,6 +57,15 @@ const WORKSPACE_BY_ID_QUERY = `query ($id: String!) {
 const PROJECTS_QUERY = `query ($workspaceId: String, $first: Int, $after: String) {
   projects(workspaceId: $workspaceId, first: $first, after: $after) {
     edges { node { ${PROJECT_NODE} } }
+    ${PAGE_INFO_FRAGMENT}
+  }
+}`;
+
+// Minimal read used to validate a workspace token. Workspace tokens cannot
+// call `me`, but the token-scoped `projects` root succeeds.
+const WORKSPACE_TOKEN_TEST_QUERY = `query ($first: Int, $after: String) {
+  projects(first: $first, after: $after) {
+    edges { node { id name } }
     ${PAGE_INFO_FRAGMENT}
   }
 }`;
@@ -148,13 +157,17 @@ interface ConnectionPage<T> {
 async function gql<T>(
   token: string,
   query: string,
-  variables?: Record<string, unknown>
+  variables?: Record<string, unknown>,
+  workspaceId?: string
 ): Promise<T> {
-  const res = (await providerRead(RULES, ENDPOINT, token, query, variables)) as GqlResponse<T>;
+  const { status, body } = await providerReadWithStatus(RULES, ENDPOINT, token, query, variables);
+  const res = body as GqlResponse<T>;
   if (res.errors?.length) {
+    diagnosticLog(status, query, workspaceId, res);
     throw gqlError(res.errors);
   }
   if (!res.data) {
+    diagnosticLog(status, query, workspaceId, res);
     throw new ProviderHttpError("malformed_response", "Provider returned empty GraphQL data");
   }
   return res.data;
@@ -174,11 +187,53 @@ function gqlError(errors: GqlError[]): ProviderHttpError {
   return new ProviderHttpError(category, messages || "GraphQL error");
 }
 
+const TOKEN_LIKE = /[a-zA-Z0-9_-]{20,}/g;
+function redactSecrets(text: string): string {
+  return text.replace(TOKEN_LIKE, "<redacted>");
+}
+
+function operationName(query: string): string {
+  const m = query.match(/(?:query|mutation)\s+(\w+)/);
+  return m ? m[1] : "anonymous";
+}
+
+/**
+ * Temporary safe diagnostic logging. Emits only:
+ *   - HTTP status
+ *   - GraphQL errors with token-like strings removed
+ *   - top-level response keys
+ *   - the operation name
+ *   - configured workspace ID
+ * Never logs the token or any credential.
+ */
+function diagnosticLog(
+  status: number | undefined,
+  query: string,
+  workspaceId: string | undefined,
+  response: unknown
+): void {
+  const res = response as GqlResponse<unknown>;
+  const keys = res.data && typeof res.data === "object" ? Object.keys(res.data) : [];
+  const errors = res.errors?.length
+    ? res.errors.map((e) => redactSecrets(e.message ?? "")).join(" | ")
+    : undefined;
+  console.error(
+    "[railway] status=%s op=%s workspaceId=%s dataKeys=%s hasErrors=%s%s",
+    status ?? "?",
+    operationName(query),
+    workspaceId ?? "none",
+    keys.join(",") || "none",
+    Boolean(res.errors?.length),
+    errors ? ` errors="${redactSecrets(errors)}"` : ""
+  );
+}
+
 async function fetchConnection<T>(
   token: string,
   query: string,
   variables: Record<string, unknown>,
-  page: (data: unknown) => ConnectionPage<T> | null | undefined
+  page: (data: unknown) => ConnectionPage<T> | null | undefined,
+  workspaceId?: string
 ): Promise<T[]> {
   const nodes: T[] = [];
   let cursor: string | null = null;
@@ -188,7 +243,7 @@ async function fetchConnection<T>(
     const vars: Record<string, unknown> = { ...variables, first: perPage };
     if (cursor) vars.after = cursor;
 
-    const data = await gql<unknown>(token, query, vars);
+    const data = await gql<unknown>(token, query, vars, workspaceId);
     const conn = page(data);
     const edges = conn?.edges ?? [];
     for (const edge of edges) {
@@ -241,7 +296,8 @@ async function fetchProjects(
       token,
       PROJECTS_QUERY,
       variables,
-      (data) => (data as { projects?: ConnectionPage<RailwayProject> })?.projects
+      (data) => (data as { projects?: ConnectionPage<RailwayProject> })?.projects,
+      workspaceId
     );
   } catch (e) {
     // If the root projects query fails (common for account tokens), fall back to
@@ -326,9 +382,35 @@ export const railwayAdapter: ProviderAdapter = {
 
   async testConnection(creds: ProviderCredentials): Promise<ConnectionTestResult> {
     try {
-      const data = await gql<{ me?: { id: string; name?: string | null } }>(creds.token, ME_QUERY);
-      const name = data.me?.name ?? "Railway";
-      return { ok: true, message: `Connected as ${name}` };
+      const workspaceId = creds.accountId?.trim();
+
+      // Workspace tokens cannot query `me`. Verify the token by reading the
+      // workspace the user configured, or by reading a single project from the
+      // token's default scope.
+      if (workspaceId) {
+        const data = await gql<{ workspace?: RailwayWorkspace | null }>(
+          creds.token,
+          WORKSPACE_BY_ID_QUERY,
+          { id: workspaceId },
+          workspaceId
+        );
+        const name = data.workspace?.name ?? "Railway workspace";
+        return { ok: true, message: `Connected to ${name}` };
+      }
+
+      const data = await gql<{ projects?: ConnectionPage<{ id: string; name: string }> }>(
+        creds.token,
+        WORKSPACE_TOKEN_TEST_QUERY,
+        { first: 1 },
+        undefined
+      );
+      const project = data.projects?.edges?.[0]?.node;
+      return {
+        ok: true,
+        message: project
+          ? `Connected — workspace has project ${project.name}`
+          : "Connected — workspace token verified (no projects found)",
+      };
     } catch (e) {
       return {
         ok: false,

@@ -900,6 +900,56 @@ test("3G1-RAILWAY-7: no mutation queries are ever issued", async () => {
   }
 });
 
+test("3G1-RAILWAY-8: workspace token testConnection uses projects root instead of me", async () => {
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = railwayMockFetch([
+    { match: "query { me {", response: { errors: [{ message: "Not Authorized" }] } },
+    { match: "workspaces { edges", response: { errors: [{ message: "Not Authorized" }] } },
+    { match: (body, vars) => body.includes("projects(") && vars?.workspaceId === undefined, response: { data: { projects: { edges: [{ node: { id: "p1", name: "pilot" } }], pageInfo: { hasNextPage: false } } } } },
+  ]);
+  try {
+    const a = getAdapter("railway");
+    const res = await a.testConnection({ token: "rw_workspace_token" });
+    assert.equal(res.ok, true, res.message);
+    assert.ok(res.message.includes("pilot"));
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test("3G1-RAILWAY-9: configured workspace ID validates via workspace query", async () => {
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = railwayMockFetch([
+    { match: (body, vars) => body.includes("workspace(") && vars?.id === "ws-provided", response: { data: { workspace: { id: "ws-provided", name: "Configured Workspace" } } } },
+  ]);
+  try {
+    const a = getAdapter("railway");
+    const res = await a.testConnection({ token: "rw_workspace_token", accountId: "ws-provided" });
+    assert.equal(res.ok, true, res.message);
+    assert.ok(res.message.includes("Configured Workspace"));
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test("3G1-RAILWAY-10: workspace token discovery does not fail when me/workspaces are unauthorized", async () => {
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = railwayMockFetch([
+    { match: "query { me {", response: { errors: [{ message: "Not Authorized" }] } },
+    { match: "workspaces { edges", response: { errors: [{ message: "Not Authorized" }] } },
+    { match: (body, vars) => body.includes("projects(") && vars?.workspaceId === undefined, response: { data: { projects: { edges: [{ node: { id: "p1", name: "pilot", createdAt: "2026-01-01T00:00:00Z" } }], pageInfo: { hasNextPage: false } } } } },
+    { match: "project(id:", response: { data: { project: { id: "p1", environments: { edges: [], pageInfo: { hasNextPage: false } }, services: { edges: [], pageInfo: { hasNextPage: false } } } } } },
+  ]);
+  try {
+    const a = getAdapter("railway");
+    const res = await a.discoverResources({ token: "rw_workspace_token" });
+    assert.equal(res.ok, true, res.message);
+    assert.ok(res.resources.some((r) => r.type === "project" && r.name === "pilot"));
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
 test("3G1-ADAPT-6: rate limit and 5xx normalize to safe categories", async () => {
   const realFetch = globalThis.fetch;
   try {

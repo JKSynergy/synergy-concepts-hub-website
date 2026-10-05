@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plug, Plus, RefreshCw, Link2, Unlink, XCircle, KeyRound, EyeOff } from "lucide-react";
 import { Dialog } from "@/components/ux/dialog";
@@ -214,10 +214,9 @@ export default function ProvidersManager({
   const linkTarget = discovered.find((d) => d.id === linkModalFor);
   const tree = buildDiscoveryTree(accountDiscovered);
 
-  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
-  useEffect(() => {
-    setExpandedProjects(new Set(tree.projects.map((p) => p.project.id)));
-  }, [selectedAccountId, accountDiscovered.length]);
+  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(
+    () => new Set(tree.projects.map((p) => p.project.id))
+  );
 
   async function run(fn: () => Promise<{ ok: boolean; error?: string; data?: unknown }>, okMsg?: string) {
     setBusy(true);
@@ -483,39 +482,39 @@ export default function ProvidersManager({
 
                 {tree.projects.map((p) => {
                   const expanded = expandedProjects.has(p.project.id);
+                  const toggleProject = () => {
+                    const next = new Set(expandedProjects);
+                    if (next.has(p.project.id)) next.delete(p.project.id);
+                    else next.add(p.project.id);
+                    setExpandedProjects(next);
+                  };
+
                   return (
                     <div key={p.project.id} className="ux-discovery-project">
                       <div
-                        role="button"
-                        tabIndex={0}
                         className="ux-discovery-row"
-                        onClick={() => {
-                          const next = new Set(expandedProjects);
-                          if (next.has(p.project.id)) next.delete(p.project.id);
-                          else next.add(p.project.id);
-                          setExpandedProjects(next);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            const next = new Set(expandedProjects);
-                            if (next.has(p.project.id)) next.delete(p.project.id);
-                            else next.add(p.project.id);
-                            setExpandedProjects(next);
-                          }
-                        }}
-                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: "0.5rem 0 0.5rem 1.5rem", cursor: "pointer" }}
+                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: "0.5rem 0 0.5rem 1.5rem" }}
                       >
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                        <button
+                          type="button"
+                          onClick={toggleProject}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              toggleProject();
+                            }
+                          }}
+                          style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", background: "none", border: "none", padding: 0, margin: 0, cursor: "pointer", font: "inherit", color: "inherit", textAlign: "left" }}
+                        >
                           <span className="ux-discovery-icon" style={{ width: "1.25rem", textAlign: "center" }}>
                             {expanded ? "▾" : "▸"}
                           </span>
                           <strong>{p.project.name}</strong>
                           <ProjectSummary node={p} />
-                        </div>
+                        </button>
                         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                           <StatusMark tone={linkTone(p.project.link_status)}>{p.project.link_status}</StatusMark>
-                          <span onClick={(e) => e.stopPropagation()}><ResourceActions item={p.project} /></span>
+                          <ResourceActions item={p.project} />
                         </div>
                       </div>
 

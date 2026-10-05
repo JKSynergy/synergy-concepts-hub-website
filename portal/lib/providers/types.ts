@@ -20,7 +20,9 @@ export type ConnectionErrorCategory =
   | "no_credentials";
 
 export type NormalizedResourceType =
+  | "workspace"
   | "project"
+  | "environment"
   | "service"
   | "database"
   | "zone"

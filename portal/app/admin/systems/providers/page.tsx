@@ -96,6 +96,8 @@ export default async function ProvidersPage() {
   const accountsNormalized = (accounts ?? []).map((a) => ({
     ...a,
     provider_name: a.provider_name ?? providerNames.get(a.provider_id) ?? null,
+    railway_workspace_id: (a as { railway_workspace_id?: string | null }).railway_workspace_id ?? null,
+    railway_workspace_name: (a as { railway_workspace_name?: string | null }).railway_workspace_name ?? null,
   }));
 
   const discoveredNormalized = (discovered ?? [])

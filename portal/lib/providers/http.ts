@@ -80,7 +80,8 @@ export async function providerRead(
   rules: EndpointRule[],
   url: string,
   token: string,
-  graphql?: string
+  graphql?: string,
+  variables?: Record<string, unknown>
 ): Promise<unknown> {
   const u = new URL(url);
   const method = graphql ? "POST" : "GET";
@@ -96,7 +97,9 @@ export async function providerRead(
         "Content-Type": "application/json",
         Accept: "application/json",
       },
-      body: graphql ? JSON.stringify({ query: graphql }) : undefined,
+      body: graphql
+        ? JSON.stringify({ query: graphql, ...(variables ? { variables } : {}) })
+        : undefined,
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
   } catch {

@@ -100,6 +100,7 @@ export async function createProviderAccount(input: {
   accountIdentifier?: string | null;
   ownership: "sch_managed" | "client_owned";
   clientId?: string | null;
+  railwayWorkspaceId?: string | null;
 }): Promise<ActionResult<{ id: string }>> {
   const { user, role } = await callerProfile();
   if (!user) return { ok: false, error: "Authentication required" };
@@ -114,14 +115,17 @@ export async function createProviderAccount(input: {
   }
 
   const admin = createAdminClient();
+  const isRailway = input.railwayWorkspaceId !== undefined;
+  const workspaceId = isRailway ? input.railwayWorkspaceId?.trim() || null : null;
   const { data, error } = await admin
     .from("provider_accounts")
     .insert({
       provider_id: input.providerId,
       account_name: input.accountName.trim(),
-      account_identifier: input.accountIdentifier || null,
+      account_identifier: input.accountIdentifier || workspaceId,
       ownership: input.ownership,
       client_id: input.ownership === "client_owned" ? input.clientId : null,
+      railway_workspace_id: workspaceId,
     })
     .select("id")
     .single();

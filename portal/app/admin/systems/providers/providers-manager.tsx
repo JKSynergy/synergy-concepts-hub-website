@@ -38,6 +38,8 @@ export interface ProviderAccountItem {
   discovered_count: number;
   linked_count: number;
   last_run_at: string | null;
+  railway_workspace_id: string | null;
+  railway_workspace_name: string | null;
 }
 
 export interface DiscoveredItem {
@@ -154,6 +156,31 @@ function fmt(ts: string | null): string {
   return ts ? new Date(ts).toLocaleString() : "—";
 }
 
+const TYPE_ORDER = ["workspace", "project", "environment", "service", "database", "zone", "hosting", "storage", "deployment", "other"];
+
+function sortDiscovered(items: DiscoveredItem[]): DiscoveredItem[] {
+  return [...items].sort((a, b) => {
+    const ai = TYPE_ORDER.indexOf(a.resource_type);
+    const bi = TYPE_ORDER.indexOf(b.resource_type);
+    if (ai !== bi) return ai - bi;
+    return a.name.localeCompare(b.name);
+  });
+}
+
+function resourceDepth(type: string): number {
+  switch (type) {
+    case "workspace": return 0;
+    case "project": return 1;
+    case "environment": return 2;
+    case "service": return 3;
+    default: return 1;
+  }
+}
+
+function isLinkableResource(type: string): boolean {
+  return ["project", "service", "database", "zone", "hosting", "storage"].includes(type);
+}
+
 export default function ProvidersManager({
   accounts,
   discovered,
@@ -193,6 +220,7 @@ export default function ProvidersManager({
 
   const canManage = isAdmin;
   const activeAccount = accounts.find((a) => a.id === selectedAccountId) ?? accounts[0] ?? null;
+  const selectedProvider = providers.find((p) => p.id === aProviderId);
   const accountDiscovered = discovered.filter((d) => d.provider_account_id === activeAccount?.id);
   const accountRuns = runs.filter((r) => r.provider_account_id === activeAccount?.id);
   const linkSystems = systems.filter((s) => s.client_id === linkClientId);
@@ -290,7 +318,12 @@ export default function ProvidersManager({
                     style={{ cursor: "pointer", background: a.id === selectedAccountId ? "var(--ux-surface-alt, rgba(255,255,255,0.04))" : undefined }}
                   >
                     <td>{a.provider_name}{a.adapter_key ? "" : " (manual)"}</td>
-                    <td>{a.account_name}</td>
+                    <td>
+                      {a.account_name}
+                      {a.adapter_key === "railway" && a.railway_workspace_id ? (
+                        <span className="ux-muted"> · {a.railway_workspace_id}</span>
+                      ) : null}
+                    </td>
                     <td>{a.ownership}{a.client_company ? ` · ${a.client_company}` : ""}</td>
                     <td>
                       <StatusMark tone={connTone(a.connection_status)}>{a.connection_status}</StatusMark>
@@ -396,10 +429,12 @@ export default function ProvidersManager({
               <tbody>
                 {accountDiscovered.length === 0 ? (
                   <tr><td colSpan={canManage ? 8 : 7} className="ux-muted">No discovered resources yet. Run discovery to populate this list.</td></tr>
-                ) : accountDiscovered.map((d) => (
+                ) : sortDiscovered(accountDiscovered).map((d) => (
                   <tr key={d.id}>
                     <td>{d.resource_type}</td>
-                    <td>{d.name}</td>
+                    <td style={{ paddingLeft: `${12 + resourceDepth(d.resource_type) * 16}px` }}>
+                      {d.name}
+                    </td>
                     <td><code>{d.external_resource_id}</code></td>
                     <td>{d.status ?? "—"}</td>
                     <td>{d.region ?? "—"}</td>
@@ -410,14 +445,16 @@ export default function ProvidersManager({
                         <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap" }}>
                           {d.link_status === "unlinked" && (
                             <>
-                              <button
-                                className="ux-button ux-button-secondary"
-                                data-action="link-resource"
-                                disabled={busy}
-                                onClick={() => { setLinkModalFor(d.id); setLinkClientId(""); setLinkSystemId(""); }}
-                              >
-                                <Link2 size={13} /> Link
-                              </button>
+                              {isLinkableResource(d.resource_type) && (
+                                <button
+                                  className="ux-button ux-button-secondary"
+                                  data-action="link-resource"
+                                  disabled={busy}
+                                  onClick={() => { setLinkModalFor(d.id); setLinkClientId(""); setLinkSystemId(""); }}
+                                >
+                                  <Link2 size={13} /> Link
+                                </button>
+                              )}
                               <button
                                 className="ux-button ux-button-secondary"
                                 data-action="dismiss-resource"
@@ -573,6 +610,7 @@ export default function ProvidersManager({
           <form
             onSubmit={async (e) => {
               e.preventDefault();
+              const isRailway = selectedProvider?.adapter_key === "railway";
               const res = await run(
                 () => createProviderAccount({
                   providerId: aProviderId,
@@ -580,6 +618,7 @@ export default function ProvidersManager({
                   accountIdentifier: aIdentifier || null,
                   ownership: aOwnership,
                   clientId: aClientId || null,
+                  railwayWorkspaceId: isRailway ? aIdentifier || null : null,
                 }),
                 "Provider account created"
               );
@@ -600,8 +639,17 @@ export default function ProvidersManager({
               <input id="input-account-name" required value={aName} onChange={(e) => setAName(e.target.value)} className="ux-input" style={{ width: "100%" }} />
             </div>
             <div>
-              <label className="ux-label">Account identifier</label>
-              <input id="input-account-identifier" value={aIdentifier} onChange={(e) => setAIdentifier(e.target.value)} className="ux-input" style={{ width: "100%" }} />
+              <label className="ux-label">
+                {selectedProvider?.adapter_key === "railway" ? "Railway workspace ID (optional)" : "Account identifier"}
+              </label>
+              <input
+                id="input-account-identifier"
+                value={aIdentifier}
+                onChange={(e) => setAIdentifier(e.target.value)}
+                placeholder={selectedProvider?.adapter_key === "railway" ? "Leave blank to discover from the token" : ""}
+                className="ux-input"
+                style={{ width: "100%" }}
+              />
             </div>
             <div>
               <label className="ux-label">Ownership *</label>

@@ -126,6 +126,20 @@ test("3G1-SCHEMA-4: RLS enabled on discovery tables; discovered rows are not inv
   assert.equal(fk.rows.length, 1);
 });
 
+test("3G1-SCHEMA-5: discovered resource types include Railway workspace and environment", async () => {
+  const db = await createDb();
+  await setup(db);
+  for (const type of ["workspace", "environment", "project", "service"]) {
+    const id = crypto.randomUUID();
+    await db.exec(`
+      INSERT INTO public.provider_discovered_resources
+        (id, provider_account_id, external_resource_id, resource_type, name)
+      VALUES ('${id}', '${IDS.account}', '${type}-ext', '${type}', '${type} resource')`);
+    const r = await db.query(`SELECT resource_type FROM public.provider_discovered_resources WHERE id='${id}'`);
+    assert.equal(r.rows[0].resource_type, type);
+  }
+});
+
 // ============================================================================
 // 3G1-RBAC
 // ============================================================================
@@ -618,29 +632,268 @@ test("3G1-ADAPT-4: auth failure normalizes to auth_failed without leaking secret
   }
 });
 
-test("3G1-ADAPT-5: railway adapter posts a query (no mutation) and normalizes projects+services", async () => {
-  const calls = [];
+// Helper: build a fetch mock that dispatches Railway GraphQL reads by query body and variables.
+function railwayMockFetch(responses) {
+  return async (_url, opts) => {
+    const body = typeof opts?.body === "string" ? opts.body : "";
+    const variables = (() => {
+      try {
+        const parsed = JSON.parse(body);
+        return typeof parsed === "object" && parsed !== null ? parsed.variables : undefined;
+      } catch {
+        return undefined;
+      }
+    })();
+    for (const { match, response } of responses) {
+      const matches = typeof match === "string" ? body.includes(match) : match(body, variables);
+      if (matches) {
+        if (response instanceof Response) return response;
+        return new Response(JSON.stringify(response), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+    }
+    return new Response(JSON.stringify({ errors: [{ message: "Unexpected mock query" }] }), { status: 200 });
+  };
+}
+
+const RAILWAY_ME = { data: { me: { id: "u1", name: "SCH Workspace", email: "ops@synergy.ug" } } };
+
+const RAILWAY_WORKSPACE = {
+  data: {
+    workspaces: {
+      edges: [{ node: { id: "ws1", name: "Synergy Concepts Hub Railway" } }],
+    },
+  },
+};
+
+const RAILWAY_PROJECTS = {
+  data: {
+    projects: {
+      edges: [{
+        node: {
+          id: "proj-pilot",
+          name: "SMA Digital Lab Pilot",
+          description: "Pilot project",
+          createdAt: "2026-01-01T00:00:00Z",
+          updatedAt: "2026-01-02T00:00:00Z",
+        },
+      }, {
+        node: {
+          id: "proj-elgon",
+          name: "elgon-bottling",
+          description: null,
+          createdAt: "2026-01-01T00:00:00Z",
+          updatedAt: "2026-01-02T00:00:00Z",
+        },
+      }],
+      pageInfo: { hasNextPage: false, endCursor: null },
+    },
+  },
+};
+
+const RAILWAY_PROJECT_DETAILS = {
+  data: {
+    project: {
+      id: "proj-pilot",
+      environments: {
+        edges: [{ node: { id: "env-prod", name: "production", createdAt: "2026-01-01T00:00:00Z" } }],
+        pageInfo: { hasNextPage: false, endCursor: null },
+      },
+      services: {
+        edges: [{ node: { id: "svc-api", name: "api", icon: null } }],
+        pageInfo: { hasNextPage: false, endCursor: null },
+      },
+    },
+  },
+};
+
+const RAILWAY_DEPLOYMENTS = {
+  data: {
+    deployments: {
+      edges: [{
+        node: {
+          id: "dep-1",
+          status: "SUCCESS",
+          createdAt: "2026-01-02T00:00:00Z",
+          environmentId: "env-prod",
+        },
+      }],
+    },
+  },
+};
+
+test("3G1-RAILWAY-1: workspace token discovers workspace → projects → environments → services", async () => {
   const realFetch = globalThis.fetch;
-  globalThis.fetch = async (url, opts) => {
-    calls.push({ url: String(url), method: opts?.method, body: opts?.body });
+  globalThis.fetch = railwayMockFetch([
+    { match: "query { me {", response: RAILWAY_ME },
+    { match: "workspaces { edges { node { id name } } }", response: RAILWAY_WORKSPACE },
+    { match: (body, vars) => body.includes("projects(") && vars?.workspaceId === undefined, response: RAILWAY_PROJECTS },
+    { match: "project(id:", response: RAILWAY_PROJECT_DETAILS },
+    { match: "deployments(", response: RAILWAY_DEPLOYMENTS },
+  ]);
+  try {
+    const a = getAdapter("railway");
+    const res = await a.discoverResources({ token: "rw_workspace_token" });
+    assert.equal(res.ok, true, res.message);
+    // 1 workspace + 2 projects + 1 environment per project + 1 service per project.
+    assert.ok(res.resources.length >= 5, `expected at least 5 resources, got ${JSON.stringify(res.resources.map((r) => `${r.type}:${r.name}`))}`);
+
+    const workspace = res.resources.find((r) => r.type === "workspace");
+    assert.ok(workspace);
+    assert.equal(workspace.externalId, "ws1");
+
+    const projects = res.resources.filter((r) => r.type === "project");
+    assert.equal(projects.length, 2);
+    assert.ok(projects.some((p) => p.name === "SMA Digital Lab Pilot"));
+    assert.ok(projects.some((p) => p.name === "elgon-bottling"));
+
+    const env = res.resources.find((r) => r.type === "environment");
+    assert.ok(env);
+    assert.equal(env.name, "SMA Digital Lab Pilot / production");
+    assert.equal(env.metadata.project_id, "proj-pilot");
+
+    const svc = res.resources.find((r) => r.type === "service");
+    assert.ok(svc);
+    assert.equal(svc.name, "SMA Digital Lab Pilot / api");
+    assert.equal(svc.status, "SUCCESS");
+    assert.equal(svc.metadata.latest_deployment.status, "SUCCESS");
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test("3G1-RAILWAY-2: explicit workspace ID scopes project listing", async () => {
+  const realFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (_url, opts) => {
+    const body = typeof opts?.body === "string" ? opts.body : "";
+    calls.push(body);
+    if (body.includes("project(id:")) return new Response(JSON.stringify(RAILWAY_PROJECT_DETAILS), { status: 200 });
+    if (body.includes("deployments(")) return new Response(JSON.stringify(RAILWAY_DEPLOYMENTS), { status: 200 });
+    // projects(workspaceId: "ws-provided")
     return new Response(JSON.stringify({
-      data: { projects: { edges: [{ node: {
-        id: "p1", name: "sch-api", createdAt: "2026-01-01",
-        services: { edges: [{ node: { id: "s1", name: "api" } }] },
-      } }] } },
-    }), { status: 200, headers: { "Content-Type": "application/json" } });
+      data: { projects: { edges: [{ node: { id: "proj-pilot", name: "SMA Digital Lab Pilot", createdAt: "2026-01-01T00:00:00Z" } }], pageInfo: { hasNextPage: false } } },
+    }), { status: 200 });
   };
   try {
     const a = getAdapter("railway");
-    const res = await a.discoverResources({ token: "rw_test" });
+    const res = await a.discoverResources({ token: "rw_workspace_token", accountId: "ws-provided" });
     assert.equal(res.ok, true);
-    assert.equal(res.resources.length, 2);
-    assert.equal(res.resources[0].type, "project");
-    assert.equal(res.resources[1].type, "service");
-    assert.equal(res.resources[1].metadata.project_id, "p1");
-    for (const c of calls) {
-      assert.equal(c.method, "POST");
-      assert.ok(!/\bmutation\b/i.test(c.body), "no mutations allowed");
+    assert.ok(res.resources.some((r) => r.type === "project" && r.name === "SMA Digital Lab Pilot"));
+    const scoped = calls.some((b) => b.includes('"workspaceId":"ws-provided"'));
+    assert.ok(scoped, "project listing must include explicit workspaceId variable");
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test("3G1-RAILWAY-3: paginated project listing follows cursors", async () => {
+  const realFetch = globalThis.fetch;
+  const seen = [];
+  globalThis.fetch = async (_url, opts) => {
+    const body = typeof opts?.body === "string" ? opts.body : "";
+    seen.push(body);
+    if (body.includes("project(id:")) return new Response(JSON.stringify(RAILWAY_PROJECT_DETAILS), { status: 200 });
+    if (body.includes("deployments(")) return new Response(JSON.stringify(RAILWAY_DEPLOYMENTS), { status: 200 });
+    if (body.includes('"after":"cursor1"')) {
+      return new Response(JSON.stringify({
+        data: { projects: { edges: [{ node: { id: "proj-page2", name: "page-two", createdAt: "2026-01-01T00:00:00Z" } }], pageInfo: { hasNextPage: false } } },
+      }), { status: 200 });
+    }
+    return new Response(JSON.stringify({
+      data: {
+        projects: {
+          edges: [{ node: { id: "proj-page1", name: "page-one", createdAt: "2026-01-01T00:00:00Z" } }],
+          pageInfo: { hasNextPage: true, endCursor: "cursor1" },
+        },
+      },
+    }), { status: 200 });
+  };
+  try {
+    const a = getAdapter("railway");
+    const res = await a.discoverResources({ token: "rw_workspace_token" });
+    assert.equal(res.ok, true);
+    const projects = res.resources.filter((r) => r.type === "project");
+    assert.equal(projects.length, 2);
+    assert.ok(projects.some((p) => p.name === "page-one"));
+    assert.ok(projects.some((p) => p.name === "page-two"));
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test("3G1-RAILWAY-4: invalid credentials normalize to auth_failed without leaking token", async () => {
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ errors: [{ message: "Unauthorized" }] }), { status: 401 });
+  try {
+    const a = getAdapter("railway");
+    const conn = await a.testConnection({ token: "rw_bad_secret" });
+    assert.equal(conn.ok, false);
+    assert.equal(conn.error, "auth_failed");
+    assert.ok(!JSON.stringify(conn).includes("rw_bad_secret"));
+    const disc = await a.discoverResources({ token: "rw_bad_secret" });
+    assert.equal(disc.ok, false);
+    assert.equal(disc.error, "auth_failed");
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test("3G1-RAILWAY-5: GraphQL permission error normalizes to permission_denied", async () => {
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ errors: [{ message: "Permission denied: workspace token cannot access this field" }] }), { status: 200 });
+  try {
+    const a = getAdapter("railway");
+    const disc = await a.discoverResources({ token: "rw_workspace_token" });
+    assert.equal(disc.ok, false);
+    assert.equal(disc.error, "permission_denied");
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test("3G1-RAILWAY-6: root projects failure falls back to me.workspaces.projects", async () => {
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = railwayMockFetch([
+    { match: "query { me {", response: RAILWAY_ME },
+    { match: "workspaces { edges { node { id name } } }", response: { data: { workspaces: { edges: [] } } } },
+    { match: (body) => body.includes("projects(") && !body.includes("workspaces"), response: { errors: [{ message: "Problem processing request" }] } },
+    { match: (body) => body.includes("workspaces") && body.includes("projects"), response: {
+      data: {
+        me: {
+          workspaces: [{
+            id: "ws1",
+            name: "Fallback Workspace",
+            projects: {
+              edges: [{ node: { id: "proj-fb", name: "fallback-project", createdAt: "2026-01-01T00:00:00Z" } }],
+              pageInfo: { hasNextPage: false },
+            },
+          }],
+        },
+      },
+    }},
+    { match: "project(id:", response: { data: { project: { id: "proj-fb", environments: { edges: [], pageInfo: { hasNextPage: false } }, services: { edges: [], pageInfo: { hasNextPage: false } } } } } },
+  ]);
+  try {
+    const a = getAdapter("railway");
+    const res = await a.discoverResources({ token: "rw_account_token" });
+    assert.equal(res.ok, true);
+    assert.ok(res.resources.some((r) => r.type === "project" && r.name === "fallback-project"));
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test("3G1-RAILWAY-7: no mutation queries are ever issued", async () => {
+  const realFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (_url, opts) => {
+    calls.push(opts?.body);
+    return new Response(JSON.stringify(RAILWAY_ME), { status: 200 });
+  };
+  try {
+    await getAdapter("railway").testConnection({ token: "rw_test" });
+    for (const body of calls) {
+      assert.ok(!/\bmutation\b/i.test(body), `mutation leaked in body: ${String(body).slice(0, 200)}`);
     }
   } finally {
     globalThis.fetch = realFetch;

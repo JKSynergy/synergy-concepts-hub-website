@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plug, Plus, RefreshCw, Link2, Unlink, XCircle, KeyRound, EyeOff } from "lucide-react";
 import { Dialog } from "@/components/ux/dialog";
@@ -16,6 +16,13 @@ import {
   unlinkDiscoveredResource,
   dismissDiscoveredResource,
 } from "@/lib/actions/provider-connections";
+import {
+  buildDiscoveryTree,
+  projectCounts,
+  shortName,
+  type DiscoveryTree,
+  type ProjectNode,
+} from "./discovery-tree";
 
 export interface ProviderAccountItem {
   id: string;
@@ -53,6 +60,7 @@ export interface DiscoveredItem {
   status: string | null;
   region: string | null;
   external_url: string | null;
+  metadata?: Record<string, unknown> | null;
   first_discovered_at: string;
   last_seen_at: string;
   link_status: "unlinked" | "linked" | "dismissed";
@@ -156,27 +164,6 @@ function fmt(ts: string | null): string {
   return ts ? new Date(ts).toLocaleString() : "—";
 }
 
-const TYPE_ORDER = ["workspace", "project", "environment", "service", "database", "zone", "hosting", "storage", "deployment", "other"];
-
-function sortDiscovered(items: DiscoveredItem[]): DiscoveredItem[] {
-  return [...items].sort((a, b) => {
-    const ai = TYPE_ORDER.indexOf(a.resource_type);
-    const bi = TYPE_ORDER.indexOf(b.resource_type);
-    if (ai !== bi) return ai - bi;
-    return a.name.localeCompare(b.name);
-  });
-}
-
-function resourceDepth(type: string): number {
-  switch (type) {
-    case "workspace": return 0;
-    case "project": return 1;
-    case "environment": return 2;
-    case "service": return 3;
-    default: return 1;
-  }
-}
-
 function isLinkableResource(type: string): boolean {
   return ["project", "service", "database", "zone", "hosting", "storage"].includes(type);
 }
@@ -225,6 +212,12 @@ export default function ProvidersManager({
   const accountRuns = runs.filter((r) => r.provider_account_id === activeAccount?.id);
   const linkSystems = systems.filter((s) => s.client_id === linkClientId);
   const linkTarget = discovered.find((d) => d.id === linkModalFor);
+  const tree = buildDiscoveryTree(accountDiscovered);
+
+  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    setExpandedProjects(new Set(tree.projects.map((p) => p.project.id)));
+  }, [selectedAccountId, accountDiscovered.length]);
 
   async function run(fn: () => Promise<{ ok: boolean; error?: string; data?: unknown }>, okMsg?: string) {
     setBusy(true);
@@ -239,6 +232,53 @@ export default function ProvidersManager({
     }
     router.refresh();
     return res;
+  }
+
+  function ResourceActions({ item }: { item: DiscoveredItem }) {
+    if (!canManage) return null;
+    return (
+      <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap" }}>
+        {item.link_status === "unlinked" && (
+          <>
+            {isLinkableResource(item.resource_type) && (
+              <button
+                className="ux-button ux-button-secondary"
+                data-action="link-resource"
+                disabled={busy}
+                onClick={() => { setLinkModalFor(item.id); setLinkClientId(""); setLinkSystemId(""); }}
+              >
+                <Link2 size={13} /> Link
+              </button>
+            )}
+            <button
+              className="ux-button ux-button-secondary"
+              data-action="dismiss-resource"
+              disabled={busy}
+              onClick={() => run(() => dismissDiscoveredResource(item.id), "Dismissed")}
+            >
+              <XCircle size={13} /> Dismiss
+            </button>
+          </>
+        )}
+        {item.link_status === "linked" && (
+          <button
+            className="ux-button ux-button-secondary"
+            data-action="unlink-resource"
+            disabled={busy}
+            onClick={() => run(() => unlinkDiscoveredResource(item.id), "Unlinked — SCH resource retained for audit")}
+          >
+            <Unlink size={13} /> Unlink
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  function ProjectSummary({ node }: { node: ProjectNode }) {
+    const counts = projectCounts(node);
+    const envLabel = counts.environments === 1 ? "1 environment" : `${counts.environments} environments`;
+    const svcLabel = counts.services === 1 ? "1 service" : `${counts.services} services`;
+    return <span className="ux-muted" style={{ fontSize: "0.85rem" }}>{envLabel} · {svcLabel}</span>;
   }
 
   // ---------------------------------------------------------------- staff ---
@@ -418,70 +458,154 @@ export default function ProvidersManager({
             </ul>
           </div>
 
-          <div className="ux-tablewrap">
-            <table className="ux-table">
-              <thead>
-                <tr>
-                  <th>Type</th><th>Name</th><th>External ID</th><th>Status</th><th>Region</th>
-                  <th>Link status</th><th>First seen</th>{canManage && <th>Actions</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {accountDiscovered.length === 0 ? (
-                  <tr><td colSpan={canManage ? 8 : 7} className="ux-muted">No discovered resources yet. Run discovery to populate this list.</td></tr>
-                ) : sortDiscovered(accountDiscovered).map((d) => (
-                  <tr key={d.id}>
-                    <td>{d.resource_type}</td>
-                    <td style={{ paddingLeft: `${12 + resourceDepth(d.resource_type) * 16}px` }}>
-                      {d.name}
-                    </td>
-                    <td><code>{d.external_resource_id}</code></td>
-                    <td>{d.status ?? "—"}</td>
-                    <td>{d.region ?? "—"}</td>
-                    <td><StatusMark tone={linkTone(d.link_status)}>{d.link_status}</StatusMark></td>
-                    <td>{fmt(d.first_discovered_at)}</td>
-                    {canManage && (
-                      <td>
-                        <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap" }}>
-                          {d.link_status === "unlinked" && (
-                            <>
-                              {isLinkableResource(d.resource_type) && (
-                                <button
-                                  className="ux-button ux-button-secondary"
-                                  data-action="link-resource"
-                                  disabled={busy}
-                                  onClick={() => { setLinkModalFor(d.id); setLinkClientId(""); setLinkSystemId(""); }}
-                                >
-                                  <Link2 size={13} /> Link
-                                </button>
-                              )}
-                              <button
-                                className="ux-button ux-button-secondary"
-                                data-action="dismiss-resource"
-                                disabled={busy}
-                                onClick={() => run(() => dismissDiscoveredResource(d.id), "Dismissed")}
+          <div className="ux-discovery-tree" style={{ padding: "0 1rem 1rem" }}>
+            {accountDiscovered.length === 0 ? (
+              <p className="ux-muted" style={{ padding: "1rem 0" }}>No discovered resources yet. Run discovery to populate this list.</p>
+            ) : (
+              <div style={{ borderTop: "1px solid var(--ux-border, #E5E7EB)", borderBottom: "1px solid var(--ux-border, #E5E7EB)" }}>
+                {tree.workspace && (
+                  <div
+                    key={tree.workspace.id}
+                    className="ux-discovery-row"
+                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: "0.5rem 0" }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <span className="ux-discovery-icon" style={{ width: "1.25rem", textAlign: "center" }}>▾</span>
+                      <strong>{tree.workspace.name}</strong>
+                      <span className="ux-muted" style={{ fontSize: "0.85rem" }}>workspace</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <StatusMark tone={linkTone(tree.workspace.link_status)}>{tree.workspace.link_status}</StatusMark>
+                      <ResourceActions item={tree.workspace} />
+                    </div>
+                  </div>
+                )}
+
+                {tree.projects.map((p) => {
+                  const expanded = expandedProjects.has(p.project.id);
+                  return (
+                    <div key={p.project.id} className="ux-discovery-project">
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        className="ux-discovery-row"
+                        onClick={() => {
+                          const next = new Set(expandedProjects);
+                          if (next.has(p.project.id)) next.delete(p.project.id);
+                          else next.add(p.project.id);
+                          setExpandedProjects(next);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            const next = new Set(expandedProjects);
+                            if (next.has(p.project.id)) next.delete(p.project.id);
+                            else next.add(p.project.id);
+                            setExpandedProjects(next);
+                          }
+                        }}
+                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: "0.5rem 0 0.5rem 1.5rem", cursor: "pointer" }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                          <span className="ux-discovery-icon" style={{ width: "1.25rem", textAlign: "center" }}>
+                            {expanded ? "▾" : "▸"}
+                          </span>
+                          <strong>{p.project.name}</strong>
+                          <ProjectSummary node={p} />
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                          <StatusMark tone={linkTone(p.project.link_status)}>{p.project.link_status}</StatusMark>
+                          <span onClick={(e) => e.stopPropagation()}><ResourceActions item={p.project} /></span>
+                        </div>
+                      </div>
+
+                      {expanded && (
+                        <div style={{ paddingLeft: "1.5rem" }}>
+                          {p.environments.map((env) => (
+                            <div key={env.environment.id}>
+                              <div
+                                className="ux-discovery-row"
+                                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: "0.35rem 0 0.35rem 1.5rem" }}
                               >
-                                <XCircle size={13} /> Dismiss
-                              </button>
-                            </>
-                          )}
-                          {d.link_status === "linked" && (
-                            <button
-                              className="ux-button ux-button-secondary"
-                              data-action="unlink-resource"
-                              disabled={busy}
-                              onClick={() => run(() => unlinkDiscoveredResource(d.id), "Unlinked — SCH resource retained for audit")}
-                            >
-                              <Unlink size={13} /> Unlink
-                            </button>
+                                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                  <span className="ux-discovery-icon" style={{ width: "1.25rem", textAlign: "center" }}>▾</span>
+                                  {shortName(env.environment)}
+                                  <span className="ux-muted" style={{ fontSize: "0.8rem" }}>{env.services.length === 1 ? "1 service" : `${env.services.length} services`}</span>
+                                </div>
+                                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                  <StatusMark tone={linkTone(env.environment.link_status)}>{env.environment.link_status}</StatusMark>
+                                  <ResourceActions item={env.environment} />
+                                </div>
+                              </div>
+                              <div style={{ paddingLeft: "1.5rem" }}>
+                                {env.services.map((svc) => (
+                                  <div
+                                    key={svc.id}
+                                    className="ux-discovery-row"
+                                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: "0.35rem 0 0.35rem 1.5rem" }}
+                                  >
+                                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                      <span style={{ width: "1.25rem", textAlign: "center" }}>•</span>
+                                      {shortName(svc)}
+                                      <span className="ux-muted" style={{ fontSize: "0.8rem" }}>{svc.status ?? "—"}</span>
+                                    </div>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                      <StatusMark tone={linkTone(svc.link_status)}>{svc.link_status}</StatusMark>
+                                      <ResourceActions item={svc} />
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                          {p.orphanServices.length > 0 && (
+                            <div>
+                              {p.orphanServices.map((svc) => (
+                                <div
+                                  key={svc.id}
+                                  className="ux-discovery-row"
+                                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: "0.35rem 0 0.35rem 3rem" }}
+                                >
+                                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                    <span style={{ width: "1.25rem", textAlign: "center" }}>•</span>
+                                    {shortName(svc)}
+                                  </div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                    <StatusMark tone={linkTone(svc.link_status)}>{svc.link_status}</StatusMark>
+                                    <ResourceActions item={svc} />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           )}
                         </div>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {tree.other.length > 0 && (
+                  <div style={{ paddingTop: "0.5rem" }}>
+                    {tree.other.map((d) => (
+                      <div
+                        key={d.id}
+                        className="ux-discovery-row"
+                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: "0.35rem 0" }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                          <span style={{ width: "1.25rem", textAlign: "center" }}>•</span>
+                          {d.name} <span className="ux-muted" style={{ fontSize: "0.8rem" }}>{d.resource_type}</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                          <StatusMark tone={linkTone(d.link_status)}>{d.link_status}</StatusMark>
+                          <ResourceActions item={d} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {accountRuns.length > 0 && (

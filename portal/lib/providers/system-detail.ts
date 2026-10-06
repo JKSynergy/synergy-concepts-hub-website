@@ -7,6 +7,7 @@ export type SystemResourceRecord = {
   provider: string;
   provider_key: string | null;
   provider_account: string;
+  provider_connection_status?: string | null;
 };
 
 export type LinkedDiscoveryRecord = {

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/ux/primitives";
 import { isInternal, isAdmin as checkIsAdmin, isOperationalStaff } from "@/lib/security/roles";
+import { loadSystemHealthRows } from "@/lib/providers/system-health-server";
 import SystemsManager from "./systems-manager";
 
 export const metadata = { title: "Systems & Infrastructure" };
@@ -26,6 +27,7 @@ export default async function SystemsPage() {
 
   const isAdmin = checkIsAdmin(profile.role);
   const isStaff = isOperationalStaff(profile.role);
+  const healthRows = isAdmin ? await loadSystemHealthRows(supabase) : [];
 
   // 1. Fetch Systems with client and origin project relations
   const { data: systemsData } = await supabase
@@ -121,6 +123,7 @@ export default async function SystemsPage() {
         clients={clientOptions}
         providerAccounts={paOptions}
         projects={projectOptions}
+        systemHealth={healthRows.map((row) => ({ system_id: row.systemId, status: row.health.overallStatus }))}
         isAdmin={isAdmin}
         isStaff={isStaff}
       />

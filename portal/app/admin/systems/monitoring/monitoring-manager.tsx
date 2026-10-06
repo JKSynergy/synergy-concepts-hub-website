@@ -2,9 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { NavLink as Link } from "@/components/nav-link";
 import { Play, Plus, Activity, Bell } from "lucide-react";
 import { Dialog } from "@/components/ux/dialog";
 import { StatusMark, type Tone } from "@/components/ux/primitives";
+import type { SystemHealthRow } from "@/lib/providers/system-health-server";
 import {
   saveMonitoringSchedule,
   setMonitoringScheduleEnabled,
@@ -80,6 +82,7 @@ export interface ScheduleAccount {
 }
 
 interface Props {
+  systemHealth: SystemHealthRow[];
   schedules: MonitoringSchedule[];
   runs: MonitoringRun[];
   signals: MonitoringSignal[];
@@ -109,6 +112,12 @@ function runTone(s: string): Tone {
   }
 }
 
+function systemHealthTone(status: string): Tone {
+  if (status === "HEALTHY") return "success";
+  if (status === "ATTENTION") return "warning";
+  return "neutral";
+}
+
 function sevTone(s: string): Tone {
   switch (s) {
     case "critical": return "danger";
@@ -128,7 +137,7 @@ function healthOf(s: MonitoringSchedule): { label: string; tone: Tone } {
   return { label: s.last_run_status, tone: "neutral" };
 }
 
-export default function MonitoringManager({ schedules, runs, signals, accounts, isAdmin }: Props) {
+export default function MonitoringManager({ systemHealth, schedules, runs, signals, accounts, isAdmin }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -185,6 +194,30 @@ export default function MonitoringManager({ schedules, runs, signals, accounts, 
     <div>
       {errorMessage && <p className="ux-alert ux-alert-error" role="alert">{errorMessage}</p>}
       {notice && <p className="ux-alert ux-alert-success" role="status">{notice}</p>}
+
+      <div className="ux-card" style={{ marginBottom: "1rem" }}>
+        <div className="ux-card-header">
+          <h2>System Health</h2>
+          <p className="ux-muted">Derived from explicitly linked provider evidence; not an uptime check.</p>
+        </div>
+        <div className="ux-tablewrap">
+          <table className="ux-table">
+            <thead><tr><th>System</th><th>Client</th><th>Health</th><th>Infrastructure</th><th>Attention</th><th>Last evidence</th></tr></thead>
+            <tbody>
+              {systemHealth.map((row) => (
+                <tr key={row.systemId}>
+                  <td><Link href={`/admin/systems/${row.systemId}`}>{row.systemName}</Link></td>
+                  <td>{row.clientName}</td>
+                  <td><StatusMark tone={systemHealthTone(row.health.overallStatus)}>{row.health.overallStatus}</StatusMark></td>
+                  <td>{row.infrastructureSummary}</td>
+                  <td>{row.health.attentionItems.length ? row.health.attentionItems.join(" · ") : "—"}</td>
+                  <td>{fmt(row.health.lastEvidenceAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {isAdmin && unscheduled.length > 0 && (
         <div className="ux-card" style={{ marginBottom: "1rem" }}>

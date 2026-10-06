@@ -4,6 +4,7 @@ import { useState } from "react";
 import { NavLink as Link } from "@/components/nav-link";
 import { Dialog } from "@/components/ux/dialog";
 import { StatusMark, type Tone } from "@/components/ux/primitives";
+import type { SystemHealthStatus } from "@/lib/providers/system-health";
 import {
   createSystem,
   updateSystemOperationalNotes,
@@ -85,6 +86,12 @@ const SYSTEM_STATUS_TONE: Record<string, Tone> = {
   retired: "neutral",
 };
 
+const HEALTH_STATUS_TONE: Record<SystemHealthStatus, Tone> = {
+  HEALTHY: "success",
+  ATTENTION: "warning",
+  UNKNOWN: "neutral",
+};
+
 const RESOURCE_STATUS_TONE: Record<string, Tone> = {
   provisioning: "info",
   active: "success",
@@ -105,6 +112,7 @@ export default function SystemsManager({
   clients,
   providerAccounts,
   projects,
+  systemHealth,
   isAdmin,
   isStaff,
 }: {
@@ -113,6 +121,7 @@ export default function SystemsManager({
   clients: ClientOption[];
   providerAccounts: ProviderAccountOption[];
   projects: ProjectOption[];
+  systemHealth: { system_id: string; status: SystemHealthStatus }[];
   isAdmin: boolean;
   isStaff: boolean;
 }) {
@@ -134,6 +143,7 @@ export default function SystemsManager({
 
   // Separate attached resources vs standalone resources
   const standaloneResources = resources.filter((r) => !r.system_id);
+  const healthBySystem = new Map(systemHealth.map((item) => [item.system_id, item.status]));
   const attachedResourcesBySystem = new Map<string, ResourceItem[]>();
   for (const r of resources) {
     if (r.system_id) {
@@ -269,6 +279,7 @@ export default function SystemsManager({
             {systems.map((sys) => {
               const clientLabel = sys.client?.company_name || sys.client?.full_name || sys.client?.email || "Unknown Client";
               const attached = attachedResourcesBySystem.get(sys.id) || [];
+              const health = healthBySystem.get(sys.id);
               const isRetired = sys.status === "retired";
 
               return (
@@ -289,6 +300,7 @@ export default function SystemsManager({
                       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
                         <h3 style={{ fontSize: "1.1rem", fontWeight: 600, margin: 0 }}><Link href={`/admin/systems/${sys.id}`}>{sys.name}</Link></h3>
                         <StatusMark tone={SYSTEM_STATUS_TONE[sys.status] || "neutral"}>{labelize(sys.status)}</StatusMark>
+                        {health && <StatusMark tone={HEALTH_STATUS_TONE[health]}>{health}</StatusMark>}
                         <span className="ux-badge">{labelize(sys.system_type)}</span>
                       </div>
                       <p className="ux-muted" style={{ margin: "0.25rem 0 0", fontSize: "0.875rem" }}>

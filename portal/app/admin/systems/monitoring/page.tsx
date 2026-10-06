@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/ux/primitives";
 import { isInternal, isAdmin as checkIsAdmin, isFinance, isStaff } from "@/lib/security/roles";
+import { loadSystemHealthRows } from "@/lib/providers/system-health-server";
 import MonitoringManager from "./monitoring-manager";
 
 export const metadata = { title: "Provider Monitoring" };
@@ -32,6 +33,8 @@ export default async function ProviderMonitoringPage() {
   if (isStaff(profile.role)) {
     redirect("/admin/operations/action-center");
   }
+
+  const systemHealth = await loadSystemHealthRows(supabase);
 
   const { data: schedules } = await supabase
     .from("provider_monitoring_overview")
@@ -69,6 +72,7 @@ export default async function ProviderMonitoringPage() {
         description="Scheduled, read-only observation: discover → reconcile → classify → surface. Automation never mutates provider infrastructure — changes are surfaced for human review."
       />
       <MonitoringManager
+        systemHealth={systemHealth}
         schedules={schedules ?? []}
         runs={runs ?? []}
         signals={signals ?? []}

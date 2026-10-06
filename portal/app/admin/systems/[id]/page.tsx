@@ -4,6 +4,7 @@ import { StatusMark, type Tone } from "@/components/ux/primitives";
 import { createClient } from "@/lib/supabase/server";
 import { isInternal, isOperationalStaff } from "@/lib/security/roles";
 import { buildSystemDetailResources } from "@/lib/providers/system-detail";
+import { assessSystemHealth, type SystemHealthStatus } from "@/lib/providers/system-health";
 import SystemNotes from "./system-notes";
 
 const SYSTEM_TONE: Record<string, Tone> = {
@@ -13,6 +14,12 @@ const SYSTEM_TONE: Record<string, Tone> = {
   maintenance_only: "warning",
   suspended: "danger",
   retired: "neutral",
+};
+
+const HEALTH_TONE: Record<SystemHealthStatus, Tone> = {
+  HEALTHY: "success",
+  ATTENTION: "warning",
+  UNKNOWN: "neutral",
 };
 
 const RESOURCE_TONE: Record<string, Tone> = {
@@ -58,7 +65,7 @@ export default async function SystemDetailPage({ params }: { params: Promise<{ i
     supabase.from("profiles").select("id, company_name, full_name, email").eq("id", system.client_id).single(),
     supabase
       .from("resources")
-      .select("id, name, resource_type, status, external_reference, provider_account_id, provider_account:provider_accounts(account_name, provider:providers(name, adapter_key))")
+      .select("id, name, resource_type, status, external_reference, provider_account_id, provider_account:provider_accounts(account_name, connection_status, provider:providers(name, adapter_key))")
       .eq("system_id", id)
       .is("retired_at", null)
       .order("name"),
@@ -86,6 +93,7 @@ export default async function SystemDetailPage({ params }: { params: Promise<{ i
       provider: provider?.name ?? "Unknown provider",
       provider_key: provider?.adapter_key ?? null,
       provider_account: account?.account_name ?? "Unknown account",
+      provider_connection_status: account?.connection_status ?? null,
     };
   });
   const infrastructure = buildSystemDetailResources(normalizedResources, (discovered ?? []).map((item) => ({
@@ -100,6 +108,7 @@ export default async function SystemDetailPage({ params }: { params: Promise<{ i
   }
 
   const clientName = client?.company_name ?? client?.full_name ?? client?.email ?? "Unknown client";
+  const health = assessSystemHealth(system.name, infrastructure);
   const canEditNotes = isOperationalStaff(profile.role);
 
   return (
@@ -123,6 +132,24 @@ export default async function SystemDetailPage({ params }: { params: Promise<{ i
         )}
         {system.description && <p style={{ maxWidth: "70ch", margin: "1.25rem 0 0", lineHeight: 1.6 }}>{system.description}</p>}
       </header>
+
+      <section style={{ padding: "1.5rem 0", borderBottom: "1px solid var(--border)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+          <h2 style={{ margin: 0, fontSize: "1.2rem" }}>System Health</h2>
+          <StatusMark tone={HEALTH_TONE[health.overallStatus]}>{health.overallStatus}</StatusMark>
+        </div>
+        <p style={{ margin: "0.65rem 0 0", maxWidth: "75ch" }}>{health.explanation}</p>
+        {health.attentionItems.length > 0 && (
+          <ul style={{ margin: "0.75rem 0 0", paddingLeft: "1.25rem" }}>
+            {health.attentionItems.map((item) => <li key={item}>{item}</li>)}
+          </ul>
+        )}
+        <div className="ux-muted" style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginTop: "0.75rem", fontSize: "0.825rem" }}>
+          <span>Infrastructure: {health.infrastructureStatus}</span>
+          <span>Deployments: {health.deploymentStatus}</span>
+          <span>Provider evidence: {health.providerEvidenceStatus}</span>
+        </div>
+      </section>
 
       <section style={{ padding: "1.5rem 0", borderBottom: "1px solid var(--border)" }}>
         <h2 style={{ margin: "0 0 1rem", fontSize: "1.2rem" }}>Infrastructure</h2>

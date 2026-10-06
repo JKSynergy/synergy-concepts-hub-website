@@ -91,6 +91,16 @@ test("QuickCredit does not require a Vercel resource", () => {
   assert.ok(!result.missing.some((item) => item.includes("Vercel")));
 });
 
+test("System Detail prioritizes operational fields and keeps provider metadata in technical details", () => {
+  const page = readFileSync(new URL("../app/admin/systems/[id]/page.tsx", import.meta.url), "utf8");
+  assert.match(page, /<h1[^>]*>\{system\.name\}<\/h1>/);
+  assert.ok(page.indexOf("{clientName}") < page.indexOf("label(system.system_type)"));
+  assert.match(page, /Production endpoint/);
+  assert.match(page, /<summary[^>]*>Technical details<\/summary>/);
+  assert.ok(page.indexOf("resource.production_domain") < page.indexOf("External provider ID"));
+  assert.ok(page.indexOf("External provider ID") < page.indexOf("Last discovered"));
+});
+
 test("System Detail route is read-only and filters discovery by explicit linked resource IDs", () => {
   const page = readFileSync(new URL("../app/admin/systems/[id]/page.tsx", import.meta.url), "utf8");
   assert.match(page, /\.eq\("system_id", id\)/);

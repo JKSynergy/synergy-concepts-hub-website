@@ -106,18 +106,22 @@ export default async function SystemDetailPage({ params }: { params: Promise<{ i
     <div className="ux-page ux-page--wide">
       <Link href="/admin/systems" className="ux-back">← Systems</Link>
 
-      <header style={{ padding: "1.5rem 0", borderBottom: "1px solid var(--border)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap" }}>
-          <div>
-            <h1 style={{ margin: 0 }}>{system.name}</h1>
-            <p className="ux-muted" style={{ margin: "0.35rem 0 0" }}>
-              <Link href={`/admin/clients/${system.client_id}`}>{clientName}</Link> · {label(system.system_type)}
-            </p>
-          </div>
+      <header style={{ padding: "1.75rem 0", borderBottom: "1px solid var(--border)" }}>
+        <h1 style={{ margin: 0, fontSize: "2rem", lineHeight: 1.15 }}>{system.name}</h1>
+        <p style={{ margin: "0.4rem 0 0", fontSize: "1rem" }}>
+          <Link href={`/admin/clients/${system.client_id}`}>{clientName}</Link>
+        </p>
+        <div className="ux-muted" style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap", marginTop: "0.65rem", fontSize: "0.875rem" }}>
+          <span>{label(system.system_type)}</span>
           <StatusMark tone={SYSTEM_TONE[system.status] ?? "neutral"}>{label(system.status)}</StatusMark>
         </div>
-        {system.primary_url && <p style={{ margin: "1rem 0 0" }}><strong>Production URL:</strong> <a href={system.primary_url}>{system.primary_url}</a></p>}
-        {system.description && <p style={{ maxWidth: "70ch", margin: "1rem 0 0" }}>{system.description}</p>}
+        {system.primary_url && (
+          <div style={{ marginTop: "1.25rem", paddingTop: "1rem", borderTop: "1px solid var(--border)" }}>
+            <div className="ux-muted" style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.06em" }}>Production endpoint</div>
+            <a href={system.primary_url} style={{ display: "inline-block", marginTop: "0.25rem", fontWeight: 600 }}>{system.primary_url}</a>
+          </div>
+        )}
+        {system.description && <p style={{ maxWidth: "70ch", margin: "1.25rem 0 0", lineHeight: 1.6 }}>{system.description}</p>}
       </header>
 
       <section style={{ padding: "1.5rem 0", borderBottom: "1px solid var(--border)" }}>
@@ -133,23 +137,31 @@ export default async function SystemDetailPage({ params }: { params: Promise<{ i
                 const preview = deploymentDetail(resource.metadata, "preview");
                 const status = resource.discovered_status ?? resource.status;
                 return (
-                  <div key={resource.id} style={{ padding: "0.75rem 0", borderTop: "1px solid color-mix(in srgb, var(--border) 65%, transparent)" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
+                  <div key={resource.id} style={{ padding: "1rem 0", borderTop: "1px solid color-mix(in srgb, var(--border) 65%, transparent)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap" }}>
                       <div>
-                        <strong>{resource.discovered_name ?? resource.name}</strong>
-                        <span className="ux-muted"> · {label(resource.resource_type)}</span>
+                        <strong style={{ fontSize: "1rem" }}>{resource.discovered_name ?? resource.name}</strong>
+                        <div className="ux-muted" style={{ marginTop: "0.2rem", fontSize: "0.85rem" }}>{label(resource.resource_type)}</div>
                       </div>
                       <StatusMark tone={RESOURCE_TONE[status] ?? "neutral"}>{label(status)}</StatusMark>
                     </div>
-                    <dl style={{ display: "grid", gridTemplateColumns: "minmax(9rem, auto) 1fr", gap: "0.35rem 1rem", margin: "0.75rem 0 0", fontSize: "0.875rem" }}>
-                      <dt className="ux-muted">Provider account</dt><dd style={{ margin: 0 }}>{resource.provider_account}</dd>
-                      {resource.external_id && <><dt className="ux-muted">External ID</dt><dd style={{ margin: 0 }}><code>{resource.external_id}</code></dd></>}
-                      {resource.production_domain && <><dt className="ux-muted">Production</dt><dd style={{ margin: 0 }}><a href={resource.production_domain.startsWith("http") ? resource.production_domain : `https://${resource.production_domain}`}>{resource.production_domain}</a></dd></>}
-                      {resource.deployment_status && <><dt className="ux-muted">Latest deployment</dt><dd style={{ margin: 0 }}>{resource.deployment_status}{resource.deployment_created_at ? ` · ${new Date(resource.deployment_created_at).toLocaleString()}` : ""}</dd></>}
-                      {production && <><dt className="ux-muted">Production environment</dt><dd style={{ margin: 0 }}>{String(production.status ?? "Known")}</dd></>}
-                      {preview && <><dt className="ux-muted">Preview environment</dt><dd style={{ margin: 0 }}>{String(preview.status ?? "Known")}</dd></>}
-                      {resource.last_discovered_at && <><dt className="ux-muted">Last discovered</dt><dd style={{ margin: 0 }}>{new Date(resource.last_discovered_at).toLocaleString()}</dd></>}
-                    </dl>
+                    {resource.production_domain && (
+                      <div style={{ marginTop: "0.75rem" }}>
+                        <span className="ux-muted" style={{ marginRight: "0.5rem", fontSize: "0.8rem" }}>Production</span>
+                        <a href={resource.production_domain.startsWith("http") ? resource.production_domain : `https://${resource.production_domain}`}>{resource.production_domain}</a>
+                      </div>
+                    )}
+                    <details style={{ marginTop: "0.75rem", fontSize: "0.825rem" }}>
+                      <summary className="ux-muted" style={{ cursor: "pointer", width: "fit-content" }}>Technical details</summary>
+                      <dl style={{ display: "grid", gridTemplateColumns: "minmax(9rem, auto) 1fr", gap: "0.35rem 1rem", margin: "0.65rem 0 0", paddingLeft: "0.75rem", borderLeft: "1px solid var(--border)" }}>
+                        <dt className="ux-muted">Provider account</dt><dd style={{ margin: 0 }}>{resource.provider_account}</dd>
+                        {resource.external_id && <><dt className="ux-muted">External provider ID</dt><dd style={{ margin: 0 }}><code>{resource.external_id}</code></dd></>}
+                        {resource.deployment_status && <><dt className="ux-muted">Latest deployment</dt><dd style={{ margin: 0 }}>{resource.deployment_status}{resource.deployment_created_at ? ` · ${new Date(resource.deployment_created_at).toLocaleString()}` : ""}</dd></>}
+                        {production && <><dt className="ux-muted">Production environment</dt><dd style={{ margin: 0 }}>{String(production.status ?? "Known")}</dd></>}
+                        {preview && <><dt className="ux-muted">Preview environment</dt><dd style={{ margin: 0 }}>{String(preview.status ?? "Known")}</dd></>}
+                        {resource.last_discovered_at && <><dt className="ux-muted">Last discovered</dt><dd style={{ margin: 0 }}>{new Date(resource.last_discovered_at).toLocaleString()}</dd></>}
+                      </dl>
+                    </details>
                   </div>
                 );
               })}

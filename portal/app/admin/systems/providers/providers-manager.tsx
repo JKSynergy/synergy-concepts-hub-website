@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plug, Plus, RefreshCw, Link2, Unlink, XCircle, KeyRound, EyeOff, FileSearch } from "lucide-react";
+import { Plug, Plus, RefreshCw, Link2, Unlink, XCircle, KeyRound, EyeOff } from "lucide-react";
 import { Dialog } from "@/components/ux/dialog";
 import { StatusMark, type Tone } from "@/components/ux/primitives";
 import {
@@ -12,11 +12,9 @@ import {
   clearProviderCredential,
   testProviderConnection,
   runProviderDiscovery,
-  auditRailwayProjectLinks,
   linkDiscoveredResource,
   unlinkDiscoveredResource,
   dismissDiscoveredResource,
-  type RailwayInventoryAuditRow,
 } from "@/lib/actions/provider-connections";
 import {
   buildDiscoveryTree,
@@ -187,7 +185,6 @@ export default function ProvidersManager({
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [railwayAudit, setRailwayAudit] = useState<RailwayInventoryAuditRow[] | null>(null);
 
   const [credModalFor, setCredModalFor] = useState<string | null>(null);
   const [credToken, setCredToken] = useState("");
@@ -236,21 +233,6 @@ export default function ProvidersManager({
     return res;
   }
 
-  async function runRailwayAudit() {
-    setBusy(true);
-    setErrorMessage(null);
-    setNotice(null);
-    const res = await auditRailwayProjectLinks();
-    setBusy(false);
-    if (!res.ok) {
-      setRailwayAudit(null);
-      setErrorMessage(res.error || "Railway inventory audit failed");
-      return;
-    }
-    setRailwayAudit(res.data ?? []);
-    setNotice(`Railway inventory audit completed — ${res.data?.length ?? 0} projects reviewed`);
-  }
-
   function ResourceActions({ item }: { item: DiscoveredItem }) {
     if (!canManage) return null;
     return (
@@ -292,10 +274,46 @@ export default function ProvidersManager({
   }
 
   function ProjectSummary({ node }: { node: ProjectNode }) {
+    if (activeAccount?.adapter_key === "vercel") {
+      const metadata = node.project.metadata ?? {};
+      const framework = typeof metadata.framework === "string" ? metadata.framework : null;
+      const domain = typeof metadata.production_domain === "string" ? metadata.production_domain : null;
+      return <span className="ux-muted" style={{ fontSize: "0.85rem" }}>{[framework, domain].filter(Boolean).join(" · ") || "Vercel project"}</span>;
+    }
     const counts = projectCounts(node);
     const envLabel = counts.environments === 1 ? "1 environment" : `${counts.environments} environments`;
     const svcLabel = counts.services === 1 ? "1 service" : `${counts.services} services`;
     return <span className="ux-muted" style={{ fontSize: "0.85rem" }}>{envLabel} · {svcLabel}</span>;
+  }
+
+  function VercelProjectDetails({ item }: { item: DiscoveredItem }) {
+    const metadata = item.metadata ?? {};
+    const environments = metadata.environments && typeof metadata.environments === "object"
+      ? metadata.environments as Record<string, unknown>
+      : {};
+    const production = environments.production && typeof environments.production === "object"
+      ? environments.production as Record<string, unknown>
+      : null;
+    const preview = environments.preview && typeof environments.preview === "object"
+      ? environments.preview as Record<string, unknown>
+      : null;
+    const deployment = metadata.latest_deployment && typeof metadata.latest_deployment === "object"
+      ? metadata.latest_deployment as Record<string, unknown>
+      : null;
+    const detail = (value: Record<string, unknown> | null) => {
+      if (!value) return "No deployment found";
+      const status = typeof value.status === "string" ? value.status : "Unknown status";
+      const createdAt = typeof value.created_at === "string" ? fmt(value.created_at) : null;
+      return createdAt ? `${status} · ${createdAt}` : status;
+    };
+
+    return (
+      <div style={{ padding: "0.35rem 0 0.6rem 3rem", display: "grid", gap: "0.25rem" }}>
+        <span><strong>Production:</strong> {typeof metadata.production_domain === "string" ? metadata.production_domain : "No production domain"} · {detail(production)}</span>
+        <span><strong>Preview:</strong> {detail(preview)}</span>
+        <span><strong>Latest deployment:</strong> {detail(deployment)}</span>
+      </div>
+    );
   }
 
   // ---------------------------------------------------------------- staff ---
@@ -344,10 +362,7 @@ export default function ProvidersManager({
         <div className="ux-card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h2>Provider Accounts</h2>
           {canManage && (
-            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-              <button className="ux-button ux-button-secondary" onClick={runRailwayAudit} disabled={busy} data-action="audit-railway-links">
-                <FileSearch size={14} /> Audit Railway links
-              </button>
+            <div style={{ display: "flex", gap: "0.5rem" }}>
               <button className="ux-button ux-button-secondary" onClick={() => setNewProviderOpen(true)}>
                 <Plus size={14} /> Provider
               </button>
@@ -457,39 +472,6 @@ export default function ProvidersManager({
         )}
       </div>
 
-      {railwayAudit !== null && (
-        <div className="ux-card" data-testid="railway-inventory-audit">
-          <div className="ux-card-header">
-            <h2>Railway project link audit</h2>
-            <p className="ux-muted">Read-only project mapping from Railway discovery to SCH inventory.</p>
-          </div>
-          {railwayAudit.length === 0 ? (
-            <p className="ux-muted" style={{ padding: "1rem" }}>No Railway projects were found.</p>
-          ) : (
-            <div className="ux-tablewrap">
-              <table className="ux-table">
-                <thead>
-                  <tr><th>Railway account</th><th>Railway project</th><th>Link status</th><th>SCH resource</th><th>Resource type</th><th>SCH system</th><th>Client</th></tr>
-                </thead>
-                <tbody>
-                  {railwayAudit.map((row, index) => (
-                    <tr key={`${row.accountName}:${row.railwayProject}:${index}`}>
-                      <td>{row.accountName}</td>
-                      <td>{row.railwayProject}</td>
-                      <td><StatusMark tone={linkTone(row.linkStatus)}>{row.linkStatus}</StatusMark></td>
-                      <td>{row.linkedResource ?? "—"}</td>
-                      <td>{row.linkedResourceType ?? "—"}</td>
-                      <td>{row.schSystem ?? "—"}</td>
-                      <td>{row.client ?? "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
-
       {activeAccount && (
         <div className="ux-card">
           <div className="ux-card-header">
@@ -574,6 +556,7 @@ export default function ProvidersManager({
 
                       {expanded && (
                         <div style={{ paddingLeft: "1.5rem" }}>
+                          {activeAccount.adapter_key === "vercel" && <VercelProjectDetails item={p.project} />}
                           {p.environments.map((env) => (
                             <div key={env.environment.id}>
                               <div
@@ -721,7 +704,11 @@ export default function ProvidersManager({
               />
             </div>
             <div>
-              <label className="ux-label">Account/workspace ID (optional)</label>
+              <label className="ux-label">
+                {accounts.find((account) => account.id === credModalFor)?.adapter_key === "vercel"
+                  ? "Vercel team ID (optional)"
+                  : "Account/workspace ID (optional)"}
+              </label>
               <input
                 id="input-credential-account"
                 type="text"

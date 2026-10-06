@@ -61,7 +61,8 @@ function assertReadQuery(body: unknown): void {
 }
 
 export function normalizeStatus(status: number): ConnectionErrorCategory {
-  if (status === 401 || status === 403) return "auth_failed";
+  if (status === 401) return "auth_failed";
+  if (status === 403) return "permission_denied";
   if (status === 429) return "rate_limited";
   if (status >= 500) return "unavailable";
   return "malformed_response";

@@ -18,6 +18,16 @@ export type ActionResult<T = unknown> = {
   error?: string;
 };
 
+export type RailwayInventoryAuditRow = {
+  accountName: string;
+  railwayProject: string;
+  linkStatus: "unlinked" | "linked" | "dismissed";
+  linkedResource: string | null;
+  linkedResourceType: string | null;
+  schSystem: string | null;
+  client: string | null;
+};
+
 async function callerProfile() {
   const supabase = await createClient();
   const {
@@ -262,6 +272,86 @@ export async function runProviderDiscovery(providerAccountId: string): Promise<
       newCount: outcome.newCount ?? 0,
       status: outcome.status,
     },
+  };
+}
+
+export async function auditRailwayProjectLinks(): Promise<ActionResult<RailwayInventoryAuditRow[]>> {
+  const { user, role } = await callerProfile();
+  if (!user) return { ok: false, error: "Authentication required" };
+  const denied = requireAdmin(role);
+  if (denied) return { ok: false, error: denied };
+
+  const admin = createAdminClient();
+  const { data: provider, error: providerError } = await admin
+    .from("providers")
+    .select("id")
+    .eq("adapter_key", "railway")
+    .maybeSingle();
+  if (providerError) return { ok: false, error: providerError.message };
+  if (!provider) return { ok: true, data: [] };
+
+  const { data: accounts, error: accountsError } = await admin
+    .from("provider_accounts")
+    .select("id, account_name")
+    .eq("provider_id", provider.id);
+  if (accountsError) return { ok: false, error: accountsError.message };
+  if (!accounts?.length) return { ok: true, data: [] };
+
+  const { data: projects, error: projectsError } = await admin
+    .from("provider_discovered_resources")
+    .select("provider_account_id, name, link_status, linked_resource_id")
+    .in("provider_account_id", accounts.map((account) => account.id))
+    .eq("resource_type", "project")
+    .order("name");
+  if (projectsError) return { ok: false, error: projectsError.message };
+
+  const resourceIds = (projects ?? [])
+    .map((project) => project.linked_resource_id)
+    .filter((id): id is string => Boolean(id));
+  const { data: resources, error: resourcesError } = resourceIds.length
+    ? await admin
+        .from("resources")
+        .select("id, name, resource_type, system_id, client_id")
+        .in("id", resourceIds)
+    : { data: [], error: null };
+  if (resourcesError) return { ok: false, error: resourcesError.message };
+
+  const systemIds = [...new Set((resources ?? []).map((resource) => resource.system_id).filter(Boolean))];
+  const { data: systems, error: systemsError } = systemIds.length
+    ? await admin.from("systems").select("id, name, client_id").in("id", systemIds)
+    : { data: [], error: null };
+  if (systemsError) return { ok: false, error: systemsError.message };
+
+  const clientIds = [...new Set([
+    ...(resources ?? []).map((resource) => resource.client_id),
+    ...(systems ?? []).map((system) => system.client_id),
+  ].filter(Boolean))];
+  const { data: clients, error: clientsError } = clientIds.length
+    ? await admin.from("profiles").select("id, company_name, full_name, email").in("id", clientIds)
+    : { data: [], error: null };
+  if (clientsError) return { ok: false, error: clientsError.message };
+
+  const accountById = new Map((accounts ?? []).map((account) => [account.id, account]));
+  const resourceById = new Map((resources ?? []).map((resource) => [resource.id, resource]));
+  const systemById = new Map((systems ?? []).map((system) => [system.id, system]));
+  const clientById = new Map((clients ?? []).map((client) => [client.id, client]));
+
+  return {
+    ok: true,
+    data: (projects ?? []).map((project) => {
+      const resource = project.linked_resource_id ? resourceById.get(project.linked_resource_id) : null;
+      const system = resource?.system_id ? systemById.get(resource.system_id) : null;
+      const client = clientById.get(system?.client_id ?? resource?.client_id ?? "");
+      return {
+        accountName: accountById.get(project.provider_account_id)?.account_name ?? "Unknown Railway account",
+        railwayProject: project.name,
+        linkStatus: project.link_status,
+        linkedResource: resource?.name ?? null,
+        linkedResourceType: resource?.resource_type ?? null,
+        schSystem: system?.name ?? null,
+        client: client?.company_name ?? client?.full_name ?? client?.email ?? null,
+      };
+    }),
   };
 }
 

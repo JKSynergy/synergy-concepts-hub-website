@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plug, Plus, RefreshCw, Link2, Unlink, XCircle, KeyRound, EyeOff } from "lucide-react";
+import { Plug, Plus, RefreshCw, Link2, Unlink, XCircle, KeyRound, EyeOff, FileSearch } from "lucide-react";
 import { Dialog } from "@/components/ux/dialog";
 import { StatusMark, type Tone } from "@/components/ux/primitives";
 import {
@@ -12,9 +12,11 @@ import {
   clearProviderCredential,
   testProviderConnection,
   runProviderDiscovery,
+  auditRailwayProjectLinks,
   linkDiscoveredResource,
   unlinkDiscoveredResource,
   dismissDiscoveredResource,
+  type RailwayInventoryAuditRow,
 } from "@/lib/actions/provider-connections";
 import {
   buildDiscoveryTree,
@@ -185,6 +187,7 @@ export default function ProvidersManager({
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [railwayAudit, setRailwayAudit] = useState<RailwayInventoryAuditRow[] | null>(null);
 
   const [credModalFor, setCredModalFor] = useState<string | null>(null);
   const [credToken, setCredToken] = useState("");
@@ -231,6 +234,21 @@ export default function ProvidersManager({
     }
     router.refresh();
     return res;
+  }
+
+  async function runRailwayAudit() {
+    setBusy(true);
+    setErrorMessage(null);
+    setNotice(null);
+    const res = await auditRailwayProjectLinks();
+    setBusy(false);
+    if (!res.ok) {
+      setRailwayAudit(null);
+      setErrorMessage(res.error || "Railway inventory audit failed");
+      return;
+    }
+    setRailwayAudit(res.data ?? []);
+    setNotice(`Railway inventory audit completed — ${res.data?.length ?? 0} projects reviewed`);
   }
 
   function ResourceActions({ item }: { item: DiscoveredItem }) {
@@ -326,7 +344,10 @@ export default function ProvidersManager({
         <div className="ux-card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h2>Provider Accounts</h2>
           {canManage && (
-            <div style={{ display: "flex", gap: "0.5rem" }}>
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+              <button className="ux-button ux-button-secondary" onClick={runRailwayAudit} disabled={busy} data-action="audit-railway-links">
+                <FileSearch size={14} /> Audit Railway links
+              </button>
               <button className="ux-button ux-button-secondary" onClick={() => setNewProviderOpen(true)}>
                 <Plus size={14} /> Provider
               </button>
@@ -435,6 +456,39 @@ export default function ProvidersManager({
           </div>
         )}
       </div>
+
+      {railwayAudit !== null && (
+        <div className="ux-card" data-testid="railway-inventory-audit">
+          <div className="ux-card-header">
+            <h2>Railway project link audit</h2>
+            <p className="ux-muted">Read-only project mapping from Railway discovery to SCH inventory.</p>
+          </div>
+          {railwayAudit.length === 0 ? (
+            <p className="ux-muted" style={{ padding: "1rem" }}>No Railway projects were found.</p>
+          ) : (
+            <div className="ux-tablewrap">
+              <table className="ux-table">
+                <thead>
+                  <tr><th>Railway account</th><th>Railway project</th><th>Link status</th><th>SCH resource</th><th>Resource type</th><th>SCH system</th><th>Client</th></tr>
+                </thead>
+                <tbody>
+                  {railwayAudit.map((row, index) => (
+                    <tr key={`${row.accountName}:${row.railwayProject}:${index}`}>
+                      <td>{row.accountName}</td>
+                      <td>{row.railwayProject}</td>
+                      <td><StatusMark tone={linkTone(row.linkStatus)}>{row.linkStatus}</StatusMark></td>
+                      <td>{row.linkedResource ?? "—"}</td>
+                      <td>{row.linkedResourceType ?? "—"}</td>
+                      <td>{row.schSystem ?? "—"}</td>
+                      <td>{row.client ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {activeAccount && (
         <div className="ux-card">

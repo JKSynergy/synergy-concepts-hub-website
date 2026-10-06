@@ -7,6 +7,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { createDb, asUser, asService, rejects, q } from "./helpers/db.mjs";
 
 const IDS = {
@@ -104,6 +105,16 @@ async function completeRun(db, runId, outcome, extra = {}) {
     )).rows[0].r);
 }
 
+async function establishMonitoringBaseline(db) {
+  const run = await beginRun(db, "manual");
+  assert.equal(run.is_baseline, true);
+  const recon = await runRecon(db);
+  const result = await processRun(db, run.run_id, recon);
+  assert.deepEqual(result, { changes_detected: 0, signals_created: 0, incidents_created: 0 });
+  await completeRun(db, run.run_id, "completed", { recon });
+  return { run, recon };
+}
+
 // ---------------------------------------------------------------------------
 
 test("3G4-1 tables exist with RLS enabled", async () => {
@@ -130,12 +141,12 @@ test("3G4-2 schedule create/upsert + frequency vocabulary", async () => {
   assert.ok(rows[0].next_run_at, "next_run_at set when enabled");
 
   // Upsert on same account updates, never duplicates.
-  const id2 = await saveSchedule(db, "weekly", false);
+  const id2 = await saveSchedule(db, "every_12_hours", false);
   assert.equal(id2, id);
   const { rows: after } = await asService(db, () =>
     db.query(`SELECT frequency, enabled, next_run_at FROM public.provider_monitoring_schedules WHERE provider_account_id = '${IDS.account}'`));
   assert.equal(after.length, 1);
-  assert.equal(after[0].frequency, "weekly");
+  assert.equal(after[0].frequency, "every_12_hours");
   assert.equal(after[0].enabled, false);
   assert.equal(after[0].next_run_at, null, "disabled → no next_run_at");
 
@@ -165,7 +176,7 @@ test("3G4-3 non-admin cannot manage schedules (RBAC)", async () => {
 test("3G4-4 due_monitoring_schedules returns only enabled+past-due", async () => {
   const db = await createDb();
   await setup(db);
-  await saveSchedule(db, "hourly", true);
+  await saveSchedule(db, "every_6_hours", true);
   // Force due.
   await asService(db, () => db.exec(
     `UPDATE public.provider_monitoring_schedules SET next_run_at = now() - interval '1 minute' WHERE provider_account_id = '${IDS.account}'`));
@@ -174,7 +185,7 @@ test("3G4-4 due_monitoring_schedules returns only enabled+past-due", async () =>
   assert.equal(rows[0].provider_account_id, IDS.account);
 
   // Disabled → not due.
-  await saveSchedule(db, "hourly", false);
+  await saveSchedule(db, "every_6_hours", false);
   const { rows: none } = await asService(db, () => db.query(`SELECT * FROM public.due_monitoring_schedules()`));
   assert.equal(none.length, 0);
 });
@@ -215,57 +226,44 @@ test("3G4-6 failed run → consecutive_failures; threshold signal at 2", async (
     db.query(`SELECT consecutive_failures FROM public.provider_monitoring_schedules WHERE provider_account_id = '${IDS.account}'`)));
   assert.equal(s[0].consecutive_failures, 2);
   ({ rows: items } = await asService(db, () =>
-    db.query(`SELECT severity, title FROM public.action_items WHERE event_type = 'connection_failure'`)));
+    db.query(`SELECT severity, title FROM public.action_items WHERE event_type = 'discovery_failure'`)));
   assert.equal(items.length, 1);
-  assert.equal(items[0].severity, "warning");
-  assert.match(items[0].title, /connection/i);
+  assert.equal(items[0].severity, "critical");
+  assert.match(items[0].title, /authentication|permission/i);
 
   // Third failure refreshes (not duplicates) the signal.
   const r3 = await beginRun(db, "scheduled");
   await completeRun(db, r3.run_id, "failed", { error: "unavailable" });
   ({ rows: items } = await asService(db, () =>
-    db.query(`SELECT count(*)::int AS n FROM public.action_items WHERE event_type = 'connection_failure'`)));
-  assert.equal(items[0].n, 1, "still one open connection signal");
+    db.query(`SELECT count(*)::int AS n FROM public.action_items WHERE dedupe_key = 'mon:${IDS.account}:connection'`)));
+  assert.equal(items[0].n, 1, "still one open provider signal");
 
   // Recovery clears it.
   const r4 = await beginRun(db, "scheduled");
   await completeRun(db, r4.run_id, "completed", {});
   ({ rows: items } = await asService(db, () =>
-    db.query(`SELECT status FROM public.action_items WHERE event_type = 'connection_failure'`)));
+    db.query(`SELECT status FROM public.action_items WHERE dedupe_key = 'mon:${IDS.account}:connection'`)));
   assert.equal(items[0].status, "resolved");
   ({ rows: s } = await asService(db, () =>
     db.query(`SELECT consecutive_failures FROM public.provider_monitoring_schedules WHERE provider_account_id = '${IDS.account}'`)));
   assert.equal(s[0].consecutive_failures, 0);
 });
 
-test("3G4-7 process: new external resource → info signal, deduplicated", async () => {
+test("3G4-7 first successful monitoring run establishes a signal-free baseline", async () => {
   const db = await createDb();
   await setup(db);
-  await saveSchedule(db, "daily", true);
+  await saveSchedule(db, "every_12_hours", true);
   await insertDiscovered(db, IDS.discUnlinked, { ext: "ext-unlinked", name: "Orphan Project" });
 
-  const run = await beginRun(db, "scheduled");
-  const recon = await runRecon(db);
-  const res = await processRun(db, run.run_id, recon);
-  assert.equal(res.changes_detected, 1);
-  assert.equal(res.signals_created, 1);
-  assert.equal(res.incidents_created, 0);
-
+  const { run } = await establishMonitoringBaseline(db);
+  const { rows: runs } = await asService(db, () =>
+    db.query(`SELECT is_baseline, status, signals_created FROM public.provider_monitoring_runs WHERE id='${run.run_id}'`));
+  assert.equal(runs[0].is_baseline, true);
+  assert.equal(runs[0].status, "completed");
+  assert.equal(runs[0].signals_created, 0);
   const { rows: items } = await asService(db, () =>
-    db.query(`SELECT event_type, severity, status, dedupe_key FROM public.action_items`));
-  assert.equal(items.length, 1);
-  assert.equal(items[0].event_type, "new_external_resource");
-  assert.equal(items[0].severity, "info");
-  assert.equal(items[0].status, "open");
-
-  // Second run with the same open condition refreshes, not duplicates.
-  const run2 = await beginRun(db, "scheduled");
-  const recon2 = await runRecon(db);
-  const res2 = await processRun(db, run2.run_id, recon2);
-  assert.equal(res2.signals_created, 0, "no duplicate signal");
-  const { rows: after } = await asService(db, () =>
     db.query(`SELECT count(*)::int AS n FROM public.action_items`));
-  assert.equal(after[0].n, 1);
+  assert.equal(items[0].n, 0, "baseline creates no mass signals");
 });
 
 test("3G4-8 linked resource down → critical signal + deduplicated incident", async () => {
@@ -275,8 +273,7 @@ test("3G4-8 linked resource down → critical signal + deduplicated incident", a
   await insertDiscovered(db, IDS.discLinked, { ext: "ext-linked", name: "Prod DB" });
   await link(db, IDS.discLinked);
 
-  // Baseline reconciliation (first link → unchanged baseline).
-  const recon0 = await runRecon(db);
+  await establishMonitoringBaseline(db);
 
   // Provider observes the resource go down.
   await asService(db, () => db.exec(
@@ -318,7 +315,7 @@ test("3G4-9 recovery auto-resolves signal; incident stays human-owned", async ()
   await saveSchedule(db, "daily", true);
   await insertDiscovered(db, IDS.discLinked, { ext: "ext-linked", name: "Prod DB" });
   await link(db, IDS.discLinked);
-  await runRecon(db); // baseline
+  await establishMonitoringBaseline(db)
 
   // Down → signal + incident.
   await asService(db, () => db.exec(
@@ -354,7 +351,7 @@ test("3G4-10 missing_externally on linked resource → critical + incident", asy
   await saveSchedule(db, "daily", true);
   await insertDiscovered(db, IDS.discLinked, { ext: "ext-linked", name: "Prod DB" });
   await link(db, IDS.discLinked);
-  await runRecon(db);
+  await establishMonitoringBaseline(db);
 
   await asService(db, () => db.exec(
     `UPDATE public.provider_discovered_resources SET external_missing = true WHERE id = '${IDS.discLinked}'`));
@@ -378,7 +375,7 @@ test("3G4-11 monitoring never creates/approves/executes provider operations", as
   await saveSchedule(db, "daily", true);
   await insertDiscovered(db, IDS.discLinked, { ext: "ext-linked", name: "Prod DB" });
   await link(db, IDS.discLinked);
-  await runRecon(db);
+  await establishMonitoringBaseline(db);
   await asService(db, () => db.exec(
     `UPDATE public.provider_discovered_resources SET status = 'INACTIVE' WHERE id = '${IDS.discLinked}'`));
   const run = await beginRun(db, "scheduled");
@@ -469,7 +466,7 @@ test("3G4-16 failed discovery path: run fails, no missing marking, no recon item
   await saveSchedule(db, "daily", true);
   await insertDiscovered(db, IDS.discLinked, { ext: "ext-linked", name: "Prod DB" });
   await link(db, IDS.discLinked);
-  await runRecon(db);
+  await establishMonitoringBaseline(db);
 
   // Simulate a failed-discovery monitoring run: begin → fail. No
   // reconciliation is invoked; nothing may be marked missing.
@@ -538,4 +535,129 @@ test("3G4-20 trigger_source is recorded (manual vs scheduled)", async () => {
   const { rows } = await asService(db, () =>
     db.query(`SELECT trigger_source FROM public.provider_monitoring_runs ORDER BY started_at`));
   assert.deepEqual(rows.map((r) => r.trigger_source), ["manual", "scheduled"]);
+});
+
+test("PHASE2-MON-1 every 12 hours is supported and recommended without auto-creating schedules", async () => {
+  const db = await createDb();
+  await setup(db);
+  const id = await saveSchedule(db, "every_12_hours", false);
+  const { rows } = await asService(db, () => db.query(
+    `SELECT frequency, enabled, next_run_at FROM public.provider_monitoring_schedules WHERE id='${id}'`));
+  assert.equal(rows[0].frequency, "every_12_hours");
+  assert.equal(rows[0].enabled, false);
+  assert.equal(rows[0].next_run_at, null);
+});
+
+test("PHASE2-MON-2 no-change run after baseline creates no signals", async () => {
+  const db = await createDb();
+  await setup(db);
+  await saveSchedule(db, "every_12_hours", true);
+  await insertDiscovered(db, IDS.discLinked, { ext: "stable", name: "Stable" });
+  await link(db, IDS.discLinked);
+  await establishMonitoringBaseline(db);
+  const run = await beginRun(db, "scheduled");
+  assert.equal(run.is_baseline, false);
+  const recon = await runRecon(db);
+  const result = await processRun(db, run.run_id, recon);
+  assert.equal(result.changes_detected, 0);
+  assert.equal(result.signals_created, 0);
+});
+
+test("PHASE2-MON-3 deployment timestamp and id-only changes are ignored", async () => {
+  const db = await createDb();
+  await setup(db);
+  await saveSchedule(db, "every_12_hours", true);
+  await insertDiscovered(db, IDS.discLinked, { ext: "vercel", name: "Frontend", status: "READY" });
+  await asService(db, () => db.exec(`UPDATE public.provider_discovered_resources SET metadata = '{"production_domain":"example.com","environments":{"production":{"status":"READY"}},"latest_deployment":{"id":"dpl_old","status":"READY","created_at":"2026-01-01T00:00:00Z"}}' WHERE id='${IDS.discLinked}'`));
+  await link(db, IDS.discLinked);
+  await establishMonitoringBaseline(db);
+  await asService(db, () => db.exec(`UPDATE public.provider_discovered_resources SET metadata = '{"production_domain":"example.com","environments":{"production":{"status":"READY"}},"latest_deployment":{"id":"dpl_new","status":"READY","created_at":"2026-02-01T00:00:00Z"}}' WHERE id='${IDS.discLinked}'`));
+  const run = await beginRun(db, "scheduled");
+  const recon = await runRecon(db);
+  const result = await processRun(db, run.run_id, recon);
+  assert.equal(result.changes_detected, 0);
+  assert.equal(result.signals_created, 0);
+});
+
+test("PHASE2-MON-4 authentication failure surfaces immediately and repeated observation deduplicates", async () => {
+  const db = await createDb();
+  await setup(db);
+  await saveSchedule(db, "every_12_hours", true);
+  const first = await beginRun(db, "scheduled");
+  await completeRun(db, first.run_id, "failed", { error: "auth_failed" });
+  let { rows } = await asService(db, () => db.query(`SELECT severity, occurrence_count, status FROM public.action_items WHERE event_type='discovery_failure'`));
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].severity, "critical");
+  assert.equal(rows[0].occurrence_count, 1);
+  const second = await beginRun(db, "scheduled");
+  await completeRun(db, second.run_id, "failed", { error: "auth_failed" });
+  ({ rows } = await asService(db, () => db.query(`SELECT occurrence_count FROM public.action_items WHERE event_type='discovery_failure'`)));
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].occurrence_count, 2);
+});
+
+test("PHASE2-MON-5 successful recovery resolves an open authentication failure", async () => {
+  const db = await createDb();
+  await setup(db);
+  await saveSchedule(db, "daily", true);
+  const failed = await beginRun(db, "scheduled");
+  await completeRun(db, failed.run_id, "failed", { error: "permission_denied" });
+  const recovered = await beginRun(db, "scheduled");
+  await completeRun(db, recovered.run_id, "completed", {});
+  const { rows } = await asService(db, () => db.query(`SELECT status FROM public.action_items WHERE event_type='discovery_failure'`));
+  assert.equal(rows[0].status, "resolved");
+});
+
+test("PHASE2-MON-6 scheduler and monitoring service remain protected and reuse discovery", () => {
+  const route = readFileSync(new URL("../app/api/internal/provider-monitoring/run/route.ts", import.meta.url), "utf8");
+  const service = readFileSync(new URL("../lib/monitoring/service.ts", import.meta.url), "utf8");
+  assert.match(route, /CRON_SECRET/);
+  assert.match(route, /return false/);
+  assert.match(route, /status: 401/);
+  assert.match(service, /executeProviderDiscovery/);
+  assert.doesNotMatch(service, /api\.vercel\.com|backboard\.railway|providerMutate/);
+});
+
+test("PHASE2-MON-7 Vercel READY to ERROR signals and ERROR to READY resolves", async () => {
+  const db = await createDb();
+  await setup(db);
+  await saveSchedule(db, "every_12_hours", true);
+  await insertDiscovered(db, IDS.discLinked, { ext: "vercel-prod", name: "Vercel Frontend", status: "READY" });
+  await link(db, IDS.discLinked);
+  await establishMonitoringBaseline(db);
+  await asService(db, () => db.exec(`UPDATE public.provider_discovered_resources SET status='ERROR' WHERE id='${IDS.discLinked}'`));
+  const failedRun = await beginRun(db, "scheduled");
+  const failedRecon = await runRecon(db);
+  await processRun(db, failedRun.run_id, failedRecon);
+  await completeRun(db, failedRun.run_id, "completed", { recon: failedRecon });
+  let { rows } = await asService(db, () => db.query(`SELECT status, severity FROM public.action_items WHERE resource_id IS NOT NULL`));
+  assert.equal(rows[0].status, "open");
+  assert.equal(rows[0].severity, "critical");
+  await asService(db, () => db.exec(`UPDATE public.provider_discovered_resources SET status='READY' WHERE id='${IDS.discLinked}'`));
+  const recoveredRun = await beginRun(db, "scheduled");
+  const recoveredRecon = await runRecon(db);
+  await processRun(db, recoveredRun.run_id, recoveredRecon);
+  await completeRun(db, recoveredRun.run_id, "completed", { recon: recoveredRecon });
+  ({ rows } = await asService(db, () => db.query(`SELECT status FROM public.action_items WHERE resource_id IS NOT NULL`)));
+  assert.ok(rows.every((row) => row.status === "resolved"));
+});
+
+test("PHASE2-MON-8 unlinked changes never create a System operational signal", async () => {
+  const db = await createDb();
+  await setup(db);
+  await saveSchedule(db, "daily", true);
+  await insertDiscovered(db, IDS.discUnlinked, { ext: "unlinked", name: "Similar System Name", status: "READY" });
+  await establishMonitoringBaseline(db);
+  await asService(db, () => db.exec(`UPDATE public.provider_discovered_resources SET status='ERROR' WHERE id='${IDS.discUnlinked}'`));
+  const run = await beginRun(db, "scheduled");
+  const recon = await runRecon(db);
+  await processRun(db, run.run_id, recon);
+  const { rows } = await asService(db, () => db.query(`SELECT count(*)::int AS n FROM public.action_items WHERE system_id IS NOT NULL`));
+  assert.equal(rows[0].n, 0);
+});
+
+test("PHASE2-MON-9 manual discovery remains independent of monitoring schedules", () => {
+  const actions = readFileSync(new URL("../lib/actions/provider-connections.ts", import.meta.url), "utf8");
+  assert.match(actions, /executeProviderDiscovery\(admin, providerAccountId, user\.id\)/);
+  assert.doesNotMatch(actions, /provider_monitoring_schedules/);
 });

@@ -33,7 +33,7 @@ function revalidateMonitoringPaths() {
 
 export async function saveMonitoringSchedule(input: {
   providerAccountId: string;
-  frequency: "hourly" | "every_6_hours" | "daily" | "weekly";
+  frequency: "every_6_hours" | "every_12_hours" | "daily";
   enabled: boolean;
 }): Promise<ActionResult<{ id: string }>> {
   const { user, role } = await callerProfile();
@@ -74,7 +74,7 @@ export async function setMonitoringScheduleEnabled(
 
   const { error } = await admin.rpc("save_monitoring_schedule", {
     p_provider_account_id: providerAccountId,
-    p_frequency: sched?.frequency ?? "daily",
+    p_frequency: sched?.frequency ?? "every_12_hours",
     p_enabled: enabled,
     p_actor: user.id,
   });
@@ -85,7 +85,7 @@ export async function setMonitoringScheduleEnabled(
 
 export async function changeMonitoringScheduleFrequency(
   providerAccountId: string,
-  frequency: "hourly" | "every_6_hours" | "daily" | "weekly"
+  frequency: "every_6_hours" | "every_12_hours" | "daily"
 ): Promise<ActionResult> {
   const { user, role } = await callerProfile();
   if (!user) return { ok: false, error: "Authentication required" };
@@ -124,7 +124,9 @@ export async function runMonitoringNow(providerAccountId: string): Promise<
     runId?: string;
     changesDetected?: number;
     signalsCreated?: number;
+    signalsUpdated?: number;
     incidentsCreated?: number;
+    isBaseline?: boolean;
     errorCategory?: string;
   }>
 > {
@@ -158,7 +160,9 @@ export async function runMonitoringNow(providerAccountId: string): Promise<
       runId: result.runId,
       changesDetected: result.changesDetected,
       signalsCreated: result.signalsCreated,
+      signalsUpdated: result.signalsUpdated,
       incidentsCreated: result.incidentsCreated,
+      isBaseline: result.isBaseline,
       errorCategory: result.errorCategory,
     },
   };

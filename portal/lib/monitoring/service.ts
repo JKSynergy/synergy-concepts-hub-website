@@ -27,7 +27,9 @@ export interface MonitoringRunResult {
   reconciliationRunId?: string;
   changesDetected?: number;
   signalsCreated?: number;
+  signalsUpdated?: number;
   incidentsCreated?: number;
+  isBaseline?: boolean;
   errorCategory?: string;
   error?: string;
 }
@@ -51,11 +53,12 @@ export async function runProviderMonitoring(
   if (beginErr) {
     return { ok: false, outcome: "unavailable", error: beginErr.message };
   }
-  const beginResult = begin as { outcome?: string; run_id?: string };
+  const beginResult = begin as { outcome?: string; run_id?: string; is_baseline?: boolean };
   if (beginResult.outcome !== "begin" || !beginResult.run_id) {
-    return { ok: true, outcome: "skipped", runId: beginResult.run_id };
+    return { ok: true, outcome: "skipped", runId: beginResult.run_id, isBaseline: false };
   }
   const runId = beginResult.run_id;
+  const isBaseline = beginResult.is_baseline === true;
 
   const complete = async (
     outcome: "completed" | "failed",
@@ -128,6 +131,25 @@ export async function runProviderMonitoring(
     };
   }
 
+  if (isBaseline) {
+    await complete("completed", {
+      discoveryRunId: discovery.runId,
+      reconciliationRunId: reconRunId as string,
+    });
+    return {
+      ok: true,
+      outcome: "completed",
+      runId,
+      discoveryRunId: discovery.runId,
+      reconciliationRunId: reconRunId as string,
+      changesDetected: 0,
+      signalsCreated: 0,
+      signalsUpdated: 0,
+      incidentsCreated: 0,
+      isBaseline: true,
+    };
+  }
+
   // 4. Classify → signals → incidents (deduplicated, deterministic).
   const { data: processed, error: procErr } = await admin.rpc("process_monitoring_run", {
     p_run_id: runId,
@@ -150,6 +172,13 @@ export async function runProviderMonitoring(
     };
   }
 
+  const { count: observedSignals } = await admin
+    .from("action_items")
+    .select("id", { count: "exact", head: true })
+    .eq("monitoring_run_id", runId)
+    .eq("source", "provider_monitoring");
+  const signalsUpdated = Math.max(0, (observedSignals ?? 0) - (counts.signals_created ?? 0));
+
   // 5. Finish: record counts + schedule bookkeeping.
   await complete("completed", {
     discoveryRunId: discovery.runId,
@@ -158,6 +187,7 @@ export async function runProviderMonitoring(
     signalsCreated: counts.signals_created ?? 0,
     incidentsCreated: counts.incidents_created ?? 0,
   });
+  await admin.from("provider_monitoring_runs").update({ signals_updated: signalsUpdated }).eq("id", runId);
 
   return {
     ok: true, outcome: "completed", runId,
@@ -165,7 +195,9 @@ export async function runProviderMonitoring(
     reconciliationRunId: reconRunId as string,
     changesDetected: counts.changes_detected ?? 0,
     signalsCreated: counts.signals_created ?? 0,
+    signalsUpdated,
     incidentsCreated: counts.incidents_created ?? 0,
+    isBaseline: false,
   };
 }
 

@@ -33,7 +33,9 @@ export interface MonitoringSchedule {
   last_trigger: string | null;
   last_changes_detected: number | null;
   last_signals_created: number | null;
+  last_signals_updated: number | null;
   last_error_category: string | null;
+  baseline_established_at: string | null;
 }
 
 export interface MonitoringRun {
@@ -48,7 +50,9 @@ export interface MonitoringRun {
   reconciliation_status: string | null;
   changes_detected: number;
   signals_created: number;
+  signals_updated: number;
   incidents_created: number;
+  is_baseline: boolean;
   error_category: string | null;
   started_at: string;
   completed_at: string | null;
@@ -72,6 +76,9 @@ export interface MonitoringSignal {
   incident_status: string | null;
   reconciliation_item_id: string | null;
   detected_at: string;
+  first_observed_at: string;
+  last_observed_at: string;
+  occurrence_count: number;
 }
 
 export interface ScheduleAccount {
@@ -92,10 +99,9 @@ interface Props {
 }
 
 const FREQUENCIES = [
-  { value: "hourly", label: "Hourly" },
   { value: "every_6_hours", label: "Every 6 hours" },
+  { value: "every_12_hours", label: "Every 12 hours" },
   { value: "daily", label: "Daily" },
-  { value: "weekly", label: "Weekly" },
 ] as const;
 
 function fmt(ts: string | null): string {
@@ -144,8 +150,8 @@ export default function MonitoringManager({ systemHealth, schedules, runs, signa
   const [notice, setNotice] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [accountId, setAccountId] = useState("");
-  const [frequency, setFrequency] = useState<string>("daily");
-  const [enabled, setEnabled] = useState(true);
+  const [frequency, setFrequency] = useState<string>("every_12_hours");
+  const [enabled, setEnabled] = useState(false);
 
   const scheduledAccounts = useMemo(
     () => new Set(schedules.map((s) => s.provider_account_id)),
@@ -179,7 +185,7 @@ export default function MonitoringManager({ systemHealth, schedules, runs, signa
       () =>
         saveMonitoringSchedule({
           providerAccountId: accountId,
-          frequency: frequency as "hourly" | "every_6_hours" | "daily" | "weekly",
+          frequency: frequency as "every_6_hours" | "every_12_hours" | "daily",
           enabled,
         }),
       "Schedule saved"
@@ -245,7 +251,7 @@ export default function MonitoringManager({ systemHealth, schedules, runs, signa
             <table className="ux-table">
               <thead>
                 <tr>
-                  <th>Provider</th><th>Account</th><th>Frequency</th><th>Last check</th>
+                  <th>Provider</th><th>Account</th><th>Cadence</th><th>Enabled</th><th>Last run</th>
                   <th>Status</th><th>Next run</th><th>Failures</th>{isAdmin && <th>Actions</th>}
                 </tr>
               </thead>
@@ -271,7 +277,7 @@ export default function MonitoringManager({ systemHealth, schedules, runs, signa
                                 () =>
                                   changeMonitoringScheduleFrequency(
                                     s.provider_account_id,
-                                    e.target.value as "hourly" | "every_6_hours" | "daily" | "weekly"
+                                    e.target.value as "every_6_hours" | "every_12_hours" | "daily"
                                   ),
                                 "Frequency updated"
                               )
@@ -285,6 +291,7 @@ export default function MonitoringManager({ systemHealth, schedules, runs, signa
                           s.frequency.replaceAll("_", " ")
                         )}
                       </td>
+                      <td>{s.enabled ? "Yes" : "No"}</td>
                       <td>{fmt(s.last_run_at)}</td>
                       <td>
                         <StatusMark tone={health.tone}>{health.label}</StatusMark>
@@ -319,8 +326,9 @@ export default function MonitoringManager({ systemHealth, schedules, runs, signa
                                   () => runMonitoringNow(s.provider_account_id),
                                   "Monitoring run completed"
                                 );
-                                const d = res.data as { outcome?: string } | undefined;
+                                const d = res.data as { outcome?: string; isBaseline?: boolean } | undefined;
                                 if (res.ok && d?.outcome === "skipped") setNotice("Skipped — a run is already in progress");
+                                else if (res.ok && d?.isBaseline) setNotice("Monitoring completed — baseline established without creating signals");
                               }}
                             >
                               <Play size={13} /> Run now
@@ -349,8 +357,8 @@ export default function MonitoringManager({ systemHealth, schedules, runs, signa
             <table className="ux-table">
               <thead>
                 <tr>
-                  <th>Severity</th><th>Signal</th><th>Provider</th><th>Subject</th>
-                  <th>Client / system</th><th>Detected</th><th>Incident</th>
+                  <th>Severity</th><th>Signal</th><th>Provider</th><th>System / resource</th>
+                  <th>First observed</th><th>Last observed</th><th>Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -362,21 +370,13 @@ export default function MonitoringManager({ systemHealth, schedules, runs, signa
                       <br /><span className="ux-muted">{g.summary}</span>
                     </td>
                     <td>{g.provider_name}<br /><span className="ux-muted">{g.account_name}</span></td>
-                    <td>{g.resource_name ?? g.external_name ?? "—"}</td>
                     <td>
-                      {g.client_company ?? "—"}
-                      {g.system_name ? <><br /><span className="ux-muted">{g.system_name}</span></> : null}
+                      {g.system_name ?? g.client_company ?? "—"}
+                      <br /><span className="ux-muted">{g.resource_name ?? g.external_name ?? "Provider account"}</span>
                     </td>
-                    <td>{fmt(g.detected_at)}</td>
-                    <td>
-                      {g.incident_id ? (
-                        <a href="/admin/operations/incidents" className="ux-link">
-                          Incident ({g.incident_status})
-                        </a>
-                      ) : (
-                        <span className="ux-muted">—</span>
-                      )}
-                    </td>
+                    <td>{fmt(g.first_observed_at)}</td>
+                    <td>{fmt(g.last_observed_at)}{g.occurrence_count > 1 ? <><br /><span className="ux-muted">{g.occurrence_count} observations</span></> : null}</td>
+                    <td><StatusMark tone={g.status === "acknowledged" ? "info" : "warning"}>{g.status}</StatusMark></td>
                   </tr>
                 ))}
               </tbody>
@@ -397,21 +397,25 @@ export default function MonitoringManager({ systemHealth, schedules, runs, signa
             <table className="ux-table">
               <thead>
                 <tr>
-                  <th>Started</th><th>Provider</th><th>Account</th><th>Trigger</th>
-                  <th>Status</th><th>Discovered</th><th>Changes</th><th>Signals</th><th>Error</th>
+                  <th>Started</th><th>Completed</th><th>Provider</th><th>Account</th><th>Trigger</th>
+                  <th>Status</th><th>Observed</th><th>Changes</th><th>Signals</th><th>Error</th>
                 </tr>
               </thead>
               <tbody>
                 {runs.map((r) => (
                   <tr key={r.id} data-run={r.id}>
                     <td>{fmt(r.started_at)}</td>
+                    <td>{fmt(r.completed_at)}</td>
                     <td>{r.provider_name}</td>
                     <td>{r.account_name}</td>
                     <td>{r.trigger_source}</td>
-                    <td><StatusMark tone={runTone(r.status)}>{r.status}</StatusMark></td>
+                    <td>
+                      <StatusMark tone={runTone(r.status)}>{r.status}</StatusMark>
+                      {r.is_baseline ? <><br /><span className="ux-muted">Baseline established</span></> : null}
+                    </td>
                     <td>{r.discovered_count ?? "—"}</td>
                     <td>{r.changes_detected}</td>
-                    <td>{r.signals_created}</td>
+                    <td>{r.signals_created} created · {r.signals_updated} updated</td>
                     <td><span className="ux-muted">{r.error_category ?? "—"}</span></td>
                   </tr>
                 ))}

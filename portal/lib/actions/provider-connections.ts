@@ -7,6 +7,10 @@ import { isAdmin as checkIsAdmin } from "@/lib/security/roles";
 import { PROVIDER_ADAPTER_KEYS } from "@/lib/providers/registry";
 import type { ConnectionErrorCategory } from "@/lib/providers/types";
 import {
+  reconcileSystemInfrastructure,
+  type SystemInfrastructureAssessment,
+} from "@/lib/providers/infrastructure-reconciliation";
+import {
   executeProviderDiscovery,
   loadAccountWithAdapter,
   loadProviderCredentials,
@@ -262,6 +266,91 @@ export async function runProviderDiscovery(providerAccountId: string): Promise<
       newCount: outcome.newCount ?? 0,
       status: outcome.status,
     },
+  };
+}
+
+export async function auditSystemInfrastructure(): Promise<ActionResult<SystemInfrastructureAssessment[]>> {
+  const { user, role } = await callerProfile();
+  if (!user) return { ok: false, error: "Authentication required" };
+  const denied = requireAdmin(role);
+  if (denied) return { ok: false, error: denied };
+
+  const admin = createAdminClient();
+  const { data: systems, error: systemsError } = await admin
+    .from("systems")
+    .select("id, client_id, name")
+    .is("archived_at", null)
+    .order("name");
+  if (systemsError) return { ok: false, error: systemsError.message };
+
+  const { data: resources, error: resourcesError } = await admin
+    .from("resources")
+    .select("id, system_id, provider_account_id, client_id, name, resource_type, status, retired_at")
+    .not("system_id", "is", null);
+  if (resourcesError) return { ok: false, error: resourcesError.message };
+
+  const { data: accounts, error: accountsError } = await admin
+    .from("provider_accounts")
+    .select("id, provider_id");
+  if (accountsError) return { ok: false, error: accountsError.message };
+
+  const { data: providers, error: providersError } = await admin
+    .from("providers")
+    .select("id, name, adapter_key");
+  if (providersError) return { ok: false, error: providersError.message };
+
+  const { data: discovered, error: discoveredError } = await admin
+    .from("provider_discovered_resources")
+    .select("linked_resource_id, external_resource_id, resource_type, name, status, metadata, external_missing")
+    .eq("link_status", "linked")
+    .not("linked_resource_id", "is", null);
+  if (discoveredError) return { ok: false, error: discoveredError.message };
+
+  const clientIds = [...new Set((systems ?? []).map((system) => system.client_id).filter(Boolean))];
+  const { data: clients, error: clientsError } = clientIds.length
+    ? await admin.from("profiles").select("id, company_name, full_name, email").in("id", clientIds)
+    : { data: [], error: null };
+  if (clientsError) return { ok: false, error: clientsError.message };
+
+  const providerById = new Map((providers ?? []).map((provider) => [provider.id, provider]));
+  const accountById = new Map((accounts ?? []).map((account) => [account.id, account]));
+  const discoveredByResource = new Map((discovered ?? []).map((item) => [item.linked_resource_id, item]));
+  const clientById = new Map((clients ?? []).map((client) => [client.id, client]));
+  const resourcesBySystem = new Map<string, NonNullable<typeof resources>>();
+  for (const resource of resources ?? []) {
+    const list = resourcesBySystem.get(resource.system_id) ?? [];
+    list.push(resource);
+    resourcesBySystem.set(resource.system_id, list);
+  }
+
+  return {
+    ok: true,
+    data: (systems ?? []).map((system) => {
+      const client = clientById.get(system.client_id);
+      const evidence = (resourcesBySystem.get(system.id) ?? []).map((resource) => {
+        const account = accountById.get(resource.provider_account_id);
+        const provider = account ? providerById.get(account.provider_id) : null;
+        const item = discoveredByResource.get(resource.id);
+        return {
+          provider: provider?.name ?? "Unknown provider",
+          providerKey: provider?.adapter_key ?? null,
+          resourceName: item?.name ?? resource.name,
+          resourceType: resource.resource_type,
+          status: item?.status ?? resource.status,
+          externalMissing: item?.external_missing ?? false,
+          retired: Boolean(resource.retired_at),
+          metadata: item?.metadata && typeof item.metadata === "object" ? item.metadata : null,
+          mappingIssue: resource.client_id && resource.client_id !== system.client_id
+            ? `${provider?.name ?? "Provider"}: ${resource.name} belongs to a different client than the SCH system`
+            : null,
+        };
+      });
+      return reconcileSystemInfrastructure({
+        systemName: system.name,
+        client: client?.company_name ?? client?.full_name ?? client?.email ?? "Unknown client",
+        resources: evidence,
+      });
+    }),
   };
 }
 

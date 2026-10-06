@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plug, Plus, RefreshCw, Link2, Unlink, XCircle, KeyRound, EyeOff } from "lucide-react";
+import { Plug, Plus, RefreshCw, Link2, Unlink, XCircle, KeyRound, EyeOff, FileSearch } from "lucide-react";
 import { Dialog } from "@/components/ux/dialog";
 import { StatusMark, type Tone } from "@/components/ux/primitives";
 import {
@@ -12,10 +12,12 @@ import {
   clearProviderCredential,
   testProviderConnection,
   runProviderDiscovery,
+  auditSystemInfrastructure,
   linkDiscoveredResource,
   unlinkDiscoveredResource,
   dismissDiscoveredResource,
 } from "@/lib/actions/provider-connections";
+import type { SystemInfrastructureAssessment } from "@/lib/providers/infrastructure-reconciliation";
 import {
   buildDiscoveryTree,
   projectCounts,
@@ -160,6 +162,12 @@ function runTone(status: string): Tone {
   }
 }
 
+function assessmentTone(status: SystemInfrastructureAssessment["assessment"]): Tone {
+  if (status === "Complete") return "success";
+  if (status === "Partial") return "warning";
+  return "neutral";
+}
+
 function fmt(ts: string | null): string {
   return ts ? new Date(ts).toLocaleString() : "—";
 }
@@ -185,6 +193,7 @@ export default function ProvidersManager({
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [infrastructureAudit, setInfrastructureAudit] = useState<SystemInfrastructureAssessment[] | null>(null);
 
   const [credModalFor, setCredModalFor] = useState<string | null>(null);
   const [credToken, setCredToken] = useState("");
@@ -231,6 +240,21 @@ export default function ProvidersManager({
     }
     router.refresh();
     return res;
+  }
+
+  async function runInfrastructureAudit() {
+    setBusy(true);
+    setErrorMessage(null);
+    setNotice(null);
+    const res = await auditSystemInfrastructure();
+    setBusy(false);
+    if (!res.ok) {
+      setInfrastructureAudit(null);
+      setErrorMessage(res.error || "Infrastructure reconciliation failed");
+      return;
+    }
+    setInfrastructureAudit(res.data ?? []);
+    setNotice(`Infrastructure reconciliation completed — ${res.data?.length ?? 0} systems reviewed`);
   }
 
   function ResourceActions({ item }: { item: DiscoveredItem }) {
@@ -362,7 +386,10 @@ export default function ProvidersManager({
         <div className="ux-card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h2>Provider Accounts</h2>
           {canManage && (
-            <div style={{ display: "flex", gap: "0.5rem" }}>
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+              <button className="ux-button ux-button-secondary" onClick={runInfrastructureAudit} disabled={busy} data-action="audit-system-infrastructure">
+                <FileSearch size={14} /> Reconcile infrastructure
+              </button>
               <button className="ux-button ux-button-secondary" onClick={() => setNewProviderOpen(true)}>
                 <Plus size={14} /> Provider
               </button>
@@ -471,6 +498,45 @@ export default function ProvidersManager({
           </div>
         )}
       </div>
+
+      {infrastructureAudit !== null && (
+        <div className="ux-card" data-testid="system-infrastructure-audit">
+          <div className="ux-card-header">
+            <h2>System infrastructure reconciliation</h2>
+            <p className="ux-muted">Read-only evidence from existing SCH systems, resources, and explicit provider links.</p>
+          </div>
+          <div className="ux-tablewrap">
+            <table className="ux-table">
+              <thead>
+                <tr><th>System / client</th><th>Railway</th><th>Vercel</th><th>Other infrastructure</th><th>Findings</th><th>Assessment</th></tr>
+              </thead>
+              <tbody>
+                {infrastructureAudit.map((system) => {
+                  const names = (items: SystemInfrastructureAssessment["resources"]) => items.length
+                    ? items.map((item) => `${item.resourceName}${item.status ? ` (${item.status})` : ""}`).join(", ")
+                    : "—";
+                  const findings = [
+                    ...system.missing.map((item) => `Missing: ${item}`),
+                    ...system.context,
+                    ...system.possibleDuplicatesOrLegacy.map((item) => `Review: ${item}`),
+                    ...system.potentiallyIncorrect.map((item) => `Potential issue: ${item}`),
+                  ];
+                  return (
+                    <tr key={`${system.client}:${system.systemName}`}>
+                      <td><strong>{system.systemName}</strong><br /><span className="ux-muted">{system.client}</span></td>
+                      <td>{names(system.railway)}</td>
+                      <td>{names(system.vercel)}</td>
+                      <td>{names(system.other)}</td>
+                      <td>{findings.length ? findings.join(" · ") : "No gaps indicated by linked evidence"}</td>
+                      <td><StatusMark tone={assessmentTone(system.assessment)}>{system.assessment}</StatusMark></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {activeAccount && (
         <div className="ux-card">

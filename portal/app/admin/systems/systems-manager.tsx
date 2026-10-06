@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { NavLink as Link } from "@/components/nav-link";
 import { Dialog } from "@/components/ux/dialog";
 import { StatusMark, type Tone } from "@/components/ux/primitives";
 import {
@@ -286,7 +287,7 @@ export default function SystemsManager({
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap", marginBottom: "0.5rem" }}>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-                        <h3 style={{ fontSize: "1.1rem", fontWeight: 600, margin: 0 }}>{sys.name}</h3>
+                        <h3 style={{ fontSize: "1.1rem", fontWeight: 600, margin: 0 }}><Link href={`/admin/systems/${sys.id}`}>{sys.name}</Link></h3>
                         <StatusMark tone={SYSTEM_STATUS_TONE[sys.status] || "neutral"}>{labelize(sys.status)}</StatusMark>
                         <span className="ux-badge">{labelize(sys.system_type)}</span>
                       </div>

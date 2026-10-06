@@ -75,6 +75,7 @@ export async function updateSystemOperationalNotes(
   if (error) return { error: error.message };
 
   revalidatePath("/admin/systems");
+  revalidatePath(`/admin/systems/${systemId}`);
   return { success: true };
 }
 

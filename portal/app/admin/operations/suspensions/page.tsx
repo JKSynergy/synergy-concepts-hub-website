@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/ux/primitives";
 import { isInternal, isAdmin as checkIsAdmin, isOperationalStaff, isFinance } from "@/lib/security/roles";
 import SuspensionsManager from "./suspensions-manager";
+import ApplicationSuspensionSection from "./application-suspension-section";
 
 export const metadata = { title: "Suspensions" };
 
@@ -72,7 +73,9 @@ export default async function SuspensionsPage() {
 
   const { data: systemsData } = await supabase
     .from("systems")
-    .select("id, name, client_id, status")
+    .select(
+      "id, name, client_id, status, suspended_at, suspended_by, suspension_reason, suspension_note, resumed_at, resumed_by"
+    )
     .order("name");
 
   const { data: resourcesData } = await supabase
@@ -107,6 +110,13 @@ export default async function SuspensionsPage() {
     id: s.id,
     name: s.name,
     client_id: s.client_id,
+    status: s.status,
+    suspended_at: s.suspended_at,
+    suspended_by: s.suspended_by,
+    suspension_reason: s.suspension_reason,
+    suspension_note: s.suspension_note,
+    resumed_at: s.resumed_at,
+    resumed_by: s.resumed_by,
   }));
 
   const resources = (resourcesData ?? []).map((r) => ({
@@ -149,6 +159,11 @@ export default async function SuspensionsPage() {
         description="Manage controlled service suspension and restoration."
       />
 
+      <ApplicationSuspensionSection
+        systems={systems}
+        clients={clients}
+        isAdmin={isAdmin}
+      />
       <SuspensionsManager
         currentUserId={user.id}
         cases={formattedCases}

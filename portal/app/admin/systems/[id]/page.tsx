@@ -56,7 +56,7 @@ export default async function SystemDetailPage({ params }: { params: Promise<{ i
 
   const { data: system } = await supabase
     .from("systems")
-    .select("id, client_id, name, system_type, status, description, primary_url, origin_project_id, operational_notes, archived_at")
+    .select("id, client_id, name, system_type, status, description, primary_url, origin_project_id, operational_notes, archived_at, suspended_at, suspended_by, suspension_reason, suspension_note, resumed_at, resumed_by")
     .eq("id", id)
     .single();
   if (!system) notFound();
@@ -132,6 +132,23 @@ export default async function SystemDetailPage({ params }: { params: Promise<{ i
         )}
         {system.description && <p style={{ maxWidth: "70ch", margin: "1.25rem 0 0", lineHeight: 1.6 }}>{system.description}</p>}
       </header>
+
+      <section style={{ padding: "1.5rem 0", borderBottom: "1px solid var(--border)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+          <h2 style={{ margin: 0, fontSize: "1.2rem" }}>Service Status</h2>
+          <StatusMark tone={SYSTEM_TONE[system.status] ?? "neutral"}>{label(system.status)}</StatusMark>
+        </div>
+        <p style={{ margin: "0.65rem 0 0", maxWidth: "75ch" }}>
+          Commercial application access status. This is independent of infrastructure health.
+        </p>
+        {system.status === "suspended" && (
+          <div className="ux-muted" style={{ marginTop: "0.75rem", fontSize: "0.825rem" }}>
+            <div>Suspended at: {system.suspended_at ? new Date(system.suspended_at).toLocaleString() : "—"}</div>
+            <div>Reason: {system.suspension_reason ? label(system.suspension_reason) : "—"}</div>
+            {system.suspension_note && <div>Note: {system.suspension_note}</div>}
+          </div>
+        )}
+      </section>
 
       <section style={{ padding: "1.5rem 0", borderBottom: "1px solid var(--border)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>

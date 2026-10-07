@@ -20,6 +20,10 @@ import {
   cancelSuspensionCase,
 } from "@/lib/actions/suspensions";
 import {
+  suspendApplication,
+  resumeApplication,
+} from "@/lib/actions/application-suspension";
+import {
   ShieldAlert,
   AlertTriangle,
   CheckCircle2,
@@ -141,6 +145,13 @@ interface SystemOption {
   id: string;
   name: string;
   client_id: string;
+  status: string;
+  suspended_at: string | null;
+  suspended_by: string | null;
+  suspension_reason: string | null;
+  suspension_note: string | null;
+  resumed_at: string | null;
+  resumed_by: string | null;
 }
 
 interface ResourceOption {

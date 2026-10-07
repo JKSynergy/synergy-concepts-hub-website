@@ -7,6 +7,7 @@ import { getInviteRedirectUrlFromEnv } from "@/lib/portal-url";
 import { sendEmail } from "@/lib/email/notify";
 import type { BookingStatus, BookingType } from "@/lib/types";
 import { canManageServices, isOperationalStaff } from "@/lib/security/roles";
+import { checkApplicationAccess } from "./application-suspension";
 
 type ActionResult = { error?: string; success?: boolean; id?: string };
 
@@ -96,6 +97,9 @@ export async function createBooking(formData: FormData): Promise<ActionResult> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Unauthorized" };
+
+  const access = await checkApplicationAccess(user.id);
+  if (!access.ok) return { error: access.error };
 
   const title = (formData.get("title") as string)?.trim();
   const type = formData.get("type") as BookingType;

@@ -2,10 +2,11 @@ import { notFound, redirect } from "next/navigation";
 import { NavLink as Link } from "@/components/nav-link";
 import { StatusMark, type Tone } from "@/components/ux/primitives";
 import { createClient } from "@/lib/supabase/server";
-import { isInternal, isOperationalStaff } from "@/lib/security/roles";
+import { isInternal, isOperationalStaff, isAdmin as checkIsAdmin } from "@/lib/security/roles";
 import { buildSystemDetailResources } from "@/lib/providers/system-detail";
 import { assessSystemHealth, type SystemHealthStatus } from "@/lib/providers/system-health";
 import SystemNotes from "./system-notes";
+import SystemEdit from "./system-edit";
 
 const SYSTEM_TONE: Record<string, Tone> = {
   planned: "neutral",
@@ -110,6 +111,19 @@ export default async function SystemDetailPage({ params }: { params: Promise<{ i
   const clientName = client?.company_name ?? client?.full_name ?? client?.email ?? "Unknown client";
   const health = assessSystemHealth(system.name, infrastructure);
   const canEditNotes = isOperationalStaff(profile.role);
+  const canEditSystem = checkIsAdmin(profile.role);
+
+  const { data: clientRows } = canEditSystem
+    ? await supabase
+        .from("profiles")
+        .select("id, email, company_name, full_name")
+        .eq("role", "client")
+        .order("company_name")
+    : { data: [] };
+  const clientOptions = (clientRows ?? []).map((c) => ({
+    id: c.id,
+    label: c.company_name ? `${c.company_name} (${c.email})` : (c.full_name || c.email),
+  }));
 
   return (
     <div className="ux-page ux-page--wide">
@@ -123,6 +137,7 @@ export default async function SystemDetailPage({ params }: { params: Promise<{ i
         <div className="ux-muted" style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap", marginTop: "0.65rem", fontSize: "0.875rem" }}>
           <span>{label(system.system_type)}</span>
           <StatusMark tone={SYSTEM_TONE[system.status] ?? "neutral"}>{label(system.status)}</StatusMark>
+          {canEditSystem && <SystemEdit system={system} clients={clientOptions} />}
         </div>
         {system.primary_url && (
           <div style={{ marginTop: "1.25rem", paddingTop: "1rem", borderTop: "1px solid var(--border)" }}>

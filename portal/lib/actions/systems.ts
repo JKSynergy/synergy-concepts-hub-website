@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { writeAuditLog } from "@/lib/audit";
 import { isAdmin as checkIsAdmin, isOperationalStaff } from "@/lib/security/roles";
 
 type ActionResult = { error?: string; success?: boolean; id?: string };
@@ -58,6 +60,102 @@ export async function createSystem(formData: FormData): Promise<ActionResult> {
 
   revalidatePath("/admin/systems");
   return { success: true, id: data.id };
+}
+
+const SYSTEM_TYPES = new Set([
+  "web_platform",
+  "mobile_app",
+  "ecommerce",
+  "sacco_platform",
+  "lending_system",
+  "corporate_website",
+  "custom_api",
+  "internal_tool",
+  "other",
+]);
+
+const SYSTEM_STATUSES = new Set([
+  "planned",
+  "in_build",
+  "live",
+  "maintenance_only",
+  "suspended",
+  "retired",
+]);
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Edit a system's registry metadata (name, client, type, status, URL, scope).
+ * Admin only. Intentionally cannot touch: the system id, status tokens,
+ * suspension metadata, origin project, or any infrastructure/resource links —
+ * those have dedicated guarded flows.
+ */
+export async function updateSystem(systemId: string, formData: FormData): Promise<ActionResult> {
+  const { supabase, user, isAdmin } = await getActor();
+  if (!user || !isAdmin) return { error: "Forbidden: Admin access required" };
+
+  if (!UUID_RE.test(systemId)) return { error: "Invalid system ID" };
+
+  const clientId = formData.get("client_id")?.toString();
+  const name = formData.get("name")?.toString().trim();
+  const systemType = formData.get("system_type")?.toString() || "web_platform";
+  const status = formData.get("status")?.toString() || "planned";
+  const description = formData.get("description")?.toString().trim() || null;
+  const primaryUrl = formData.get("primary_url")?.toString().trim() || null;
+
+  if (!clientId || !name) {
+    return { error: "Client and System Name are required" };
+  }
+  if (!UUID_RE.test(clientId)) return { error: "Invalid client" };
+  if (!SYSTEM_TYPES.has(systemType)) return { error: "Invalid system type" };
+  if (!SYSTEM_STATUSES.has(status)) return { error: "Invalid status" };
+  if (primaryUrl) {
+    try {
+      new URL(primaryUrl);
+    } catch {
+      return { error: "Primary URL must be a valid URL" };
+    }
+  }
+
+  const { data: previous } = await supabase
+    .from("systems")
+    .select("client_id, name, system_type, status, description, primary_url")
+    .eq("id", systemId)
+    .single();
+  if (!previous) return { error: "System not found" };
+
+  const next = {
+    client_id: clientId,
+    name,
+    system_type: systemType,
+    status,
+    description,
+    primary_url: primaryUrl,
+  };
+
+  const { error } = await supabase.from("systems").update(next).eq("id", systemId);
+  if (error) return { error: error.message };
+
+  const changed: Record<string, { from: unknown; to: unknown }> = {};
+  for (const key of Object.keys(next) as (keyof typeof next)[]) {
+    const before = (previous as Record<string, unknown>)[key];
+    if (before !== next[key]) changed[key] = { from: before, to: next[key] };
+  }
+
+  const admin = createAdminClient();
+  await writeAuditLog(admin, {
+    actorId: user.id,
+    actorRole: "admin",
+    action: "system.updated",
+    table: "systems",
+    recordId: systemId,
+    details: { fields: changed },
+  });
+
+  revalidatePath("/admin/systems");
+  revalidatePath(`/admin/systems/${systemId}`);
+  return { success: true, id: systemId };
 }
 
 export async function updateSystemOperationalNotes(

@@ -168,7 +168,15 @@ export default async function SystemDetailPage({ params }: { params: Promise<{ i
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap" }}>
                       <div>
                         <strong style={{ fontSize: "1rem" }}>{resource.discovered_name ?? resource.name}</strong>
-                        <div className="ux-muted" style={{ marginTop: "0.2rem", fontSize: "0.85rem" }}>{label(resource.resource_type)}</div>
+                        {resource.provider_key === "railway" && resource.railway_project_name ? (
+                          <div className="ux-muted" style={{ marginTop: "0.2rem", fontSize: "0.85rem" }}>
+                            Project: {resource.railway_project_name}
+                            {resource.railway_environment_name ? ` · Environment: ${resource.railway_environment_name}` : ""}
+                            {resource.railway_service_name ? ` · Service: ${resource.railway_service_name}` : ""}
+                          </div>
+                        ) : (
+                          <div className="ux-muted" style={{ marginTop: "0.2rem", fontSize: "0.85rem" }}>{label(resource.resource_type)}</div>
+                        )}
                       </div>
                       <StatusMark tone={RESOURCE_TONE[status] ?? "neutral"}>{label(status)}</StatusMark>
                     </div>

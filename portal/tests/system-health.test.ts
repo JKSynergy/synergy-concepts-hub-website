@@ -32,6 +32,9 @@ function resource(providerKey: "railway" | "vercel", name: string, overrides: Pa
     deployment_created_at: providerKey === "vercel" ? FRESH : null,
     last_discovered_at: FRESH,
     metadata: providerKey === "vercel" ? vercelMetadata : { project_id: name },
+    railway_project_name: null,
+    railway_environment_name: null,
+    railway_service_name: null,
     ...overrides,
   };
 }

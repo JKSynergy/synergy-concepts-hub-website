@@ -32,6 +32,10 @@ export type SystemDetailResource = SystemResourceRecord & {
   deployment_created_at: string | null;
   last_discovered_at: string | null;
   metadata: Record<string, unknown> | null;
+  // Railway-specific hierarchy for suspension scoping. null for non-Railway resources.
+  railway_project_name: string | null;
+  railway_environment_name: string | null;
+  railway_service_name: string | null;
 };
 
 function record(value: unknown): Record<string, unknown> | null {
@@ -56,6 +60,12 @@ export function buildSystemDetailResources(
     const evidence = linkedByResource.get(resource.id) ?? null;
     const metadata = evidence?.metadata ?? null;
     const deployment = record(metadata?.latest_deployment);
+    const isRailwayService = resource.provider_key === "railway" && evidence?.resource_type === "service";
+    const environmentName = isRailwayService
+      ? text(deployment?.environment_name) ?? (Array.isArray(metadata?.environment_names) && metadata.environment_names.length > 0
+        ? String(metadata.environment_names[0])
+        : null)
+      : null;
     return {
       ...resource,
       discovered_name: evidence?.name ?? null,
@@ -67,6 +77,9 @@ export function buildSystemDetailResources(
       deployment_created_at: text(deployment?.created_at),
       last_discovered_at: evidence?.last_seen_at ?? null,
       metadata,
+      railway_project_name: isRailwayService ? text(metadata?.project_name) : null,
+      railway_environment_name: environmentName,
+      railway_service_name: isRailwayService ? text(metadata?.service_name) : null,
     };
   });
 }

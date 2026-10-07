@@ -504,16 +504,23 @@ export const railwayAdapter: ProviderAdapter = {
           });
         }
 
+        const environmentById = new Map(details.environments.map((e) => [e.id, e]));
         const environmentIds = details.environments.map((e) => e.id);
+        const environmentNames = details.environments.map((e) => e.name);
 
         for (const service of details.services) {
           const deployment = await fetchLatestDeployment(creds.token, project.id, service.id);
+          const deploymentEnvironmentId = deployment?.environmentId ?? null;
+          const deploymentEnvironmentName = deploymentEnvironmentId
+            ? environmentById.get(deploymentEnvironmentId)?.name ?? null
+            : null;
           const deploymentMeta = deployment
             ? {
                 id: deployment.id,
                 status: deployment.status,
                 created_at: deployment.createdAt ?? null,
                 environment_id: deployment.environmentId ?? null,
+                environment_name: deploymentEnvironmentName,
               }
             : null;
 
@@ -528,8 +535,10 @@ export const railwayAdapter: ProviderAdapter = {
               project_id: project.id,
               project_name: project.name,
               service_id: service.id,
+              service_name: service.name,
               service_icon: service.icon ?? null,
               environment_ids: environmentIds,
+              environment_names: environmentNames,
               latest_deployment: deploymentMeta,
             },
           });

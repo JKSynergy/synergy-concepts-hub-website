@@ -912,6 +912,28 @@ export default function ProvidersManager({
           <p className="ux-muted">
             {linkTarget.provider_name} · {linkTarget.name} · <code>{linkTarget.external_resource_id}</code>
           </p>
+          {(() => {
+            const meta = linkTarget.metadata && typeof linkTarget.metadata === "object" ? linkTarget.metadata as Record<string, unknown> : null;
+            const projectName = typeof meta?.project_name === "string" ? meta.project_name : null;
+            const envNames = Array.isArray(meta?.environment_names) ? meta.environment_names.map(String).join(", ") : null;
+            const svcName = typeof meta?.service_name === "string" ? meta.service_name : null;
+            if (linkTarget.resource_type === "service" && projectName) {
+              return (
+                <p className="ux-muted" style={{ marginTop: "0.5rem" }}>
+                  Service-level link: {projectName}{envNames ? ` / ${envNames}` : ""}{svcName ? ` / ${svcName}` : ""}.
+                  This is the safe scope for per-system suspension.
+                </p>
+              );
+            }
+            if (linkTarget.resource_type === "project") {
+              return (
+                <p className="ux-muted" style={{ marginTop: "0.5rem" }}>
+                  Project-level link. For service-level suspension, link an individual service under this project instead.
+                </p>
+              );
+            }
+            return null;
+          })()}
           <form
             onSubmit={async (e) => {
               e.preventDefault();

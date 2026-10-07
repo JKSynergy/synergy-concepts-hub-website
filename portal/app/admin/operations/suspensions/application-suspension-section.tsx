@@ -6,7 +6,7 @@ import { StatusMark, type Tone } from "@/components/ux/primitives";
 import { Dialog } from "@/components/ux/dialog";
 import { suspendApplication, resumeApplication } from "@/lib/actions/application-suspension";
 import { generateSystemStatusToken } from "@/lib/actions/system-status";
-import { Power, PowerOff, KeyRound } from "lucide-react";
+import { Power, PowerOff, KeyRound, Copy, Check } from "lucide-react";
 
 interface SystemWithSuspension {
   id: string;
@@ -69,6 +69,7 @@ export default function ApplicationSuspensionSection({ systems, clients, isAdmin
   const [note, setNote] = useState("");
   const [tokenSystem, setTokenSystem] = useState<SystemWithSuspension | null>(null);
   const [generatedToken, setGeneratedToken] = useState<string | null>(null);
+  const [tokenCopied, setTokenCopied] = useState(false);
 
   const systemsByClient = useMemo(() => {
     const map = new Map<string, SystemWithSuspension[]>();
@@ -129,6 +130,7 @@ export default function ApplicationSuspensionSection({ systems, clients, isAdmin
     } else if (res.token) {
       setGeneratedToken(res.token);
       setTokenSystem(system);
+      setTokenCopied(false);
       setNotice(`Status token generated for ${system.name}. Copy it now — it will not be shown again.`);
     }
   }
@@ -247,7 +249,7 @@ export default function ApplicationSuspensionSection({ systems, clients, isAdmin
       )}
 
       {tokenSystem && generatedToken && (
-        <Dialog onClose={() => { setTokenSystem(null); setGeneratedToken(null); }} labelledBy="token-title" maxWidth={520}>
+        <Dialog onClose={() => { setTokenSystem(null); setGeneratedToken(null); setTokenCopied(false); }} labelledBy="token-title" maxWidth={520}>
           <h2 id="token-title"><KeyRound size={18} style={{ verticalAlign: "-3px" }} /> Status token generated</h2>
           <p className="ux-muted">
             System: <strong>{tokenSystem.name}</strong>
@@ -255,7 +257,19 @@ export default function ApplicationSuspensionSection({ systems, clients, isAdmin
           <p className="ux-alert ux-alert-warning" style={{ fontSize: "0.85rem" }}>
             This token is shown only once. Copy it into the managed application environment and store it as a server-side secret.
           </p>
-          <pre style={{ wordBreak: "break-all", whiteSpace: "pre-wrap", background: "var(--ux-surface-2)", padding: "0.75rem", borderRadius: "0.25rem", fontSize: "0.8rem" }}>{generatedToken}</pre>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem" }}>
+            <pre style={{ flex: 1, margin: 0, wordBreak: "break-all", whiteSpace: "pre-wrap", background: "var(--ux-surface-2)", padding: "0.75rem", borderRadius: "0.25rem", fontSize: "0.8rem" }}>{generatedToken}</pre>
+            <button
+              type="button"
+              className="ux-button ux-button-secondary"
+              style={{ whiteSpace: "nowrap" }}
+              onClick={() => {
+                navigator.clipboard.writeText(generatedToken).then(() => setTokenCopied(true)).catch(() => setTokenCopied(false));
+              }}
+            >
+              {tokenCopied ? <Check size={14} /> : <Copy size={14} />} {tokenCopied ? "Copied" : "Copy"}
+            </button>
+          </div>
           <p className="ux-muted" style={{ fontSize: "0.85rem" }}>
             Endpoint: <code>https://portal.synergyconceptshub.com/api/systems/{tokenSystem.id}/status</code>
           </p>

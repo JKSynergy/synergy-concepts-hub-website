@@ -31,7 +31,6 @@ const SECTIONS: ShellSection[] = [
       { href: "/admin/systems/monitoring", label: "Monitoring", match: "/admin/systems/monitoring" },
       { href: "/admin/systems/events", label: "Events", match: "/admin/systems/events" },
       { href: "/admin/systems/automation", label: "Automation", match: "/admin/systems/automation" },
-      { href: "/admin/systems/operations", label: "Operations", match: "/admin/systems/operations" },
     ],
   },
   {
@@ -43,6 +42,7 @@ const SECTIONS: ShellSection[] = [
       { href: "/admin/operations/incidents", label: "Incidents", match: "/admin/operations/incidents" },
       { href: "/admin/operations/backups", label: "Backups", match: "/admin/operations/backups" },
       { href: "/admin/operations/suspensions", label: "Suspensions", match: "/admin/operations/suspensions" },
+      { href: "/admin/operations/provider-actions", label: "Provider Actions", match: "/admin/operations/provider-actions" },
     ],
   },
 ];

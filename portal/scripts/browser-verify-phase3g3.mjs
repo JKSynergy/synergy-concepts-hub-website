@@ -1,4 +1,4 @@
-// Phase 3G-3 Browser Verification — Controlled Provider Operations
+// Phase 3G-3 Browser Verification — Controlled Provider Actions
 // Real Chrome via CDP against the local dev server pointed at hosted DEV
 // (outuocpsotiozkpyksex). Discovery evidence + a connected fixture account are
 // seeded through the DB; the propose → approve → execute path itself is driven
@@ -259,14 +259,14 @@ async function run() {
     const adminUrl = await loginAs(ws, "admin");
     check("Admin login", !adminUrl.includes("/login"), adminUrl);
 
-    await sendCdp(ws, "Page.navigate", { url: `${BASE}/admin/systems/operations` });
+    await sendCdp(ws, "Page.navigate", { url: `${BASE}/admin/operations/provider-actions` });
     // Wait for the admin-only control, not just the streamed page header.
     const proposeReady = await waitForSelector(ws, "[data-action='new-operation']", 25000);
-    const pageText = await waitForText(ws, "Provider Operations");
-    check("Provider Operations page rendered", pageText.includes("Provider Operations"));
+    const pageText = await waitForText(ws, "Provider Actions");
+    check("Provider Actions page rendered", pageText.includes("Provider Actions"));
     check("Admin sees propose control", proposeReady === true);
-    check("Operations reachable under Systems nav",
-      await evalJs(ws, `Array.from(document.querySelectorAll('a')).some(a => a.getAttribute('href') === '/admin/systems/operations')`) === true);
+    check("Provider Actions reachable under Operations nav",
+      await evalJs(ws, `Array.from(document.querySelectorAll('a')).some(a => a.getAttribute('href') === '/admin/operations/provider-actions')`) === true);
 
     // Open the propose dialog and drive it.
     await clickSelector(ws, "[data-action='new-operation']");
@@ -407,10 +407,10 @@ async function run() {
     // ------------------------------------------------------------------
     console.log("\n--- 4. FINANCE (read-only) ---");
     await loginAs(ws, "finance");
-    await sendCdp(ws, "Page.navigate", { url: `${BASE}/admin/systems/operations` });
+    await sendCdp(ws, "Page.navigate", { url: `${BASE}/admin/operations/provider-actions` });
     await waitForSelector(ws, ".ux-table", 20000);
-    const finText = await waitForText(ws, "Provider Operations", 20000);
-    check("Finance sees operation overview (read-only)", finText.includes("Provider Operations") && finText.includes("3g3-cdp"));
+    const finText = await waitForText(ws, "Provider Actions", 20000);
+    check("Finance sees operation overview (read-only)", finText.includes("Provider Actions") && finText.includes("3g3-cdp"));
     const finControls = await evalJs(ws, `!!document.querySelector('[data-action=new-operation],[data-action=approve],[data-action=reject],[data-action=execute],[data-action=cancel],[data-action=verify]')`);
     check("Finance has NO proposal/execution controls", finControls === false);
     check("Finance sees no credential material", !/eyJhbGci|sk_live|sb_secret|BEGIN.*PRIVATE|vault:/.test(finText));
@@ -418,13 +418,13 @@ async function run() {
     // ------------------------------------------------------------------
     console.log("\n--- 5. STAFF + CLIENT (denied) ---");
     await loginAs(ws, "staff");
-    await sendCdp(ws, "Page.navigate", { url: `${BASE}/admin/systems/operations` });
+    await sendCdp(ws, "Page.navigate", { url: `${BASE}/admin/operations/provider-actions` });
     await new Promise((r) => setTimeout(r, 3500));
     const staffUrl = (await evalJs(ws, "window.location.href")) || "";
     check("Staff redirected away from operations", !staffUrl.includes("/operations"), staffUrl);
 
     await loginAs(ws, "clientA");
-    await sendCdp(ws, "Page.navigate", { url: `${BASE}/admin/systems/operations` });
+    await sendCdp(ws, "Page.navigate", { url: `${BASE}/admin/operations/provider-actions` });
     await new Promise((r) => setTimeout(r, 3500));
     const clientUrl = (await evalJs(ws, "window.location.href")) || "";
     check("Client denied operations access", clientUrl.includes("/client") || clientUrl.includes("/login"), clientUrl);
@@ -434,7 +434,7 @@ async function run() {
     await loginAs(ws, "admin");
     for (const [w, h] of [[1280, 800], [768, 1024], [375, 812]]) {
       await setViewport(ws, w, h);
-      await sendCdp(ws, "Page.navigate", { url: `${BASE}/admin/systems/operations` });
+      await sendCdp(ws, "Page.navigate", { url: `${BASE}/admin/operations/provider-actions` });
       await waitForSelector(ws, ".ux-table", 25000);
       await new Promise((r) => setTimeout(r, 1500));
       check(`No horizontal overflow at ${w}x${h}`, (await checkNoHorizontalOverflow(ws)) === true);

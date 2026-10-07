@@ -48,6 +48,20 @@ const securityHeaders = [
 const nextConfig: NextConfig & { outputFileTracingIncludes?: Record<string, string[]> } = {
   // Vercel handles output automatically; do not set output: "standalone"
   poweredByHeader: false,
+  async redirects() {
+    return [
+      {
+        source: "/admin/systems/operations",
+        destination: "/admin/operations/provider-actions",
+        permanent: true,
+      },
+      {
+        source: "/admin/systems/operations/:path*",
+        destination: "/admin/operations/provider-actions/:path*",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

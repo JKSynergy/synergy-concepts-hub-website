@@ -45,7 +45,7 @@ export function landingFor(role: R): string {
   return isOperationalStaff(role) ? "/admin" : "/client";
 }
 
-export const FINANCE_ALLOWED_PREFIXES = ["/admin/invoices", "/admin/finances", "/admin/reports", "/admin/clients", "/admin/projects", "/admin/agreements", "/admin/operations", "/admin/systems/providers", "/admin/systems/reconciliation", "/admin/systems/monitoring", "/admin/systems/events", "/admin/systems/automation", "/admin/systems/operations"] as const;
+export const FINANCE_ALLOWED_PREFIXES = ["/admin/invoices", "/admin/finances", "/admin/reports", "/admin/clients", "/admin/projects", "/admin/agreements", "/admin/operations", "/admin/systems/providers", "/admin/systems/reconciliation", "/admin/systems/monitoring", "/admin/systems/events", "/admin/systems/automation", "/admin/operations/provider-actions"] as const;
 /** Path prefixes ordinary staff may never use. */
 export const STAFF_BLOCKED_PREFIXES = ["/admin/invoices", "/admin/finances", "/admin/reports", "/admin/academy", "/admin/staff"] as const;
 /** Path prefixes only an admin may use. */

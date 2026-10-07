@@ -353,7 +353,7 @@ async function run() {
     check("automation tasks visible in tasks list",
       taskBody.includes("Escalate unresolved incident") && taskBody.includes("Investigate repeated provider connection failure"));
 
-    await sendCdp(ws, "Page.navigate", { url: `${BASE}/admin/systems/operations` });
+    await sendCdp(ws, "Page.navigate", { url: `${BASE}/admin/operations/provider-actions` });
     const opsBody = await waitForText(ws, "resume", 25000);
     check("resume proposal visible in operations queue", opsBody.toLowerCase().includes("resume"));
     const prop = await db.query(

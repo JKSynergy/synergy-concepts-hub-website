@@ -47,7 +47,7 @@ function requireAdmin(role: string | null): string | null {
 
 function revalidateOperationPaths() {
   revalidatePath("/admin/systems");
-  revalidatePath("/admin/systems/operations");
+  revalidatePath("/admin/operations/provider-actions");
   revalidatePath("/admin/systems/providers");
 }
 

@@ -159,3 +159,63 @@ test("PHASE 3B-DB-9: secret-shaped suspension note is rejected", async () => {
     /check_no_secrets_in_text/
   );
 });
+
+test("PHASE 3B-DB-10: live system does not block application access", async () => {
+  const db = await createDb();
+  await seed(db);
+  const suspended = (
+    await db.query(`SELECT COUNT(*)::int c FROM public.systems WHERE client_id = '${IDS.clientA}' AND status = 'suspended'`)
+  ).rows[0].c;
+  assert.equal(suspended, 0, "Client A should have no suspended systems while live");
+});
+
+test("PHASE 3B-DB-11: client without systems is not blocked", async () => {
+  const db = await createDb();
+  await db.exec(`
+    INSERT INTO auth.users (id, email) VALUES ('${IDS.clientA}', 'clienta@example.test') ON CONFLICT (id) DO NOTHING;
+    UPDATE public.profiles SET role = 'client' WHERE id = '${IDS.clientA}';
+  `);
+  const count = (
+    await db.query(`SELECT COUNT(*)::int c FROM public.systems WHERE client_id = '${IDS.clientA}'`)
+  ).rows[0].c;
+  assert.equal(count, 0, "Client A should have no systems");
+});
+
+test("PHASE 3B-DB-12: full lifecycle suspend → resume restores active access", async () => {
+  const db = await createDb();
+  const { systemA } = await seed(db);
+
+  await asService(db, () =>
+    db.query(`SELECT public.suspend_application_system('${systemA}', 'NON_PAYMENT', NULL, '${IDS.admin}')`)
+  );
+  assert.equal(
+    (await db.query(`SELECT status FROM public.systems WHERE id = '${systemA}'`)).rows[0].status,
+    "suspended"
+  );
+
+  await asService(db, () =>
+    db.query(`SELECT public.resume_application_system('${systemA}', 'Payment received', '${IDS.admin}')`)
+  );
+  const row = (await db.query(`SELECT status, resumed_at, resumed_by FROM public.systems WHERE id = '${systemA}'`)).rows[0];
+  assert.equal(row.status, "live");
+  assert.ok(row.resumed_at, "resumed_at should be set after resume");
+  assert.equal(row.resumed_by, IDS.admin);
+});
+
+test("PHASE 3B-DB-13: monitoring/scheduling tables are untouched by suspension lifecycle", async () => {
+  const db = await createDb();
+  const { systemA } = await seed(db);
+  await asService(db, () =>
+    db.query(`SELECT public.suspend_application_system('${systemA}', 'NON_PAYMENT', NULL, '${IDS.admin}')`)
+  );
+
+  const counts = await db.query(`
+    SELECT
+      (SELECT COUNT(*)::int FROM public.provider_monitoring_schedules) AS schedules,
+      (SELECT COUNT(*)::int FROM public.provider_monitoring_runs) AS runs,
+      (SELECT COUNT(*)::int FROM public.action_items WHERE source = 'provider_monitoring') AS signals
+  `);
+  assert.equal(counts.rows[0].schedules, 0);
+  assert.equal(counts.rows[0].runs, 0);
+  assert.equal(counts.rows[0].signals, 0);
+});

@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { fromMinor, validatePaymentIntent } from "@/lib/finance/payments";
 import { isUuid } from "@/lib/security/access";
 import { getPortalBaseUrl } from "@/lib/portal-url";
+import { checkApplicationAccess } from "@/lib/actions/application-suspension";
 
 export async function POST(req: NextRequest) {
   const secret = process.env.PAYSTACK_SECRET_KEY;
@@ -18,6 +19,11 @@ export async function POST(req: NextRequest) {
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const access = await checkApplicationAccess(user.id);
+  if (!access.ok) {
+    return NextResponse.json({ error: access.error }, { status: 403 });
   }
 
   let body: { invoiceId?: unknown; amount?: unknown };

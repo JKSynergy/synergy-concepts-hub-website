@@ -8,6 +8,7 @@ import { deliverableStoragePath, isUuid, safeFileName } from "@/lib/security/acc
 import { MILESTONE_STATUSES } from "@/lib/types";
 import type { MilestoneStatus, ProjectStatus } from "@/lib/types";
 import { isAdmin as isAdminRole, isOperationalStaff } from "@/lib/security/roles";
+import { checkApplicationAccess } from "@/lib/actions/application-suspension";
 
 type ActionResult = { error?: string; success?: boolean; id?: string };
 
@@ -152,6 +153,9 @@ export async function setMilestoneStatus(
 
   // Clients may only respond to a milestone that staff have submitted.
   if (!isStaff) {
+    const access = await checkApplicationAccess(user.id);
+    if (!access.ok) return { error: access.error };
+
     if (milestone.status !== "submitted" || (status !== "approved" && status !== "revision_requested")) {
       return { error: "Forbidden" };
     }

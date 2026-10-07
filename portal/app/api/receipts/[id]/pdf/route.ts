@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { canViewInvoiceDocument, isPortalRole, isUuid } from "@/lib/security/access";
+import { checkApplicationAccess } from "@/lib/actions/application-suspension";
 import { pdf } from "@react-pdf/renderer";
 import ReceiptPDF from "@/lib/pdf/receipt-template";
 import { readFileSync } from "fs";
@@ -23,6 +24,11 @@ export async function GET(
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const access = await checkApplicationAccess(user.id);
+  if (!access.ok) {
+    return NextResponse.json({ error: access.error }, { status: 403 });
   }
 
   const { data: me } = await supabase.from("profiles").select("role").eq("id", user.id).single();

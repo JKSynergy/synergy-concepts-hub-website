@@ -7,7 +7,7 @@ import { getInviteRedirectUrlFromEnv } from "@/lib/portal-url";
 import { sendEmail } from "@/lib/email/notify";
 import type { BookingStatus, BookingType } from "@/lib/types";
 import { canManageServices, isOperationalStaff } from "@/lib/security/roles";
-import { checkApplicationAccess } from "./application-suspension";
+import { checkApplicationAccess } from "@/lib/actions/application-suspension";
 
 type ActionResult = { error?: string; success?: boolean; id?: string };
 
@@ -194,6 +194,9 @@ export async function setBookingStatus(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Unauthorized" };
+
+  const access = await checkApplicationAccess(user.id);
+  if (!access.ok) return { error: access.error };
 
   if (!BOOKING_STATUSES.includes(status)) return { error: "Invalid status" };
 

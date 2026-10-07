@@ -5,9 +5,10 @@ import { Copy, Check } from "lucide-react";
 
 interface Props {
   systemId: string;
+  bare?: boolean;
 }
 
-function CopyButton({ value }: { value: string }) {
+export function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <button
@@ -23,12 +24,15 @@ function CopyButton({ value }: { value: string }) {
   );
 }
 
-export default function SystemIdentity({ systemId }: Props) {
+export default function SystemIdentity({ systemId, bare = false }: Props) {
   const statusEndpoint = `https://portal.synergyconceptshub.com/api/systems/${systemId}/status`;
   const labelStyle = { fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.06em" } as const;
+  const wrapperStyle = bare
+    ? {}
+    : { marginTop: "1.25rem", paddingTop: "1rem", borderTop: "1px solid var(--border)" };
 
   return (
-    <div style={{ marginTop: "1.25rem", paddingTop: "1rem", borderTop: "1px solid var(--border)" }}>
+    <div style={wrapperStyle}>
       <div style={{ display: "grid", gridTemplateColumns: "minmax(8rem, auto) 1fr auto", gap: "0.6rem 1rem", alignItems: "center", maxWidth: "60rem" }}>
         <div className="ux-muted" style={labelStyle}>System ID</div>
         <code style={{ fontSize: "0.85rem" }}>{systemId}</code>

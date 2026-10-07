@@ -7,7 +7,7 @@ import { buildSystemDetailResources } from "@/lib/providers/system-detail";
 import { assessSystemHealth, type SystemHealthStatus } from "@/lib/providers/system-health";
 import SystemNotes from "./system-notes";
 import SystemEdit from "./system-edit";
-import SystemIdentity from "./system-identity";
+import SystemIntegration from "./system-integration";
 
 const SYSTEM_TONE: Record<string, Tone> = {
   planned: "neutral",
@@ -58,7 +58,7 @@ export default async function SystemDetailPage({ params }: { params: Promise<{ i
 
   const { data: system } = await supabase
     .from("systems")
-    .select("id, client_id, name, system_type, status, description, primary_url, origin_project_id, operational_notes, archived_at, suspended_at, suspended_by, suspension_reason, suspension_note, resumed_at, resumed_by")
+    .select("id, client_id, name, system_type, status, description, primary_url, origin_project_id, operational_notes, archived_at, suspended_at, suspended_by, suspension_reason, suspension_note, resumed_at, resumed_by, status_token_last_rotated_at")
     .eq("id", id)
     .single();
   if (!system) notFound();
@@ -146,7 +146,6 @@ export default async function SystemDetailPage({ params }: { params: Promise<{ i
             <a href={system.primary_url} style={{ display: "inline-block", marginTop: "0.25rem", fontWeight: 600 }}>{system.primary_url}</a>
           </div>
         )}
-        <SystemIdentity systemId={system.id} />
         {system.description && <p style={{ maxWidth: "70ch", margin: "1.25rem 0 0", lineHeight: 1.6 }}>{system.description}</p>}
       </header>
 
@@ -166,6 +165,13 @@ export default async function SystemDetailPage({ params }: { params: Promise<{ i
           </div>
         )}
       </section>
+
+      <SystemIntegration
+        systemId={system.id}
+        status={system.status}
+        tokenConfigured={Boolean(system.status_token_last_rotated_at)}
+        isAdmin={canEditSystem}
+      />
 
       <section style={{ padding: "1.5rem 0", borderBottom: "1px solid var(--border)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>

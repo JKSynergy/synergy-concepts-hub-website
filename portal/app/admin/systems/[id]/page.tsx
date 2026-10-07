@@ -7,6 +7,7 @@ import { buildSystemDetailResources } from "@/lib/providers/system-detail";
 import { assessSystemHealth, type SystemHealthStatus } from "@/lib/providers/system-health";
 import SystemNotes from "./system-notes";
 import SystemEdit from "./system-edit";
+import SystemIdentity from "./system-identity";
 
 const SYSTEM_TONE: Record<string, Tone> = {
   planned: "neutral",
@@ -145,6 +146,7 @@ export default async function SystemDetailPage({ params }: { params: Promise<{ i
             <a href={system.primary_url} style={{ display: "inline-block", marginTop: "0.25rem", fontWeight: 600 }}>{system.primary_url}</a>
           </div>
         )}
+        <SystemIdentity systemId={system.id} />
         {system.description && <p style={{ maxWidth: "70ch", margin: "1.25rem 0 0", lineHeight: 1.6 }}>{system.description}</p>}
       </header>
 

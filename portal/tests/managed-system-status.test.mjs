@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import { createDb, asUser, asService, rejects } from "./helpers/db.mjs";
 
 const IDS = {
@@ -112,6 +113,44 @@ test("managed status token rotation is audited without leaking plaintext", async
   assert.equal(audit.rows.length, 1);
   const details = JSON.stringify(audit.rows[0].details);
   assert.ok(!details.includes(SAMPLE_HASH), "audit must not contain token hash");
+});
+
+test("managed status token: server action uses service-role client for the RPC after admin check", () => {
+  const src = readFileSync("lib/actions/system-status.ts", "utf8");
+
+  assert.ok(/createAdminClient/.test(src), "action must import the service-role client");
+  assert.ok(/admin\.rpc\("set_system_status_token_hash"/.test(src),
+    "the token RPC must run through the service-role client, not the user-scoped client");
+  assert.ok(!/supabase\.rpc\("set_system_status_token_hash"/.test(src),
+    "the token RPC must not run on the user-scoped client (revoked for authenticated)");
+
+  const adminCheck = src.indexOf("isAdmin(");
+  const rpcCall = src.indexOf('admin.rpc("set_system_status_token_hash"');
+  assert.ok(adminCheck !== -1 && rpcCall !== -1 && adminCheck < rpcCall,
+    "admin authorization must precede the service-role RPC call");
+});
+
+test("managed status token: only the SHA-256 hash reaches the database", () => {
+  const src = readFileSync("lib/actions/system-status.ts", "utf8");
+  assert.ok(/hashStatusToken\(token\)/.test(src), "token must be hashed before the RPC");
+  assert.ok(/p_hash:\s*hash/.test(src), "RPC payload carries the hash");
+  assert.ok(!/p_token|p_plaintext|status_token_hash[^_a-zA-Z].*=\s*token/.test(src),
+    "plaintext token must never be sent to the database");
+});
+
+test("managed status: endpoint returns minimal status only", () => {
+  const src = readFileSync("app/api/systems/[id]/status/route.ts", "utf8");
+  assert.ok(/NextResponse\.json\(\{ status \}\)/.test(src),
+    "endpoint response must contain only the status field");
+  assert.ok(!/suspension_reason|suspension_note|suspension_at|resumed_at|resumed_by/.test(src),
+    "endpoint must not expose internal suspension metadata");
+});
+
+test("managed status: suspensions table timestamps are hydration-safe", () => {
+  const src = readFileSync("app/admin/operations/suspensions/application-suspension-section.tsx", "utf8");
+  assert.ok(!/toLocaleString|toLocaleDateString|toLocaleTimeString/.test(src),
+    "timestamp rendering must be deterministic (no locale-dependent formatting)");
+  assert.ok(/toISOString/.test(src), "timestamps should render as deterministic UTC text");
 });
 
 test("managed status: status values other than suspended are live from endpoint perspective", async () => {

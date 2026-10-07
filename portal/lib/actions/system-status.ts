@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdmin } from "@/lib/security/roles";
 import { isUuid } from "@/lib/security/access";
 import { generateStatusToken, hashStatusToken } from "@/lib/system-status/tokens";
@@ -28,7 +29,8 @@ export async function generateSystemStatusToken(systemId: string): Promise<Gener
   const token = generateStatusToken();
   const hash = hashStatusToken(token);
 
-  const { error } = await supabase.rpc("set_system_status_token_hash", {
+  const admin = createAdminClient();
+  const { error } = await admin.rpc("set_system_status_token_hash", {
     p_system_id: systemId,
     p_hash: hash,
   });

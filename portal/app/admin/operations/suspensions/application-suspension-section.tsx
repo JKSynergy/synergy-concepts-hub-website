@@ -51,7 +51,12 @@ function statusTone(status: string): Tone {
 }
 
 function fmt(ts: string | null): string {
-  return ts ? new Date(ts).toLocaleString() : "—";
+  if (!ts) return "—";
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return "—";
+  // Deterministic UTC output: identical on server and client, so hydration
+  // never mismatches on timestamp text.
+  return `${d.toISOString().slice(0, 16).replace("T", " ")} UTC`;
 }
 
 export default function ApplicationSuspensionSection({ systems, clients, isAdmin }: Props) {

@@ -82,7 +82,7 @@ test("a system without linked evidence remains uncertain", () => {
 
 test("temporary reconciliation action is admin-only and read-only", () => {
   const source = readFileSync(new URL("../lib/actions/provider-connections.ts", import.meta.url), "utf8");
-  const action = source.slice(source.indexOf("export async function auditSystemInfrastructure"), source.indexOf("// ============================================================================\n// EXPLICIT LINKING"));
+  const action = source.slice(source.indexOf("export async function auditSystemInfrastructure"), source.indexOf("// EXPLICIT LINKING"));
   assert.match(action, /callerProfile\(\)/);
   assert.match(action, /requireAdmin\(role\)/);
   assert.ok(action.indexOf("requireAdmin(role)") < action.indexOf("createAdminClient()"));

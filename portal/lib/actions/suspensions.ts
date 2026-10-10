@@ -279,32 +279,15 @@ export async function executeSuspensionCase(
     return { ok: false, error: "Permission denied: Finance cannot execute suspensions" };
   }
 
-  const { data: caseData, error: fetchErr } = await supabase
-    .from("suspension_cases")
-    .select("service_agreement_id, system_id, status")
-    .eq("id", caseId)
-    .single();
-
-  if (fetchErr || !caseData) {
-    return { ok: false, error: "Suspension case not found" };
-  }
-
-  const transition = await transitionSuspensionCase(supabase, caseId, "execute", {
-    status: "suspended",
-    executed_at: new Date().toISOString(),
-    ...(notes ? { operational_notes: notes.trim() } : {}),
+  // Atomic: the RPC performs the case transition and the linked agreement
+  // update in one transaction — both land or neither does.
+  const { error } = await supabase.rpc("transition_suspension_case", {
+    p_case_id: caseId,
+    p_action: "execute",
+    p_actor: user.id,
+    p_notes: notes ?? null,
   });
-  if (!transition.ok) return transition;
-
-  // Update associated agreement status to suspended.
-  // NOTE: this is a second write, not atomic with the case transition — a
-  // failure here leaves the case suspended with the agreement still active.
-  if (caseData.service_agreement_id) {
-    await supabase
-      .from("service_agreements")
-      .update({ status: "suspended" })
-      .eq("id", caseData.service_agreement_id);
-  }
+  if (error) return { ok: false, error: error.message };
 
   revalidatePath("/admin/operations/suspensions");
   revalidatePath("/admin/agreements");
@@ -524,31 +507,15 @@ export async function completeCaseRestoration(
     return { ok: false, error: "Permission denied: Finance cannot manage restoration" };
   }
 
-  const { data: caseData, error: fetchErr } = await supabase
-    .from("suspension_cases")
-    .select("service_agreement_id")
-    .eq("id", caseId)
-    .single();
-
-  if (fetchErr || !caseData) {
-    return { ok: false, error: "Suspension case not found" };
-  }
-
-  const transition = await transitionSuspensionCase(supabase, caseId, "complete_restoration", {
-    status: "restored",
-    restored_at: new Date().toISOString(),
-    ...(notes ? { operational_notes: notes.trim() } : {}),
+  // Atomic: the RPC performs the case transition and the linked agreement
+  // update in one transaction — both land or neither does.
+  const { error } = await supabase.rpc("transition_suspension_case", {
+    p_case_id: caseId,
+    p_action: "complete_restoration",
+    p_actor: user.id,
+    p_notes: notes ?? null,
   });
-  if (!transition.ok) return transition;
-
-  // Restore service agreement status to active.
-  // NOTE: second write, not atomic with the case transition.
-  if (caseData.service_agreement_id) {
-    await supabase
-      .from("service_agreements")
-      .update({ status: "active" })
-      .eq("id", caseData.service_agreement_id);
-  }
+  if (error) return { ok: false, error: error.message };
 
   revalidatePath("/admin/operations/suspensions");
   revalidatePath("/admin/agreements");

@@ -1,0 +1,1338 @@
+{
+ "christine-10": {
+  "w": 1200,
+  "h": 1800,
+  "files": {
+   "640": [
+    "christine-10-640.jpg",
+    640,
+    960
+   ],
+   "full": [
+    "christine-10-full.jpg",
+    1200,
+    1800
+   ]
+  },
+  "dir": "public"
+ },
+ "photo-2": {
+  "w": 2400,
+  "h": 3600,
+  "files": {
+   "640": [
+    "photo-2-640.jpg",
+    640,
+    960
+   ],
+   "1280": [
+    "photo-2-1280.jpg",
+    1280,
+    1920
+   ],
+   "full": [
+    "photo-2-full.jpg",
+    1333,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "vianney": {
+  "w": 600,
+  "h": 900,
+  "files": {
+   "600": [
+    "vianney-600.jpg",
+    600,
+    900
+   ],
+   "full": [
+    "vianney-full.jpg",
+    600,
+    900
+   ]
+  },
+  "dir": "public"
+ },
+ "joseph": {
+  "w": 1828,
+  "h": 2560,
+  "files": {
+   "640": [
+    "joseph-640.jpg",
+    640,
+    896
+   ],
+   "1280": [
+    "joseph-1280.jpg",
+    1280,
+    1793
+   ],
+   "full": [
+    "joseph-full.jpg",
+    1428,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "exodus-21": {
+  "w": 1696,
+  "h": 2520,
+  "files": {
+   "640": [
+    "exodus-21-640.jpg",
+    640,
+    951
+   ],
+   "1280": [
+    "exodus-21-1280.jpg",
+    1280,
+    1902
+   ],
+   "full": [
+    "exodus-21-full.jpg",
+    1346,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "exodus-13": {
+  "w": 1682,
+  "h": 2528,
+  "files": {
+   "640": [
+    "exodus-13-640.jpg",
+    640,
+    962
+   ],
+   "1280": [
+    "exodus-13-1280.jpg",
+    1280,
+    1924
+   ],
+   "full": [
+    "exodus-13-full.jpg",
+    1331,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "mus-3529": {
+  "w": 2400,
+  "h": 3000,
+  "files": {
+   "640": [
+    "mus-3529-640.jpg",
+    640,
+    800
+   ],
+   "1280": [
+    "mus-3529-1280.jpg",
+    1280,
+    1600
+   ],
+   "full": [
+    "mus-3529-full.jpg",
+    1600,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "img-9568": {
+  "w": 2003,
+  "h": 3000,
+  "files": {
+   "640": [
+    "img-9568-640.jpg",
+    640,
+    959
+   ],
+   "1280": [
+    "img-9568-1280.jpg",
+    1280,
+    1917
+   ],
+   "full": [
+    "img-9568-full.jpg",
+    1335,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "mic-3548": {
+  "w": 3926,
+  "h": 5900,
+  "files": {
+   "640": [
+    "mic-3548-640.jpg",
+    640,
+    962
+   ],
+   "1280": [
+    "mic-3548-1280.jpg",
+    1280,
+    1924
+   ],
+   "full": [
+    "mic-3548-full.jpg",
+    1331,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "mic-3721": {
+  "w": 4024,
+  "h": 6048,
+  "files": {
+   "640": [
+    "mic-3721-640.jpg",
+    640,
+    962
+   ],
+   "1280": [
+    "mic-3721-1280.jpg",
+    1280,
+    1924
+   ],
+   "full": [
+    "mic-3721-full.jpg",
+    1331,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "creative-10": {
+  "w": 1696,
+  "h": 2528,
+  "files": {
+   "640": [
+    "creative-10-640.jpg",
+    640,
+    954
+   ],
+   "1280": [
+    "creative-10-1280.jpg",
+    1280,
+    1908
+   ],
+   "full": [
+    "creative-10-full.jpg",
+    1342,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "creative-7": {
+  "w": 1696,
+  "h": 2528,
+  "files": {
+   "640": [
+    "creative-7-640.jpg",
+    640,
+    954
+   ],
+   "1280": [
+    "creative-7-1280.jpg",
+    1280,
+    1908
+   ],
+   "full": [
+    "creative-7-full.jpg",
+    1342,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "creative-8": {
+  "w": 1696,
+  "h": 2528,
+  "files": {
+   "640": [
+    "creative-8-640.jpg",
+    640,
+    954
+   ],
+   "1280": [
+    "creative-8-1280.jpg",
+    1280,
+    1908
+   ],
+   "full": [
+    "creative-8-full.jpg",
+    1342,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "creative-9": {
+  "w": 1696,
+  "h": 2528,
+  "files": {
+   "640": [
+    "creative-9-640.jpg",
+    640,
+    954
+   ],
+   "1280": [
+    "creative-9-1280.jpg",
+    1280,
+    1908
+   ],
+   "full": [
+    "creative-9-full.jpg",
+    1342,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "wed-kath-ron": {
+  "w": 2000,
+  "h": 1600,
+  "files": {
+   "640": [
+    "wed-kath-ron-640.jpg",
+    640,
+    512
+   ],
+   "1280": [
+    "wed-kath-ron-1280.jpg",
+    1280,
+    1024
+   ],
+   "full": [
+    "wed-kath-ron-full.jpg",
+    2000,
+    1600
+   ]
+  },
+  "dir": "public"
+ },
+ "wed-vannie": {
+  "w": 1710,
+  "h": 1122,
+  "files": {
+   "640": [
+    "wed-vannie-640.jpg",
+    640,
+    420
+   ],
+   "1280": [
+    "wed-vannie-1280.jpg",
+    1280,
+    840
+   ],
+   "full": [
+    "wed-vannie-full.jpg",
+    1710,
+    1122
+   ]
+  },
+  "dir": "public"
+ },
+ "wed-vannie-1": {
+  "w": 1498,
+  "h": 2138,
+  "files": {
+   "640": [
+    "wed-vannie-1-640.jpg",
+    640,
+    913
+   ],
+   "1280": [
+    "wed-vannie-1-1280.jpg",
+    1280,
+    1827
+   ],
+   "full": [
+    "wed-vannie-1-full.jpg",
+    1401,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "wed-vannie-3": {
+  "w": 1518,
+  "h": 2142,
+  "files": {
+   "640": [
+    "wed-vannie-3-640.jpg",
+    640,
+    903
+   ],
+   "1280": [
+    "wed-vannie-3-1280.jpg",
+    1280,
+    1806
+   ],
+   "full": [
+    "wed-vannie-3-full.jpg",
+    1417,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "wed-vannie-5": {
+  "w": 1702,
+  "h": 1258,
+  "files": {
+   "640": [
+    "wed-vannie-5-640.jpg",
+    640,
+    473
+   ],
+   "1280": [
+    "wed-vannie-5-1280.jpg",
+    1280,
+    946
+   ],
+   "full": [
+    "wed-vannie-5-full.jpg",
+    1702,
+    1258
+   ]
+  },
+  "dir": "public"
+ },
+ "wed-samantha": {
+  "w": 1618,
+  "h": 2210,
+  "files": {
+   "640": [
+    "wed-samantha-640.jpg",
+    640,
+    874
+   ],
+   "1280": [
+    "wed-samantha-1280.jpg",
+    1280,
+    1748
+   ],
+   "full": [
+    "wed-samantha-full.jpg",
+    1464,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "intro-7467": {
+  "w": 3565,
+  "h": 5261,
+  "files": {
+   "640": [
+    "intro-7467-640.jpg",
+    640,
+    944
+   ],
+   "1280": [
+    "intro-7467-1280.jpg",
+    1280,
+    1889
+   ],
+   "full": [
+    "intro-7467-full.jpg",
+    1355,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "intro-7439": {
+  "w": 3648,
+  "h": 5383,
+  "files": {
+   "640": [
+    "intro-7439-640.jpg",
+    640,
+    944
+   ],
+   "1280": [
+    "intro-7439-1280.jpg",
+    1280,
+    1889
+   ],
+   "full": [
+    "intro-7439-full.jpg",
+    1355,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "intro-7499": {
+  "w": 2744,
+  "h": 3656,
+  "files": {
+   "640": [
+    "intro-7499-640.jpg",
+    640,
+    853
+   ],
+   "1280": [
+    "intro-7499-1280.jpg",
+    1280,
+    1705
+   ],
+   "full": [
+    "intro-7499-full.jpg",
+    1501,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "wed-brenda-jan": {
+  "w": 3000,
+  "h": 1996,
+  "files": {
+   "640": [
+    "wed-brenda-jan-640.jpg",
+    640,
+    426
+   ],
+   "1280": [
+    "wed-brenda-jan-1280.jpg",
+    1280,
+    852
+   ],
+   "full": [
+    "wed-brenda-jan-full.jpg",
+    2000,
+    1331
+   ]
+  },
+  "dir": "public"
+ },
+ "wed-vivian-3": {
+  "w": 1202,
+  "h": 1704,
+  "files": {
+   "640": [
+    "wed-vivian-3-640.jpg",
+    640,
+    907
+   ],
+   "full": [
+    "wed-vivian-3-full.jpg",
+    1202,
+    1704
+   ]
+  },
+  "dir": "public"
+ },
+ "wed-vivian-7": {
+  "w": 1156,
+  "h": 1746,
+  "files": {
+   "640": [
+    "wed-vivian-7-640.jpg",
+    640,
+    967
+   ],
+   "full": [
+    "wed-vivian-7-full.jpg",
+    1156,
+    1746
+   ]
+  },
+  "dir": "public"
+ },
+ "wed-honest-11": {
+  "w": 1566,
+  "h": 2166,
+  "files": {
+   "640": [
+    "wed-honest-11-640.jpg",
+    640,
+    885
+   ],
+   "1280": [
+    "wed-honest-11-1280.jpg",
+    1280,
+    1770
+   ],
+   "full": [
+    "wed-honest-11-full.jpg",
+    1446,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "wed-honest-13": {
+  "w": 1602,
+  "h": 2230,
+  "files": {
+   "640": [
+    "wed-honest-13-640.jpg",
+    640,
+    891
+   ],
+   "1280": [
+    "wed-honest-13-1280.jpg",
+    1280,
+    1782
+   ],
+   "full": [
+    "wed-honest-13-full.jpg",
+    1437,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "wed-kath-ron-85": {
+  "w": 1600,
+  "h": 2000,
+  "files": {
+   "640": [
+    "wed-kath-ron-85-640.jpg",
+    640,
+    800
+   ],
+   "1280": [
+    "wed-kath-ron-85-1280.jpg",
+    1280,
+    1600
+   ],
+   "full": [
+    "wed-kath-ron-85-full.jpg",
+    1600,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "logo-children-of-virtue": {
+  "w": 3543,
+  "h": 3543,
+  "files": {
+   "640": [
+    "logo-children-of-virtue-640.jpg",
+    640,
+    640
+   ],
+   "1280": [
+    "logo-children-of-virtue-1280.jpg",
+    1280,
+    1280
+   ],
+   "full": [
+    "logo-children-of-virtue-full.jpg",
+    2000,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "logo-diani-art-gallery": {
+  "w": 3544,
+  "h": 3544,
+  "files": {
+   "640": [
+    "logo-diani-art-gallery-640.jpg",
+    640,
+    640
+   ],
+   "1280": [
+    "logo-diani-art-gallery-1280.jpg",
+    1280,
+    1280
+   ],
+   "full": [
+    "logo-diani-art-gallery-full.jpg",
+    2000,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "logo-destination-diani": {
+  "w": 3544,
+  "h": 3544,
+  "files": {
+   "640": [
+    "logo-destination-diani-640.jpg",
+    640,
+    640
+   ],
+   "1280": [
+    "logo-destination-diani-1280.jpg",
+    1280,
+    1280
+   ],
+   "full": [
+    "logo-destination-diani-full.jpg",
+    2000,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "logo-errand-ease": {
+  "w": 3543,
+  "h": 3543,
+  "files": {
+   "640": [
+    "logo-errand-ease-640.jpg",
+    640,
+    640
+   ],
+   "1280": [
+    "logo-errand-ease-1280.jpg",
+    1280,
+    1280
+   ],
+   "full": [
+    "logo-errand-ease-full.jpg",
+    2000,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "logo-glow-organics": {
+  "w": 3544,
+  "h": 3544,
+  "files": {
+   "640": [
+    "logo-glow-organics-640.jpg",
+    640,
+    640
+   ],
+   "1280": [
+    "logo-glow-organics-1280.jpg",
+    1280,
+    1280
+   ],
+   "full": [
+    "logo-glow-organics-full.jpg",
+    2000,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "logo-quick-credit": {
+  "w": 3543,
+  "h": 3543,
+  "files": {
+   "640": [
+    "logo-quick-credit-640.jpg",
+    640,
+    640
+   ],
+   "1280": [
+    "logo-quick-credit-1280.jpg",
+    1280,
+    1280
+   ],
+   "full": [
+    "logo-quick-credit-full.jpg",
+    2000,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "logo-pride-bank": {
+  "w": 3543,
+  "h": 3543,
+  "files": {
+   "640": [
+    "logo-pride-bank-640.jpg",
+    640,
+    640
+   ],
+   "1280": [
+    "logo-pride-bank-1280.jpg",
+    1280,
+    1280
+   ],
+   "full": [
+    "logo-pride-bank-full.jpg",
+    2000,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "logo-travellers-medical": {
+  "w": 1536,
+  "h": 1024,
+  "files": {
+   "640": [
+    "logo-travellers-medical-640.jpg",
+    640,
+    427
+   ],
+   "1280": [
+    "logo-travellers-medical-1280.jpg",
+    1280,
+    853
+   ],
+   "full": [
+    "logo-travellers-medical-full.jpg",
+    1536,
+    1024
+   ]
+  },
+  "dir": "public"
+ },
+ "logo-framed-reality": {
+  "w": 3544,
+  "h": 3544,
+  "files": {
+   "640": [
+    "logo-framed-reality-640.jpg",
+    640,
+    640
+   ],
+   "1280": [
+    "logo-framed-reality-1280.jpg",
+    1280,
+    1280
+   ],
+   "full": [
+    "logo-framed-reality-full.jpg",
+    2000,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "logo-pm-media": {
+  "w": 3543,
+  "h": 3543,
+  "files": {
+   "640": [
+    "logo-pm-media-640.jpg",
+    640,
+    640
+   ],
+   "1280": [
+    "logo-pm-media-1280.jpg",
+    1280,
+    1280
+   ],
+   "full": [
+    "logo-pm-media-full.jpg",
+    2000,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "logo-world-vision-spf": {
+  "w": 3544,
+  "h": 3544,
+  "files": {
+   "640": [
+    "logo-world-vision-spf-640.jpg",
+    640,
+    640
+   ],
+   "1280": [
+    "logo-world-vision-spf-1280.jpg",
+    1280,
+    1280
+   ],
+   "full": [
+    "logo-world-vision-spf-full.jpg",
+    2000,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "logo-synergy-creative-hub": {
+  "w": 3543,
+  "h": 3543,
+  "files": {
+   "640": [
+    "logo-synergy-creative-hub-640.jpg",
+    640,
+    640
+   ],
+   "1280": [
+    "logo-synergy-creative-hub-1280.jpg",
+    1280,
+    1280
+   ],
+   "full": [
+    "logo-synergy-creative-hub-full.jpg",
+    2000,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "logo-sma": {
+  "w": 851,
+  "h": 851,
+  "files": {
+   "640": [
+    "logo-sma-640.jpg",
+    640,
+    640
+   ],
+   "full": [
+    "logo-sma-full.jpg",
+    851,
+    851
+   ]
+  },
+  "dir": "public"
+ },
+ "matsen-01": {
+  "w": 1440,
+  "h": 810,
+  "files": {
+   "640": [
+    "matsen-01-640.jpg",
+    640,
+    360
+   ],
+   "1280": [
+    "matsen-01-1280.jpg",
+    1280,
+    720
+   ],
+   "full": [
+    "matsen-01-full.jpg",
+    1440,
+    810
+   ]
+  },
+  "dir": "public"
+ },
+ "matsen-02": {
+  "w": 1440,
+  "h": 810,
+  "files": {
+   "640": [
+    "matsen-02-640.jpg",
+    640,
+    360
+   ],
+   "1280": [
+    "matsen-02-1280.jpg",
+    1280,
+    720
+   ],
+   "full": [
+    "matsen-02-full.jpg",
+    1440,
+    810
+   ]
+  },
+  "dir": "public"
+ },
+ "matsen-03": {
+  "w": 1440,
+  "h": 810,
+  "files": {
+   "640": [
+    "matsen-03-640.jpg",
+    640,
+    360
+   ],
+   "1280": [
+    "matsen-03-1280.jpg",
+    1280,
+    720
+   ],
+   "full": [
+    "matsen-03-full.jpg",
+    1440,
+    810
+   ]
+  },
+  "dir": "public"
+ },
+ "matsen-04": {
+  "w": 1440,
+  "h": 810,
+  "files": {
+   "640": [
+    "matsen-04-640.jpg",
+    640,
+    360
+   ],
+   "1280": [
+    "matsen-04-1280.jpg",
+    1280,
+    720
+   ],
+   "full": [
+    "matsen-04-full.jpg",
+    1440,
+    810
+   ]
+  },
+  "dir": "public"
+ },
+ "matsen-05": {
+  "w": 1440,
+  "h": 810,
+  "files": {
+   "640": [
+    "matsen-05-640.jpg",
+    640,
+    360
+   ],
+   "1280": [
+    "matsen-05-1280.jpg",
+    1280,
+    720
+   ],
+   "full": [
+    "matsen-05-full.jpg",
+    1440,
+    810
+   ]
+  },
+  "dir": "public"
+ },
+ "matsen-06": {
+  "w": 1440,
+  "h": 810,
+  "files": {
+   "640": [
+    "matsen-06-640.jpg",
+    640,
+    360
+   ],
+   "1280": [
+    "matsen-06-1280.jpg",
+    1280,
+    720
+   ],
+   "full": [
+    "matsen-06-full.jpg",
+    1440,
+    810
+   ]
+  },
+  "dir": "public"
+ },
+ "matsen-07": {
+  "w": 1440,
+  "h": 810,
+  "files": {
+   "640": [
+    "matsen-07-640.jpg",
+    640,
+    360
+   ],
+   "1280": [
+    "matsen-07-1280.jpg",
+    1280,
+    720
+   ],
+   "full": [
+    "matsen-07-full.jpg",
+    1440,
+    810
+   ]
+  },
+  "dir": "public"
+ },
+ "matsen-08": {
+  "w": 1440,
+  "h": 810,
+  "files": {
+   "640": [
+    "matsen-08-640.jpg",
+    640,
+    360
+   ],
+   "1280": [
+    "matsen-08-1280.jpg",
+    1280,
+    720
+   ],
+   "full": [
+    "matsen-08-full.jpg",
+    1440,
+    810
+   ]
+  },
+  "dir": "public"
+ },
+ "rotary-1": {
+  "w": 1920,
+  "h": 1080,
+  "files": {
+   "640": [
+    "rotary-1-640.jpg",
+    640,
+    360
+   ],
+   "1280": [
+    "rotary-1-1280.jpg",
+    1280,
+    720
+   ],
+   "full": [
+    "rotary-1-full.jpg",
+    1920,
+    1080
+   ]
+  },
+  "dir": "public"
+ },
+ "rotary-2": {
+  "w": 1920,
+  "h": 1080,
+  "files": {
+   "640": [
+    "rotary-2-640.jpg",
+    640,
+    360
+   ],
+   "1280": [
+    "rotary-2-1280.jpg",
+    1280,
+    720
+   ],
+   "full": [
+    "rotary-2-full.jpg",
+    1920,
+    1080
+   ]
+  },
+  "dir": "public"
+ },
+ "rotary-4": {
+  "w": 1920,
+  "h": 1080,
+  "files": {
+   "640": [
+    "rotary-4-640.jpg",
+    640,
+    360
+   ],
+   "1280": [
+    "rotary-4-1280.jpg",
+    1280,
+    720
+   ],
+   "full": [
+    "rotary-4-full.jpg",
+    1920,
+    1080
+   ]
+  },
+  "dir": "public"
+ },
+ "flyer-watches-2": {
+  "w": 1080,
+  "h": 1080,
+  "files": {
+   "640": [
+    "flyer-watches-2-640.jpg",
+    640,
+    640
+   ],
+   "full": [
+    "flyer-watches-2-full.jpg",
+    1080,
+    1080
+   ]
+  },
+  "dir": "public"
+ },
+ "flyer-watches-1": {
+  "w": 1080,
+  "h": 1080,
+  "files": {
+   "640": [
+    "flyer-watches-1-640.jpg",
+    640,
+    640
+   ],
+   "full": [
+    "flyer-watches-1-full.jpg",
+    1080,
+    1080
+   ]
+  },
+  "dir": "public"
+ },
+ "flyer-weddings-2": {
+  "w": 1080,
+  "h": 1080,
+  "files": {
+   "640": [
+    "flyer-weddings-2-640.jpg",
+    640,
+    640
+   ],
+   "full": [
+    "flyer-weddings-2-full.jpg",
+    1080,
+    1080
+   ]
+  },
+  "dir": "public"
+ },
+ "flyer-weddings": {
+  "w": 1080,
+  "h": 1080,
+  "files": {
+   "640": [
+    "flyer-weddings-640.jpg",
+    640,
+    640
+   ],
+   "full": [
+    "flyer-weddings-full.jpg",
+    1080,
+    1080
+   ]
+  },
+  "dir": "public"
+ },
+ "flyer-graduation": {
+  "w": 1772,
+  "h": 1772,
+  "files": {
+   "640": [
+    "flyer-graduation-640.jpg",
+    640,
+    640
+   ],
+   "1280": [
+    "flyer-graduation-1280.jpg",
+    1280,
+    1280
+   ],
+   "full": [
+    "flyer-graduation-full.jpg",
+    1772,
+    1772
+   ]
+  },
+  "dir": "public"
+ },
+ "flyer-sma-countdown": {
+  "w": 2000,
+  "h": 2000,
+  "files": {
+   "640": [
+    "flyer-sma-countdown-640.jpg",
+    640,
+    640
+   ],
+   "1280": [
+    "flyer-sma-countdown-1280.jpg",
+    1280,
+    1280
+   ],
+   "full": [
+    "flyer-sma-countdown-full.jpg",
+    2000,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "flyer-sma-courses": {
+  "w": 4500,
+  "h": 5625,
+  "files": {
+   "640": [
+    "flyer-sma-courses-640.jpg",
+    640,
+    800
+   ],
+   "1280": [
+    "flyer-sma-courses-1280.jpg",
+    1280,
+    1600
+   ],
+   "full": [
+    "flyer-sma-courses-full.jpg",
+    1600,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "brand-stationery": {
+  "w": 2048,
+  "h": 2048,
+  "files": {
+   "640": [
+    "brand-stationery-640.jpg",
+    640,
+    640
+   ],
+   "1280": [
+    "brand-stationery-1280.jpg",
+    1280,
+    1280
+   ],
+   "full": [
+    "brand-stationery-full.jpg",
+    2000,
+    2000
+   ]
+  },
+  "dir": "public"
+ },
+ "certificate-kofih": {
+  "w": 3126,
+  "h": 2084,
+  "files": {
+   "640": [
+    "certificate-kofih-640.jpg",
+    640,
+    427
+   ],
+   "1280": [
+    "certificate-kofih-1280.jpg",
+    1280,
+    853
+   ],
+   "full": [
+    "certificate-kofih-full.jpg",
+    2000,
+    1333
+   ]
+  },
+  "dir": "public"
+ },
+ "letterhead-wvu-spf": {
+  "w": 1241,
+  "h": 1664,
+  "files": {
+   "640": [
+    "letterhead-wvu-spf-640.jpg",
+    640,
+    858
+   ],
+   "full": [
+    "letterhead-wvu-spf-full.jpg",
+    1241,
+    1664
+   ]
+  },
+  "dir": "public"
+ }
+}

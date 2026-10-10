@@ -9,3 +9,9 @@ images/albums/videos/
 *.avi
 academy images/
 .vercel
+
+# Local portfolio review preview (contains unapproved images)
+site-v2/_review/preview/
+# Unverified / unconsented review material: never commit (public repository)
+site-v2/_review/held-for-permission/
+site-v2/_review/sheet_*.jpg

@@ -13,6 +13,7 @@ next-env.d.ts
 # Phase 2C: local-only credentials for the DEV test accounts, the dedicated DEV env file, and verification output
 .phase2c-accounts.local.json
 .phase2c-accounts.local.json.tmp
+.prod-accounts.local.json
 .phase2c.dev.env
 .env.phase2c*
 /phase2c-reports

@@ -1,22 +1,56 @@
-// Role-Matrix Browser Verification — real Chrome via CDP against the local
-// dev server pointed at hosted DEV (outuocpsotiozkpyksex).
+// Role-Matrix Browser Verification — real Chrome via CDP.
+//
+// Local mode (default): boots `next dev` against hosted DEV
+// (outuocpsotiozkpyksex) via the guarded phase2c launcher and reads
+// .phase2c-accounts.local.json.
+//
+// Remote mode: MATRIX_BASE=https://portal.synergyconceptshub.com targets the
+// deployed portal directly — no dev server is started. Remote runs require
+// two fail-closed confirmations:
+//   MATRIX_CONFIRM_TARGET     must equal the base hostname (e.g. portal.synergyconceptshub.com)
+//   MATRIX_EXPECT_SUPABASE_REF  project ref the target's CSP must name (e.g. unnwuiruhgmorwhkiugu)
+// Credentials come from MATRIX_ACCOUNTS (a gitignored local JSON in the same
+// shape as the DEV accounts file) and are never printed.
 //
 // Verifies the hardened Operations + provider workspaces as each role:
 //   /admin/operations[/incidents|backups|suspensions|tasks|action-center|provider-actions]
 //   /admin/systems/monitoring, /admin/systems/reconciliation
 //
 // Assertions are structural (titles, section markers, button presence,
-// redirects) — they hold whether DEV data is empty or populated. No real
-// provider operations are triggered; read-only navigation only. Credentials
-// come from .phase2c-accounts.local.json and are never printed.
+// redirects) — read-only navigation only. No acknowledgement, resolve,
+// dismiss, suspend, approve, execute, verify, or delete control is clicked.
 
 import { readFileSync } from "node:fs";
 import { spawn, spawnSync } from "node:child_process";
 import { startDevServer } from "./phase2c-dev-server.mjs";
 
-const ACCOUNT_FILE = "E:\\SYSTEMS AND WEBSITES\\SCH_Website_Upload\\portal\\.phase2c-accounts.local.json";
 const CHROME_PORT = 9231;
-const BASE = "http://localhost:3000";
+const BASE = process.env.MATRIX_BASE || "http://localhost:3000";
+const IS_LOCAL = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(BASE);
+const ACCOUNT_FILE = process.env.MATRIX_ACCOUNTS
+  || "E:\\SYSTEMS AND WEBSITES\\SCH_Website_Upload\\portal\\.phase2c-accounts.local.json";
+
+// Remote mode only — refuse to run unless the operator explicitly confirmed
+// the hostname AND the deployed site proves it targets the expected Supabase
+// project (prevents silently testing a preview or DEV deployment).
+async function confirmRemoteTarget() {
+  const host = new URL(BASE).hostname;
+  const confirm = process.env.MATRIX_CONFIRM_TARGET;
+  if (confirm !== host) {
+    throw new Error(`Remote mode refused: set MATRIX_CONFIRM_TARGET=${host} to confirm you intend to test ${BASE}.`);
+  }
+  const expectedRef = process.env.MATRIX_EXPECT_SUPABASE_REF;
+  if (!expectedRef) {
+    throw new Error("Remote mode refused: set MATRIX_EXPECT_SUPABASE_REF to the Supabase project ref the target must use.");
+  }
+  const res = await fetch(`${BASE}/login`, { redirect: "manual", signal: AbortSignal.timeout(15000) });
+  const csp = res.headers.get("content-security-policy-report-only") || "";
+  const hosts = new Set([...csp.matchAll(/(?:https|wss):\/\/([a-z0-9-]+)\.supabase\.co/gi)].map((m) => m[1].toLowerCase()));
+  if (!hosts.has(expectedRef.toLowerCase())) {
+    throw new Error(`Remote mode refused: ${BASE} targets Supabase [${[...hosts].join(", ") || "none"}], not ${expectedRef}.`);
+  }
+  console.log(`Remote target confirmed: ${BASE} -> Supabase ${expectedRef}`);
+}
 
 function loadEnv() {
   const env = {};
@@ -189,8 +223,14 @@ const MATRIX = {
 };
 
 async function run() {
-  console.log("Starting dev server against hosted DEV…");
-  const child = await startDevServer({ env: loadEnv() });
+  let child = null;
+  if (IS_LOCAL) {
+    console.log("Starting dev server against hosted DEV…");
+    child = await startDevServer({ env: loadEnv() });
+  } else {
+    console.log(`Remote mode: ${BASE} (no dev server started)`);
+    await confirmRemoteTarget();
+  }
   const results = [];
   const check = (name, cond, extra = "") => {
     console.log(`${cond ? "[PASS]" : "[FAIL]"} ${name}${extra ? " — " + extra : ""}`);

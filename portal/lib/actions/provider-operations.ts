@@ -19,6 +19,7 @@ import { getAdapter } from "@/lib/providers/registry";
 import { isProviderOperationKey, providerSupportsOperation } from "@/lib/providers/operations";
 import type {
   ProviderCredentials,
+  ProviderOperationResult,
   ProviderOperationResultCategory,
 } from "@/lib/providers/types";
 
@@ -230,14 +231,33 @@ export async function executeProviderOperation(proposalId: string): Promise<
     idempotencyKey: ctx.idempotency_key ?? `schop-${proposalId}`,
   };
 
-  const result = await adapter.operations.executeOperation(opReq);
-  const proposalStatus = await admin.rpc("complete_provider_operation_execution", {
+  // If the adapter throws, whether the provider received the request is
+  // unknowable — record execution_unknown (never a definite failure).
+  let result: ProviderOperationResult;
+  try {
+    result = await adapter.operations.executeOperation(opReq);
+  } catch {
+    result = { category: "execution_unknown", message: RESULT_MESSAGES.execution_unknown };
+  }
+
+  const { error: completeErr } = await admin.rpc("complete_provider_operation_execution", {
     p_execution_id: ctx.execution_id,
     p_result_category: result.category,
     p_provider_ref: result.providerReference ?? null,
     p_safe_message: result.message ?? RESULT_MESSAGES[result.category],
     p_actor: user.id,
   });
+  if (completeErr) {
+    // The outcome was not recorded — do NOT verify as if it completed. The
+    // execution may stay 'executing'; the stuck-execution reaper reconciles
+    // it past the in-flight window.
+    revalidateOperationPaths();
+    return {
+      ok: false,
+      error: `Provider result could not be recorded: ${completeErr.message}`,
+      data: { status: "executing" },
+    };
+  }
 
   if (result.category !== "success" && result.category !== "accepted" && result.category !== "already_in_desired_state") {
     revalidateOperationPaths();
@@ -259,12 +279,20 @@ export async function executeProviderOperation(proposalId: string): Promise<
       error: "Verification could not read provider state — retry verification",
     };
   }
-  const { data: finalStatus } = await admin.rpc("finish_provider_operation_verification", {
+  const { data: finalStatus, error: finErr } = await admin.rpc("finish_provider_operation_verification", {
     p_execution_id: ctx.execution_id,
     p_outcome: verification.outcome,
     p_observed_status: verification.observedStatus ?? null,
     p_actor: user.id,
   });
+  if (finErr) {
+    revalidateOperationPaths();
+    return {
+      ok: false,
+      error: `Verification outcome could not be recorded — retry verification: ${finErr.message}`,
+      data: { status: "verification_pending" },
+    };
+  }
 
   revalidateOperationPaths();
   if (finalStatus === "verified") {
@@ -293,12 +321,43 @@ export async function verifyProviderOperation(proposalId: string): Promise<Actio
     .eq("id", proposalId)
     .single();
   if (!proposal) return { ok: false, error: "Proposal not found" };
-  if (proposal.status !== "verification_pending") {
+
+  const execs = proposal.provider_operation_executions as { id: string; status: string }[] | null;
+
+  if (proposal.status === "executing") {
+    // A wedged execution — attempt the age-guarded reclaim, which moves it to
+    // 'execution_unknown' + the proposal to 'verification_pending', then fall
+    // through to read-only verification of actual provider state.
+    const liveExec = execs?.find((e) => e.status === "executing");
+    if (!liveExec) return { ok: false, error: "No live execution found for this proposal" };
+    const { data: rb, error: recErr } = await admin.rpc("reclaim_stuck_provider_executions", {
+      p_execution_id: liveExec.id,
+    });
+    if (recErr) return { ok: false, error: recErr.message };
+    const outcome = rb as { reclaimed?: number; reason?: string } | null;
+    if (outcome?.reason === "too_recent") {
+      return { ok: false, error: "Execution is still within the in-flight window — try again shortly" };
+    }
+    if (outcome?.reason === "not_found") {
+      return { ok: false, error: "Execution record no longer exists" };
+    }
+    // 'reclaimed' or 'not_stuck' (another caller resolved it first): fall
+    // through and re-read the authoritative execution state below — the
+    // local snapshot is stale either way.
+  } else if (proposal.status !== "verification_pending") {
     return { ok: false, error: `Proposal is not awaiting verification (${proposal.status})` };
   }
 
-  const exec = (proposal.provider_operation_executions as { id: string; status: string }[] | null)
-    ?.find((e) => e.status === "completed" || e.status === "verification_pending");
+  // Fresh authoritative read — the initial proposal snapshot predates any
+  // reclaim and must not be trusted for the execution's current status.
+  const { data: exec } = await admin
+    .from("provider_operation_executions")
+    .select("id, status")
+    .eq("proposal_id", proposal.id)
+    .in("status", ["completed", "verification_pending", "execution_unknown"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
   if (!exec) return { ok: false, error: "No execution awaiting verification" };
 
   const { data: disc } = await admin
@@ -328,7 +387,12 @@ export async function verifyProviderOperation(proposalId: string): Promise<Actio
     p_provider_account_id: proposal.provider_account_id,
   });
   if (!secret) return { ok: false, error: "No credential is configured for this account" };
-  const creds = JSON.parse(secret) as { token?: string; accountId?: string };
+  let creds: { token?: string; accountId?: string };
+  try {
+    creds = JSON.parse(secret) as { token?: string; accountId?: string };
+  } catch {
+    return { ok: false, error: "Stored credential is unreadable" };
+  }
   if (!creds.token) return { ok: false, error: "Stored credential is unreadable" };
 
   const verification = await adapter.operations.verifyOperation({

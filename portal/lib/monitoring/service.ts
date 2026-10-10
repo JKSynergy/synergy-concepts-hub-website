@@ -207,6 +207,18 @@ export async function runProviderMonitoring(
  * client — the browser can never reach this function.
  */
 export async function runDueMonitoringSchedules(admin: SupabaseClient) {
+  // Recovery sweep: reclaim executions wedged in 'executing' past the
+  // in-flight window (crash/throw between begin and complete). They move to
+  // 'execution_unknown' + 'verification_pending' so the existing read-only
+  // verify path reconciles real provider state before any retry.
+  let reclaimedExecutions = 0;
+  try {
+    const { data } = await admin.rpc("reclaim_stuck_provider_executions");
+    reclaimedExecutions = (data as { reclaimed?: number } | null)?.reclaimed ?? 0;
+  } catch {
+    // A broken reaper must never fail the monitoring sweep.
+  }
+
   const { data: due, error } = await admin.rpc("due_monitoring_schedules");
   if (error) return { ok: false as const, error: error.message, results: [] };
 
@@ -229,5 +241,5 @@ export async function runDueMonitoringSchedules(admin: SupabaseClient) {
     // Self-recorded in automation_runs; never fails the sweep.
   }
 
-  return { ok: true as const, results };
+  return { ok: true as const, results, reclaimedExecutions };
 }

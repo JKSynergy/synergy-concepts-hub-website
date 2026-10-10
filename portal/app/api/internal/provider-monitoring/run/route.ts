@@ -36,6 +36,7 @@ async function handler(req: NextRequest) {
 
   const summary = {
     ok: true,
+    reclaimedExecutions: result.reclaimedExecutions ?? 0,
     executed: result.results.length,
     completed: result.results.filter((r) => r.outcome === "completed").length,
     failed: result.results.filter((r) => r.outcome === "failed").length,

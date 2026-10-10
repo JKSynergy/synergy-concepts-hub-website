@@ -269,7 +269,7 @@ export default function ProviderActionsManager({
                               </button>
                             </>
                           )}
-                          {p.status === "verification_pending" && (
+                          {(p.status === "verification_pending" || p.status === "executing") && (
                             <button className="ux-button ux-button-secondary" data-action="verify" disabled={busy}
                               onClick={() => run(() => verifyProviderOperation(p.id), "Verified")}>
                               <ShieldCheck size={13} /> Verify

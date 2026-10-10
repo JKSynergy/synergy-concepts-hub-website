@@ -2,9 +2,15 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Check, Eye, Archive } from "lucide-react";
 import { StatusMark, type Tone } from "@/components/ux/primitives";
 import { reviewActionItem } from "@/lib/actions/provider-monitoring";
+import {
+  sortActionItems,
+  filterActionItems,
+  isActionableSignal,
+} from "@/lib/operations/action-center";
 
 export interface ActionItem {
   id: string;
@@ -18,20 +24,29 @@ export interface ActionItem {
   provider_name: string | null;
   account_name: string | null;
   client_company: string | null;
+  system_id: string | null;
   system_name: string | null;
   resource_name: string | null;
   external_name: string | null;
   incident_id: string | null;
   incident_status: string | null;
+  monitoring_run_id: string | null;
   detected_at: string;
+  occurrence_count: number | null;
+  last_observed_at: string | null;
+  acknowledged_by_name: string | null;
   resolved_at: string | null;
   resolved_by_name: string | null;
 }
 
 interface Props {
   items: ActionItem[];
+  /** True when the feed query failed — render Unavailable, never a false clear queue. */
+  itemsUnavailable: boolean;
   canReview: boolean;
   isFinance: boolean;
+  /** Admin/finance may follow links into provider monitoring views staff can't read. */
+  canSeeProviderData: boolean;
 }
 
 function fmt(ts: string | null): string {
@@ -55,15 +70,32 @@ function statusTone(s: string): Tone {
   }
 }
 
-export default function ActionCenterManager({ items, canReview }: Props) {
+export default function ActionCenterManager({
+  items,
+  itemsUnavailable,
+  canReview,
+  canSeeProviderData,
+}: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showClosed, setShowClosed] = useState(false);
+  const [severityFilter, setSeverityFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
 
-  const open = useMemo(() => items.filter((i) => ["open", "acknowledged"].includes(i.status)), [items]);
-  const closed = useMemo(() => items.filter((i) => !["open", "acknowledged"].includes(i.status)), [items]);
-  const visible = showClosed ? items : open;
+  const sources = useMemo(
+    () => [...new Set(items.map((i) => i.source))].sort(),
+    [items]
+  );
+  // Actionable first by severity then age; terminal signals last. Same
+  // actionable definition (open + acknowledged) as the Operations Overview.
+  const sorted = useMemo(() => sortActionItems(items), [items]);
+  const open = useMemo(() => sorted.filter(isActionableSignal), [sorted]);
+  const closed = useMemo(() => sorted.filter((i) => !isActionableSignal(i)), [sorted]);
+  const visible = useMemo(
+    () => filterActionItems(showClosed ? sorted : open, { severity: severityFilter, source: sourceFilter }),
+    [showClosed, sorted, open, severityFilter, sourceFilter]
+  );
 
   async function act(itemId: string, decision: "acknowledge" | "resolve" | "dismiss") {
     setBusy(true);
@@ -81,8 +113,32 @@ export default function ActionCenterManager({ items, canReview }: Props) {
       <div className="ux-card">
         <div className="ux-card-header">
           <h2>Signals</h2>
-          <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
-            <p className="ux-muted">{open.length} open</p>
+          <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
+            <p className="ux-muted">
+              {itemsUnavailable ? "—" : `${open.length} actionable`}
+            </p>
+            <select
+              value={severityFilter}
+              onChange={(e) => setSeverityFilter(e.target.value)}
+              className="ux-select"
+              style={{ fontSize: "0.8125rem", padding: "0.25rem 0.5rem" }}
+            >
+              <option value="all">All severities</option>
+              <option value="critical">Critical</option>
+              <option value="warning">Warning</option>
+              <option value="info">Info</option>
+            </select>
+            <select
+              value={sourceFilter}
+              onChange={(e) => setSourceFilter(e.target.value)}
+              className="ux-select"
+              style={{ fontSize: "0.8125rem", padding: "0.25rem 0.5rem" }}
+            >
+              <option value="all">All sources</option>
+              {sources.map((s) => (
+                <option key={s} value={s}>{s.replaceAll("_", " ")}</option>
+              ))}
+            </select>
             <label style={{ display: "flex", gap: "0.35rem", alignItems: "center" }} className="ux-muted">
               <input
                 type="checkbox"
@@ -94,7 +150,13 @@ export default function ActionCenterManager({ items, canReview }: Props) {
             </label>
           </div>
         </div>
-        {visible.length === 0 ? (
+        {itemsUnavailable ? (
+          <p className="ux-muted" style={{ padding: "1rem" }}>
+            Unavailable — the signal feed could not be loaded. A failed query is not the same as
+            no signals.{" "}
+            <button type="button" onClick={() => router.refresh()} className="ux-link">Retry</button>
+          </p>
+        ) : visible.length === 0 ? (
           <p className="ux-muted" style={{ padding: "1rem" }}>
             {open.length === 0 && closed.length === 0
               ? "No operational signals."
@@ -121,16 +183,40 @@ export default function ActionCenterManager({ items, canReview }: Props) {
                         {i.provider_name}{i.account_name ? ` · ${i.account_name}` : ""}
                         {i.summary ? ` — ${i.summary}` : ""}
                       </span>
+                      {(i.occurrence_count ?? 1) > 1 && (
+                        <>
+                          <br />
+                          <span className="ux-muted">Observed {i.occurrence_count}× — latest {fmt(i.last_observed_at)}</span>
+                        </>
+                      )}
+                      {i.status === "acknowledged" && i.acknowledged_by_name && (
+                        <>
+                          <br />
+                          <span className="ux-muted">Acknowledged by {i.acknowledged_by_name}</span>
+                        </>
+                      )}
                     </td>
                     <td><span className="ux-muted">{i.recommended_action ?? "—"}</span></td>
                     <td>
                       {i.client_company ?? "—"}
-                      {i.system_name ? <><br /><span className="ux-muted">{i.system_name}</span></> : null}
+                      {i.system_name ? (
+                        <>
+                          <br />
+                          {i.system_id ? (
+                            <Link href={`/admin/systems/${i.system_id}`} className="ux-link">{i.system_name}</Link>
+                          ) : (
+                            <span className="ux-muted">{i.system_name}</span>
+                          )}
+                        </>
+                      ) : null}
                       {i.resource_name || i.external_name ? (
                         <><br /><span className="ux-muted">{i.resource_name ?? i.external_name}</span></>
                       ) : null}
                       {i.incident_id ? (
-                        <><br /><a href="/admin/operations/incidents" className="ux-link">Incident ({i.incident_status})</a></>
+                        <><br /><Link href="/admin/operations/incidents" className="ux-link">Incident ({i.incident_status})</Link></>
+                      ) : null}
+                      {i.monitoring_run_id && canSeeProviderData ? (
+                        <><br /><Link href="/admin/systems/monitoring" className="ux-link">Monitoring run</Link></>
                       ) : null}
                     </td>
                     <td>{fmt(i.detected_at)}</td>

@@ -24,7 +24,8 @@ export default async function ActionCenterPage() {
     redirect("/client");
   }
 
-  const { data: items } = await supabase
+  // Keep the query error — a failed feed is not a clear queue.
+  const { data: items, error: itemsError } = await supabase
     .from("action_item_overview")
     .select("*")
     .order("detected_at", { ascending: false })
@@ -38,8 +39,10 @@ export default async function ActionCenterPage() {
       />
       <ActionCenterManager
         items={items ?? []}
+        itemsUnavailable={Boolean(itemsError)}
         canReview={checkIsAdmin(profile.role) || isStaff(profile.role)}
         isFinance={isFinance(profile.role)}
+        canSeeProviderData={checkIsAdmin(profile.role) || isFinance(profile.role)}
       />
     </div>
   );

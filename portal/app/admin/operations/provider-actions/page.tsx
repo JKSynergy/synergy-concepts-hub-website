@@ -33,13 +33,13 @@ export default async function ProviderActionsPage() {
     redirect("/admin/systems/providers");
   }
 
-  const { data: proposals } = await supabase
+  const { data: proposals, error: proposalsError } = await supabase
     .from("provider_operation_overview")
     .select("*")
     .order("created_at", { ascending: false })
     .limit(200);
 
-  const { data: executions } = await supabase
+  const { data: executions, error: executionsError } = await supabase
     .from("provider_operation_execution_overview")
     .select("*")
     .order("started_at", { ascending: false })
@@ -47,7 +47,7 @@ export default async function ProviderActionsPage() {
 
   // Proposal targets: explicitly linked discovered resources (admin only —
   // finance has no raw-table read anyway, and never sees the propose card).
-  const { data: targets } = isAdmin
+  const { data: targets, error: targetsError } = isAdmin
     ? await supabase
         .from("provider_discovered_resources")
         .select(
@@ -56,7 +56,7 @@ export default async function ProviderActionsPage() {
         .eq("link_status", "linked")
         .order("name")
         .limit(500)
-    : { data: [] };
+    : { data: [], error: null };
 
   return (
     <div className="ux-page ux-page--wide">
@@ -70,6 +70,9 @@ export default async function ProviderActionsPage() {
         targets={(targets ?? []) as never}
         isAdmin={isAdmin}
         isFinance={isFinanceRole}
+        proposalsUnavailable={Boolean(proposalsError)}
+        executionsUnavailable={Boolean(executionsError)}
+        targetsUnavailable={isAdmin && Boolean(targetsError)}
       />
     </div>
   );

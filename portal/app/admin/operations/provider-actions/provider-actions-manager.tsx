@@ -16,6 +16,7 @@ import {
   providerSupportsOperation,
   PROVIDER_OPERATION_KEYS,
 } from "@/lib/providers/operations";
+import { sortProposalsForAttention } from "@/lib/operations/action-center";
 import type { ProviderOperationKey } from "@/lib/providers/types";
 
 export interface OperationProposal {
@@ -80,6 +81,10 @@ interface Props {
   targets: OperationTarget[];
   isAdmin: boolean;
   isFinance: boolean;
+  /** True when a section's query failed — render Unavailable, never a false empty list. */
+  proposalsUnavailable: boolean;
+  executionsUnavailable: boolean;
+  targetsUnavailable: boolean;
 }
 
 function statusTone(s: string): Tone {
@@ -105,7 +110,15 @@ function targetProvider(t: OperationTarget): { name?: string; adapter_key?: stri
   return { name: p?.name, adapter_key: p?.adapter_key, account_name: acct?.account_name };
 }
 
-export default function ProviderActionsManager({ proposals, executions, targets, isAdmin }: Props) {
+export default function ProviderActionsManager({
+  proposals,
+  executions,
+  targets,
+  isAdmin,
+  proposalsUnavailable,
+  executionsUnavailable,
+  targetsUnavailable,
+}: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -115,6 +128,10 @@ export default function ProviderActionsManager({ proposals, executions, targets,
   const [opKey, setOpKey] = useState<string>("");
   const [reason, setReason] = useState("");
   const [detailFor, setDetailFor] = useState<OperationProposal | null>(null);
+
+  // Items waiting on a human decision or verification lead the list —
+  // display ordering only; transitions are enforced by the provider-operation RPCs.
+  const sortedProposals = useMemo(() => sortProposalsForAttention(proposals), [proposals]);
 
   const selectedTarget = useMemo(() => targets.find((t) => t.id === targetId) ?? null, [targets, targetId]);
   const supportedOps = useMemo(() => {
@@ -172,6 +189,9 @@ export default function ProviderActionsManager({ proposals, executions, targets,
           <div style={{ padding: "0 1rem 1rem", display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
             <span className="ux-muted">
               Operations are proposed, approved, executed server-side, then verified against the provider.
+              {targetsUnavailable && (
+                <><br /><span style={{ color: "#b91c1c" }}>Operation targets unavailable — retry to load the resource list.</span></>
+              )}
             </span>
             <button className="ux-button" data-action="new-operation" onClick={() => setProposeOpen(true)}>
               <Plus size={14} /> Propose operation
@@ -183,9 +203,19 @@ export default function ProviderActionsManager({ proposals, executions, targets,
       <div className="ux-card">
         <div className="ux-card-header">
           <h2>Operation proposals</h2>
-          <p className="ux-muted">{proposals.filter((p) => ["proposed", "approved"].includes(p.status)).length} pending decision or execution</p>
+          <p className="ux-muted">
+            {proposalsUnavailable
+              ? "—"
+              : `${proposals.filter((p) => ["proposed", "approved"].includes(p.status)).length} pending decision or execution`}
+          </p>
         </div>
-        {proposals.length === 0 ? (
+        {proposalsUnavailable ? (
+          <p className="ux-muted" style={{ padding: "1rem" }}>
+            Unavailable — the proposals feed could not be loaded. A failed query is not the same as
+            no pending operations.{" "}
+            <button type="button" onClick={() => router.refresh()} className="ux-link">Retry</button>
+          </p>
+        ) : proposals.length === 0 ? (
           <p className="ux-muted" style={{ padding: "1rem" }}>No provider operations proposed yet.</p>
         ) : (
           <div className="ux-tablewrap">
@@ -197,7 +227,7 @@ export default function ProviderActionsManager({ proposals, executions, targets,
                 </tr>
               </thead>
               <tbody>
-                {proposals.map((p) => (
+                {sortedProposals.map((p) => (
                   <tr key={p.id} style={{ cursor: "pointer" }} onClick={() => setDetailFor(p)}>
                     <td>{p.provider_name}</td>
                     <td>{p.account_name}</td>
@@ -256,7 +286,16 @@ export default function ProviderActionsManager({ proposals, executions, targets,
         )}
       </div>
 
-      {executions.length > 0 && (
+      {executionsUnavailable && (
+        <div className="ux-card">
+          <div className="ux-card-header"><h2>Execution history</h2></div>
+          <p className="ux-muted" style={{ padding: "1rem" }}>
+            Unavailable — execution history could not be loaded.{" "}
+            <button type="button" onClick={() => router.refresh()} className="ux-link">Retry</button>
+          </p>
+        </div>
+      )}
+      {!executionsUnavailable && executions.length > 0 && (
         <div className="ux-card">
           <div className="ux-card-header"><h2>Execution history</h2></div>
           <div className="ux-tablewrap">

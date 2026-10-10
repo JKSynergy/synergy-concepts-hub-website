@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { isAdmin as checkIsAdmin, isOperationalStaff } from "@/lib/security/roles";
 import { runProviderMonitoring } from "@/lib/monitoring/service";
+import { ACTION_ITEM_DECISIONS } from "@/lib/operations/action-center";
 import type { ActionResult } from "@/lib/actions/provider-connections";
 
 async function callerProfile() {
@@ -180,6 +181,23 @@ export async function reviewActionItem(
   if (!user) return { ok: false, error: "Authentication required" };
   if (!isOperationalStaff(role)) {
     return { ok: false, error: "Permission denied: only operational staff review action items" };
+  }
+
+  // Stale/repeated-transition guard: only call the review RPC when the item
+  // is actually in a permitted source state. resolve/dismiss on a terminal
+  // item is already a DB-side no-op, but acknowledge on an already
+  // acknowledged item would silently rewrite acknowledged_by/at — that must
+  // never be treated as a new review.
+  const reader = await createClient();
+  const { data: current } = await reader
+    .from("action_items")
+    .select("status")
+    .eq("id", itemId)
+    .maybeSingle();
+
+  if (!current) return { ok: false, error: "Action item not found" };
+  if (!ACTION_ITEM_DECISIONS[decision].includes(current.status)) {
+    return { ok: true }; // idempotent no-op — already resolved, dismissed, or acknowledged
   }
 
   const admin = createAdminClient();

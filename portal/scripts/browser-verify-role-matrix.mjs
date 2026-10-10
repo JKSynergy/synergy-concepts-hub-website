@@ -192,6 +192,31 @@ async function visit(ws, path, marker) {
 
 const has = (body, s) => body.toLowerCase().includes(s.toLowerCase());
 const sel = (ws, s) => evalJs(ws, `!!document.querySelector(${JSON.stringify(s)})`);
+
+// Element-mount waits. RSC streams the page text before client subtrees mount,
+// so a one-shot selector query can run before the control exists (false FAIL
+// on presence) or before it would have been denied (false PASS on absence).
+async function waitSel(ws, selector, timeoutMs = 15000) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (await sel(ws, selector)) return true;
+    await new Promise((r) => setTimeout(r, 300));
+  }
+  return false;
+}
+// Proves the page subtree finished mounting without naming a specific element:
+// poll the element count inside .ux-page until it is unchanged for ~1.2s.
+async function waitDomStable(ws, timeoutMs = 15000) {
+  const start = Date.now();
+  let last = -1, stable = 0;
+  while (Date.now() - start < timeoutMs) {
+    const n = await evalJs(ws, "document.querySelector('.ux-page')?.querySelectorAll('*').length ?? -1");
+    if (n === last && n >= 0) { if (++stable >= 4) return true; }
+    else { stable = 0; last = n; }
+    await new Promise((r) => setTimeout(r, 300));
+  }
+  return false;
+}
 const SECRET_RE = /(sk_live_|service_role|status_token|SUPABASE_SERVICE|api_key\s*[:=]\s*\S{20})/i;
 
 // Expected behaviour per role per route. marker = text that proves the real
@@ -289,22 +314,32 @@ async function run() {
         // Role-specific control visibility (UI-level; server-side denial is
         // covered by the action guards + PGlite suites).
         if (path === "/admin/operations/tasks" && role !== "admin") {
-          check(`${role} tasks: no create control`, !(await sel(ws, "#btn-create-task")));
+          const stable = await waitDomStable(ws);
+          check(`${role} tasks: no create control`, !(await sel(ws, "#btn-create-task")),
+            stable ? "" : "warning: DOM did not fully stabilize before absence check");
         }
         if (path === "/admin/systems/monitoring" && role === "admin") {
           check(`${role} monitoring: schedules section renders`, has(body, "Monitoring schedules"));
         }
         if (path === "/admin/systems/monitoring" && role === "finance") {
-          check(`${role} monitoring: no mutation controls`, !(await sel(ws, "[data-action='add-schedule']")) && !(await sel(ws, "[data-action='run-now']")));
+          const stable = await waitDomStable(ws);
+          check(`${role} monitoring: no mutation controls`,
+            !(await sel(ws, "[data-action='add-schedule']")) && !(await sel(ws, "[data-action='run-now']")),
+            stable ? "" : "warning: DOM did not fully stabilize before absence check");
         }
         if (path === "/admin/operations/provider-actions" && role === "admin") {
-          check(`${role} provider-actions: propose control`, await sel(ws, "[data-action='new-operation']"));
+          check(`${role} provider-actions: propose control`, await waitSel(ws, "[data-action='new-operation']"),
+            "control did not mount within 15s");
         }
         if (path === "/admin/operations/provider-actions" && role === "finance") {
-          check(`${role} provider-actions: read-only (no propose)`, !(await sel(ws, "[data-action='new-operation']")));
+          const stable = await waitDomStable(ws);
+          check(`${role} provider-actions: read-only (no propose)`, !(await sel(ws, "[data-action='new-operation']")),
+            stable ? "" : "warning: DOM did not fully stabilize before absence check");
         }
         if (path === "/admin/operations/action-center" && role === "finance") {
-          check(`${role} action-center: no review buttons`, !(await sel(ws, "[data-action='acknowledge']")));
+          const stable = await waitDomStable(ws);
+          check(`${role} action-center: no review buttons`, !(await sel(ws, "[data-action='acknowledge']")),
+            stable ? "" : "warning: DOM did not fully stabilize before absence check");
         }
       }
     }

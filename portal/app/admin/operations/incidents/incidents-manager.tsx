@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 import { Dialog } from "@/components/ux/dialog";
 import { StatusMark, type Tone } from "@/components/ux/primitives";
+import Link from "next/link";
+import { sortIncidentsForWork, filterIncidents } from "@/lib/operations/incidents";
 import {
   createIncident,
   assignIncident,
@@ -100,6 +102,8 @@ export interface AuditEvent {
 
 interface Props {
   currentUserId: string;
+  /** True when the incidents query failed — render Unavailable, never an empty list. */
+  incidentsUnavailable: boolean;
   incidents: IncidentItem[];
   auditTrail: AuditEvent[];
   clients: ClientOption[];
@@ -146,6 +150,7 @@ function incidentSeverityTone(severity: string): Tone {
 
 export default function IncidentsManager({
   currentUserId,
+  incidentsUnavailable,
   incidents,
   auditTrail,
   clients,
@@ -162,6 +167,7 @@ export default function IncidentsManager({
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(incidents[0]?.id || null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [severityFilter, setSeverityFilter] = useState<string>("all");
+  const [systemFilter, setSystemFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   // Modals
@@ -199,18 +205,12 @@ export default function IncidentsManager({
   const availableResources = resources.filter((r) => !incClientId || r.client_id === incClientId);
   const availableAgreements = agreements.filter((a) => !incClientId || a.client_id === incClientId);
 
-  // Filtered incident list
-  const filteredIncidents = incidents.filter((i) => {
-    if (statusFilter !== "all" && i.status !== statusFilter) return false;
-    if (severityFilter !== "all" && i.severity !== severityFilter) return false;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const matchTitle = i.title.toLowerCase().includes(q);
-      const matchClient = (i.client?.company_name || i.client?.email || "").toLowerCase().includes(q);
-      const matchSystem = (i.system?.name || "").toLowerCase().includes(q);
-      return matchTitle || matchClient || matchSystem;
-    }
-    return true;
+  // Urgency ordering first (unresolved by severity/age, terminal last), then filters
+  const filteredIncidents = filterIncidents(sortIncidentsForWork(incidents), {
+    status: statusFilter,
+    severity: severityFilter,
+    systemId: systemFilter,
+    query: searchQuery,
   });
 
   // Permission helpers
@@ -467,6 +467,18 @@ export default function IncidentsManager({
               <option value="high">High</option>
               <option value="critical">Critical</option>
             </select>
+
+            <select
+              value={systemFilter}
+              onChange={(e) => setSystemFilter(e.target.value)}
+              className="ux-select"
+              style={{ fontSize: "0.8125rem", padding: "0.375rem 0.5rem" }}
+            >
+              <option value="all">All Systems</option>
+              {systems.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -486,7 +498,22 @@ export default function IncidentsManager({
         )}
       </div>
 
-      {/* Main Master-Detail Layout */}
+      {/* Main Master-Detail Layout — a failed query renders Unavailable, never a false empty list */}
+      {incidentsUnavailable ? (
+        <div
+          style={{
+            border: "1px solid var(--border)",
+            borderRadius: "4px",
+            padding: "2.5rem",
+            textAlign: "center",
+            color: "var(--muted-foreground)",
+            fontSize: "0.8125rem",
+          }}
+        >
+          Incidents unavailable — the data source could not be reached.{" "}
+          <Link href="/admin/operations/incidents" className="ux-link">Retry</Link>
+        </div>
+      ) : (
       <div
         style={{
           display: "grid",
@@ -555,6 +582,9 @@ export default function IncidentsManager({
                     <div style={{ fontSize: "0.8125rem", color: "var(--foreground)", marginBottom: "0.375rem" }}>
                       {i.client?.company_name || i.client?.email}
                       {i.system && <span> • {i.system.name}</span>}
+                      {i.system?.status === "suspended" && (
+                        <StatusMark tone="neutral">commercially suspended</StatusMark>
+                      )}
                     </div>
 
                     <div
@@ -603,9 +633,24 @@ export default function IncidentsManager({
                   </div>
                   <div style={{ fontSize: "0.8125rem", color: "var(--muted-foreground)" }}>
                     Client: <b>{activeIncident.client?.company_name || activeIncident.client?.email}</b>
-                    {activeIncident.system && <span> • System: <b>{activeIncident.system.name}</b></span>}
+                    {activeIncident.system && (
+                      <span>
+                        {" • System: "}
+                        <Link href={`/admin/systems/${activeIncident.system.id}`} className="ux-link">
+                          <b>{activeIncident.system.name}</b>
+                        </Link>
+                        {activeIncident.system.status === "suspended" && (
+                          <span> (<StatusMark tone="neutral">commercially suspended</StatusMark>)</span>
+                        )}
+                      </span>
+                    )}
                     {activeIncident.resource && <span> • Resource: <b>{activeIncident.resource.name}</b></span>}
                   </div>
+                  {activeIncident.system?.status === "suspended" && (
+                    <div className="ux-muted" style={{ fontSize: "0.75rem", marginTop: "0.375rem" }}>
+                      Commercial suspension is a billing/contract state — it is not evidence of an infrastructure outage.
+                    </div>
+                  )}
                 </div>
 
                 {/* Primary Action Buttons */}
@@ -882,6 +927,7 @@ export default function IncidentsManager({
           </div>
         )}
       </div>
+      )}
 
       {/* Report Incident Modal */}
       {createModalOpen && (

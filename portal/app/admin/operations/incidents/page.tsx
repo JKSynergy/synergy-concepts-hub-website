@@ -28,8 +28,8 @@ export default async function IncidentsPage() {
   const isFinanceUser = isFinance(profile.role);
   const isStaffUser = isOperationalStaff(profile.role) && !isAdmin;
 
-  // 1. Fetch Incidents
-  const { data: incidentsData } = await supabase
+  // 1. Fetch Incidents — a failed query must NOT render as an empty list
+  const { data: incidentsData, error: incidentsError } = await supabase
     .from("incidents")
     .select(`
       id, client_id, system_id, resource_id, service_agreement_id,
@@ -106,6 +106,7 @@ export default async function IncidentsPage() {
 
       <IncidentsManager
         currentUserId={user.id}
+        incidentsUnavailable={Boolean(incidentsError)}
         incidents={formattedIncidents}
         auditTrail={(incidentAuditData ?? []).map((a) => ({
           ...a,

@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { isAdmin as checkIsAdmin, isOperationalStaff, isFinance } from "@/lib/security/roles";
+import { INCIDENT_TRANSITIONS } from "@/lib/operations/incidents";
 
 export type ActionResult<T = unknown> = {
   ok: boolean;
@@ -546,6 +547,34 @@ export async function assignIncident(
   return { ok: true };
 }
 
+/**
+ * Apply a guarded status transition: the UPDATE only lands if the incident is
+ * currently in one of the action's allowed from-statuses. An invalid or
+ * retried transition matches zero rows — no write, no duplicate audit event.
+ */
+async function transitionIncident(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  incidentId: string,
+  action: keyof typeof INCIDENT_TRANSITIONS,
+  updates: Record<string, unknown>
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data, error } = await supabase
+    .from("incidents")
+    .update(updates)
+    .eq("id", incidentId)
+    .in("status", [...INCIDENT_TRANSITIONS[action]])
+    .select("id");
+
+  if (error) return { ok: false, error: error.message };
+  if (!data || data.length === 0) {
+    return { ok: false, error: "This transition is not available for the incident's current state" };
+  }
+
+  revalidatePath("/admin/operations");
+  revalidatePath("/admin/operations/incidents");
+  return { ok: true };
+}
+
 export async function acknowledgeIncident(incidentId: string): Promise<ActionResult> {
   const supabase = await createClient();
   const {
@@ -553,19 +582,10 @@ export async function acknowledgeIncident(incidentId: string): Promise<ActionRes
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Authentication required" };
 
-  const { error } = await supabase
-    .from("incidents")
-    .update({
-      status: "acknowledged",
-      acknowledged_at: new Date().toISOString(),
-    })
-    .eq("id", incidentId);
-
-  if (error) return { ok: false, error: error.message };
-
-  revalidatePath("/admin/operations");
-  revalidatePath("/admin/operations/incidents");
-  return { ok: true };
+  return transitionIncident(supabase, incidentId, "acknowledge", {
+    status: "acknowledged",
+    acknowledged_at: new Date().toISOString(),
+  });
 }
 
 export async function investigateIncident(incidentId: string): Promise<ActionResult> {
@@ -575,16 +595,7 @@ export async function investigateIncident(incidentId: string): Promise<ActionRes
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Authentication required" };
 
-  const { error } = await supabase
-    .from("incidents")
-    .update({ status: "investigating" })
-    .eq("id", incidentId);
-
-  if (error) return { ok: false, error: error.message };
-
-  revalidatePath("/admin/operations");
-  revalidatePath("/admin/operations/incidents");
-  return { ok: true };
+  return transitionIncident(supabase, incidentId, "investigate", { status: "investigating" });
 }
 
 export async function monitorIncident(incidentId: string): Promise<ActionResult> {
@@ -594,16 +605,7 @@ export async function monitorIncident(incidentId: string): Promise<ActionResult>
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Authentication required" };
 
-  const { error } = await supabase
-    .from("incidents")
-    .update({ status: "monitoring" })
-    .eq("id", incidentId);
-
-  if (error) return { ok: false, error: error.message };
-
-  revalidatePath("/admin/operations");
-  revalidatePath("/admin/operations/incidents");
-  return { ok: true };
+  return transitionIncident(supabase, incidentId, "monitor", { status: "monitoring" });
 }
 
 export async function resolveIncident(
@@ -625,16 +627,7 @@ export async function resolveIncident(
     updates.resolution_notes = resolutionNotes.trim();
   }
 
-  const { error } = await supabase
-    .from("incidents")
-    .update(updates)
-    .eq("id", incidentId);
-
-  if (error) return { ok: false, error: error.message };
-
-  revalidatePath("/admin/operations");
-  revalidatePath("/admin/operations/incidents");
-  return { ok: true };
+  return transitionIncident(supabase, incidentId, "resolve", updates);
 }
 
 export async function closeIncident(
@@ -668,16 +661,7 @@ export async function closeIncident(
     updates.resolution_notes = existing;
   }
 
-  const { error } = await supabase
-    .from("incidents")
-    .update(updates)
-    .eq("id", incidentId);
-
-  if (error) return { ok: false, error: error.message };
-
-  revalidatePath("/admin/operations");
-  revalidatePath("/admin/operations/incidents");
-  return { ok: true };
+  return transitionIncident(supabase, incidentId, "close", updates);
 }
 
 export async function cancelIncident(
@@ -710,14 +694,5 @@ export async function cancelIncident(
     updates.resolution_notes = existing;
   }
 
-  const { error } = await supabase
-    .from("incidents")
-    .update(updates)
-    .eq("id", incidentId);
-
-  if (error) return { ok: false, error: error.message };
-
-  revalidatePath("/admin/operations");
-  revalidatePath("/admin/operations/incidents");
-  return { ok: true };
+  return transitionIncident(supabase, incidentId, "cancel", updates);
 }

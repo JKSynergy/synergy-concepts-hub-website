@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/ux/primitives";
 import { isInternal, isAdmin as checkIsAdmin, isOperationalStaff, isFinance } from "@/lib/security/roles";
+import { resolvePolicyHealth } from "@/lib/operations/backups";
 import BackupsManager, { type BackupPolicyItem, type BackupEventItem } from "./backups-manager";
 
 export const metadata = { title: "Backups" };
@@ -28,8 +29,9 @@ export default async function BackupsPage() {
   const isFinanceUser = isFinance(profile.role);
   const isStaffUser = isOperationalStaff(profile.role) && !isAdmin;
 
-  // 1. Fetch Policies (with embedded reference names)
-  const { data: policiesData } = await supabase
+  // 1. Fetch Policies (with embedded reference names) — errors surface as
+  // Unavailable states in the workspace, never as empty lists or fake health.
+  const { data: policiesData, error: policiesError } = await supabase
     .from("backup_policies")
     .select(`
       id, client_id, resource_id, system_id, service_agreement_id,
@@ -45,12 +47,12 @@ export default async function BackupsPage() {
     .order("created_at", { ascending: false });
 
   // 2. Fetch deterministic health per policy
-  const { data: healthData } = await supabase
+  const { data: healthData, error: healthError } = await supabase
     .from("backup_policy_health")
     .select("*");
 
   // 3. Fetch Backup Events
-  const { data: eventsData } = await supabase
+  const { data: eventsData, error: eventsError } = await supabase
     .from("backup_events")
     .select(`
       id, client_id, backup_policy_id, resource_id, system_id, service_agreement_id,
@@ -111,7 +113,8 @@ export default async function BackupsPage() {
       resource: Array.isArray(p.resource) ? p.resource[0] : p.resource,
       service_agreement: Array.isArray(p.service_agreement) ? p.service_agreement[0] : p.service_agreement,
       created_by_user: Array.isArray(p.created_by_user) ? p.created_by_user[0] : p.created_by_user,
-      health: health?.health ?? "healthy",
+      // Missing/unavailable health evidence is "unknown" — never implied healthy.
+      health: healthError ? "unknown" : resolvePolicyHealth(health?.health),
       next_due_at: health?.next_due_at ?? null,
       last_completed_at: health?.last_completed_at ?? null,
       last_verified_at: health?.last_verified_at ?? null,
@@ -143,6 +146,9 @@ export default async function BackupsPage() {
 
       <BackupsManager
         currentUserId={user.id}
+        policiesUnavailable={Boolean(policiesError)}
+        healthUnavailable={Boolean(healthError)}
+        eventsUnavailable={Boolean(eventsError)}
         policies={formattedPolicies}
         events={formattedEvents}
         auditTrail={auditTrail}

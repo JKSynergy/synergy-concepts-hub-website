@@ -11,7 +11,7 @@ export type ActionResult<T = unknown> = {
 };
 
 type BackupFrequency = "daily" | "weekly" | "monthly" | "custom";
-type BackupEventStatus = "expected" | "in_progress" | "successful" | "failed" | "missed";
+type BackupEventStatus = "expected" | "in_progress" | "successful" | "failed" | "missed" | "verified";
 
 async function callerProfile() {
   const supabase = await createClient();
@@ -337,6 +337,35 @@ export async function recordBackupEvidence(
   return { ok: true };
 }
 
+/**
+ * Guarded event transition: the UPDATE only lands if the event is currently
+ * in the expected from-status. An invalid or retried call matches zero rows —
+ * no write and no duplicate audit event (the DB lifecycle trigger would also
+ * reject the transition, but a clean zero-row check gives a clearer error).
+ */
+async function transitionBackupEvent(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  eventId: string,
+  fromStatus: BackupEventStatus,
+  updates: Record<string, unknown>
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data, error } = await supabase
+    .from("backup_events")
+    .update(updates)
+    .eq("id", eventId)
+    .eq("status", fromStatus)
+    .select("id");
+
+  if (error) return { ok: false, error: error.message };
+  if (!data || data.length === 0) {
+    return { ok: false, error: "This transition is not available for the event's current state" };
+  }
+
+  revalidatePath("/admin/operations");
+  revalidatePath("/admin/operations/backups");
+  return { ok: true };
+}
+
 export async function verifyBackupEvent(eventId: string): Promise<ActionResult> {
   const { supabase, user, role } = await callerProfile();
   if (!user) return { ok: false, error: "Authentication required" };
@@ -347,16 +376,9 @@ export async function verifyBackupEvent(eventId: string): Promise<ActionResult> 
     return { ok: false, error: "Finance users cannot verify backup events" };
   }
 
-  const { error } = await supabase
-    .from("backup_events")
-    .update({ status: "verified" })
-    .eq("id", eventId);
-
-  if (error) return { ok: false, error: error.message };
-
-  revalidatePath("/admin/operations");
-  revalidatePath("/admin/operations/backups");
-  return { ok: true };
+  // 'verified' is only reachable from 'successful' — the trigger sets
+  // verified_at/verified_by automatically on the transition.
+  return transitionBackupEvent(supabase, eventId, "successful", { status: "verified" });
 }
 
 export async function markBackupEventInProgress(eventId: string): Promise<ActionResult> {
@@ -366,14 +388,5 @@ export async function markBackupEventInProgress(eventId: string): Promise<Action
     return { ok: false, error: "Permission denied: Operational access required" };
   }
 
-  const { error } = await supabase
-    .from("backup_events")
-    .update({ status: "in_progress" })
-    .eq("id", eventId);
-
-  if (error) return { ok: false, error: error.message };
-
-  revalidatePath("/admin/operations");
-  revalidatePath("/admin/operations/backups");
-  return { ok: true };
+  return transitionBackupEvent(supabase, eventId, "expected", { status: "in_progress" });
 }

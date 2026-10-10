@@ -16,6 +16,13 @@ import {
 } from "lucide-react";
 import { Dialog } from "@/components/ux/dialog";
 import { StatusMark, type Tone } from "@/components/ux/primitives";
+import Link from "next/link";
+import {
+  sortPoliciesForAttention,
+  filterPolicies,
+  deriveBackupOpsSummary,
+  uncoveredSystems,
+} from "@/lib/operations/backups";
 import {
   createBackupPolicy,
   updateBackupPolicy,
@@ -49,7 +56,7 @@ export interface BackupPolicyItem {
   resource?: { id: string; name: string; resource_type: string; status: string } | null;
   service_agreement?: { id: string; name: string; status: string } | null;
   created_by_user?: { id: string; email: string; full_name?: string | null } | null;
-  health: "healthy" | "due" | "overdue" | "failed" | "unverified" | "inactive";
+  health: "healthy" | "due" | "overdue" | "failed" | "unverified" | "inactive" | "unknown";
   next_due_at: string | null;
   last_completed_at: string | null;
   last_verified_at: string | null;
@@ -118,6 +125,10 @@ export interface AuditEvent {
 
 interface Props {
   currentUserId: string;
+  /** True when a section's query failed — render Unavailable, never a false empty/zero state. */
+  policiesUnavailable: boolean;
+  healthUnavailable: boolean;
+  eventsUnavailable: boolean;
   policies: BackupPolicyItem[];
   events: BackupEventItem[];
   auditTrail: AuditEvent[];
@@ -142,6 +153,8 @@ function healthTone(health: string): Tone {
       return "danger";
     case "unverified":
       return "warning";
+    case "unknown":
+      return "neutral";
     case "inactive":
     default:
       return "neutral";
@@ -168,11 +181,15 @@ function eventStatusTone(status: string): Tone {
 }
 
 export default function BackupsManager({
+  policiesUnavailable,
+  healthUnavailable,
+  eventsUnavailable,
   policies,
   events,
   auditTrail,
   clients,
   resources,
+  systems,
   agreements,
   isAdmin,
   isFinance,
@@ -183,6 +200,7 @@ export default function BackupsManager({
   const [selectedPolicyId, setSelectedPolicyId] = useState<string | null>(policies[0]?.id || null);
   const [healthFilter, setHealthFilter] = useState<string>("all");
   const [clientFilter, setClientFilter] = useState<string>("all");
+  const [systemFilter, setSystemFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   // Modals
@@ -235,18 +253,17 @@ export default function BackupsManager({
   const availableResources = resources.filter((r) => !policyClientId || r.client_id === policyClientId);
   const availableAgreements = agreements.filter((a) => !policyClientId || a.client_id === policyClientId);
 
-  const filteredPolicies = policies.filter((p) => {
-    if (healthFilter !== "all" && p.health !== healthFilter) return false;
-    if (clientFilter !== "all" && p.client_id !== clientFilter) return false;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const matchName = p.name.toLowerCase().includes(q);
-      const matchClient = (p.client?.company_name || p.client?.email || "").toLowerCase().includes(q);
-      const matchResource = (p.resource?.name || "").toLowerCase().includes(q);
-      return matchName || matchClient || matchResource;
-    }
-    return true;
+  // Urgency ordering first (failed/overdue/unverified ahead of healthy),
+  // then the operator's filters.
+  const filteredPolicies = filterPolicies(sortPoliciesForAttention(policies), {
+    health: healthFilter,
+    clientId: clientFilter,
+    systemId: systemFilter,
+    query: searchQuery,
   });
+
+  const opsSummary = deriveBackupOpsSummary(policies);
+  const noCoverage = uncoveredSystems(systems, policies, resources);
 
   function resetPolicyForm() {
     setPolicyClientId("");
@@ -643,6 +660,52 @@ export default function BackupsManager({
         </div>
       )}
 
+      {/* Operational summary — only rendered when its data actually loaded */}
+      {!policiesUnavailable && (
+        <div className="ux-ops-stats ux-ops-stats--wide" style={{ marginBottom: "0.25rem" }}>
+          <div className="ux-ops-stat">
+            <span>Needs attention</span>
+            <b className={opsSummary.needsAttention > 0 ? "is-hot" : ""}>{opsSummary.needsAttention}</b>
+          </div>
+          <div className="ux-ops-stat">
+            <span>Failed</span>
+            <b className={opsSummary.failed > 0 ? "is-hot" : ""}>{opsSummary.failed}</b>
+          </div>
+          <div className="ux-ops-stat">
+            <span>Overdue</span>
+            <b className={opsSummary.overdue > 0 ? "is-hot" : ""}>{opsSummary.overdue}</b>
+          </div>
+          <div className="ux-ops-stat">
+            <span>Unverified</span>
+            <b className={opsSummary.unverified > 0 ? "is-warn" : ""}>{opsSummary.unverified}</b>
+          </div>
+          <div className="ux-ops-stat">
+            <span>No coverage</span>
+            <b className={noCoverage.length > 0 ? "is-warn" : ""}>{noCoverage.length}</b>
+          </div>
+        </div>
+      )}
+
+      {healthUnavailable && (
+        <p className="ux-muted" style={{ fontSize: "0.8125rem", margin: 0 }}>
+          Health derivation unavailable — policies shown as <b>unknown</b>; this is not a healthy state.{" "}
+          <Link href="/admin/operations/backups" className="ux-link">Retry</Link>
+        </p>
+      )}
+
+      {!policiesUnavailable && noCoverage.length > 0 && (
+        <p className="ux-muted" style={{ fontSize: "0.8125rem", margin: 0 }}>
+          <b>{noCoverage.length}</b> system{noCoverage.length === 1 ? "" : "s"} with no active backup policy:{" "}
+          {noCoverage.slice(0, 6).map((s, i) => (
+            <span key={s.id}>
+              {i > 0 && ", "}
+              <Link href={`/admin/systems/${s.id}`} className="ux-link">{s.name}</Link>
+            </span>
+          ))}
+          {noCoverage.length > 6 && ` +${noCoverage.length - 6} more`}
+        </p>
+      )}
+
       {/* Action Header & Filters */}
       <div
         style={{
@@ -680,6 +743,7 @@ export default function BackupsManager({
               <option value="overdue">Overdue</option>
               <option value="failed">Failed</option>
               <option value="unverified">Unverified</option>
+              <option value="unknown">Unknown</option>
               <option value="inactive">Inactive</option>
             </select>
 
@@ -692,6 +756,18 @@ export default function BackupsManager({
               <option value="all">All Clients</option>
               {clients.map((c) => (
                 <option key={c.id} value={c.id}>{c.company_name || c.full_name || c.email}</option>
+              ))}
+            </select>
+
+            <select
+              value={systemFilter}
+              onChange={(e) => setSystemFilter(e.target.value)}
+              className="ux-select"
+              style={{ fontSize: "0.8125rem", padding: "0.375rem 0.5rem", maxWidth: "220px" }}
+            >
+              <option value="all">All Systems</option>
+              {systems.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
               ))}
             </select>
           </div>
@@ -714,7 +790,22 @@ export default function BackupsManager({
         )}
       </div>
 
-      {/* Main Master-Detail Layout */}
+      {/* Main Master-Detail Layout — a failed policy query renders Unavailable, never a false empty list */}
+      {policiesUnavailable ? (
+        <div
+          style={{
+            border: "1px solid var(--border)",
+            borderRadius: "4px",
+            padding: "2.5rem",
+            textAlign: "center",
+            color: "var(--muted-foreground)",
+            fontSize: "0.8125rem",
+          }}
+        >
+          Backup policies unavailable — the data source could not be reached.{" "}
+          <Link href="/admin/operations/backups" className="ux-link">Retry</Link>
+        </div>
+      ) : (
       <div
         style={{
           display: "grid",
@@ -834,7 +925,17 @@ export default function BackupsManager({
                   </div>
                   <div style={{ fontSize: "0.8125rem", color: "var(--muted-foreground)" }}>
                     Client: <b>{activePolicy.client?.company_name || activePolicy.client?.email}</b>
-                    {activePolicy.system && <span> • System: <b>{activePolicy.system.name}</b></span>}
+                    {activePolicy.system && (
+                      <span>
+                        {" • System: "}
+                        <Link href={`/admin/systems/${activePolicy.system.id}`} className="ux-link">
+                          <b>{activePolicy.system.name}</b>
+                        </Link>
+                        {activePolicy.system.status === "suspended" && (
+                          <span> (<StatusMark tone="neutral">commercially suspended</StatusMark>)</span>
+                        )}
+                      </span>
+                    )}
                     {activePolicy.resource && <span> • Resource: <b>{activePolicy.resource.name}</b></span>}
                   </div>
                 </div>
@@ -952,6 +1053,15 @@ export default function BackupsManager({
                     {activePolicy.next_due_at ? new Date(activePolicy.next_due_at).toLocaleString() : "—"}
                   </div>
                 </div>
+                <div>
+                  <span className="ux-muted">Restore Test:</span>
+                  <div style={{ fontWeight: 600, marginTop: "0.125rem" }}>
+                    Not tracked
+                  </div>
+                  <span className="ux-muted" style={{ fontSize: "0.6875rem" }}>
+                    Verification confirms recorded evidence, not restorability.
+                  </span>
+                </div>
                 {activePolicy.last_failure_reason && (
                   <div>
                     <span className="ux-muted">Last Failure:</span>
@@ -1012,10 +1122,15 @@ export default function BackupsManager({
                   alignItems: "center",
                 }}
               >
-                <span>Backup events ({activePolicyEvents.length})</span>
+                <span>Backup events{eventsUnavailable ? "" : ` (${activePolicyEvents.length})`}</span>
               </div>
 
-              {activePolicyEvents.length === 0 ? (
+              {eventsUnavailable ? (
+                <div style={{ padding: "1.5rem", textAlign: "center", color: "var(--muted-foreground)", fontSize: "0.8125rem" }}>
+                  Events unavailable — the data source could not be reached.{" "}
+                  <Link href="/admin/operations/backups" className="ux-link">Retry</Link>
+                </div>
+              ) : activePolicyEvents.length === 0 ? (
                 <div style={{ padding: "1.5rem", textAlign: "center", color: "var(--muted-foreground)", fontSize: "0.8125rem" }}>
                   No backup events recorded for this resource.
                 </div>
@@ -1163,6 +1278,7 @@ export default function BackupsManager({
           </div>
         )}
       </div>
+      )}
 
       {/* Create Policy Modal */}
       {createModalOpen && (

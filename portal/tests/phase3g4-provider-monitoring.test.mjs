@@ -447,6 +447,36 @@ test("3G4-14 review_action_item transitions + staff allowed, client/finance deni
     "client review");
 });
 
+test("3G4-21 repeated acknowledge is an atomic no-op — first reviewer attribution preserved", async () => {
+  const db = await createDb();
+  await setup(db);
+  const { rows } = await asService(db, () => db.query(`
+    INSERT INTO public.action_items (source, event_type, severity, title, dedupe_key)
+    VALUES ('manual', 'general', 'warning', 'ack race signal', 'dedupe-ack') RETURNING id`));
+  const itemId = rows[0].id;
+
+  const first = await asService(db, async () =>
+    (await db.query(`SELECT public.review_action_item('${itemId}','acknowledge','${STAFF}') AS s`)).rows[0].s);
+  assert.equal(first, "acknowledged");
+
+  // A repeated acknowledge (stale UI / retried call / concurrent reviewer)
+  // must not overwrite the original acknowledged_by/at — atomic no-op.
+  const again = await asService(db, async () =>
+    (await db.query(`SELECT public.review_action_item('${itemId}','acknowledge','${ADMIN}') AS s`)).rows[0].s);
+  assert.equal(again, "acknowledged");
+
+  const { rows: row } = await asService(db, () =>
+    db.query(`SELECT status, acknowledged_by FROM public.action_items WHERE id = '${itemId}'`));
+  assert.equal(row[0].status, "acknowledged");
+  assert.equal(row[0].acknowledged_by, STAFF);
+
+  // Only one acknowledgement audit event was written — the no-op wrote nothing.
+  const { rows: audit } = await asService(db, () =>
+    db.query(`SELECT count(*)::int AS n FROM public.audit_logs
+      WHERE table_name = 'action_items' AND record_id = '${itemId}' AND action = 'provider_monitoring.signal_acknowledged'`));
+  assert.equal(audit[0].n, 1);
+});
+
 test("3G4-15 action_items readable by internal roles, not client", async () => {
   const db = await createDb();
   await setup(db);

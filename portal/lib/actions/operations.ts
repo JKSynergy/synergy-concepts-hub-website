@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { isAdmin as checkIsAdmin, isOperationalStaff, isFinance } from "@/lib/security/roles";
 import { INCIDENT_TRANSITIONS } from "@/lib/operations/incidents";
+import { TASK_TRANSITIONS } from "@/lib/operations/tasks";
 
 export type ActionResult<T = unknown> = {
   ok: boolean;
@@ -116,6 +117,17 @@ export async function createTask(
   if (!clientId) return { ok: false, error: "Client is required for operational tasks" };
   if (!title || title.length < 3) return { ok: false, error: "Title must be at least 3 characters" };
 
+  if (assignedTo) {
+    const { data: assignee } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", assignedTo)
+      .single();
+    if (!assignee || !isOperationalStaff(assignee.role)) {
+      return { ok: false, error: "Tasks can only be assigned to staff or administrators" };
+    }
+  }
+
   const { data, error } = await supabase
     .from("tasks")
     .insert({
@@ -171,7 +183,11 @@ export async function updateTask(
   }
 
   const updates: Record<string, unknown> = {};
-  if (input.title !== undefined) updates.title = input.title.trim();
+  if (input.title !== undefined) {
+    const title = input.title.trim();
+    if (title.length < 3) return { ok: false, error: "Title must be at least 3 characters" };
+    updates.title = title;
+  }
   if (input.description !== undefined) updates.description = input.description?.trim() || null;
   if (input.priority !== undefined) updates.priority = input.priority;
   if (input.dueAt !== undefined) updates.due_at = input.dueAt;
@@ -214,6 +230,17 @@ export async function assignTask(
     .eq("id", taskId)
     .single();
 
+  if (assignedTo) {
+    const { data: assignee } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", assignedTo)
+      .single();
+    if (!assignee || !isOperationalStaff(assignee.role)) {
+      return { ok: false, error: "Tasks can only be assigned to staff or administrators" };
+    }
+  }
+
   const nextStatus = assignedTo && currentTask?.status === "open" ? "assigned" : undefined;
 
   const updates: Record<string, unknown> = { assigned_to: assignedTo };
@@ -231,34 +258,93 @@ export async function assignTask(
   return { ok: true };
 }
 
-export async function startTask(taskId: string): Promise<ActionResult> {
-  const supabase = await createClient();
+/**
+ * Authorize a task-mutating action: the caller must be operational staff
+ * (admin or staff — never finance or a client), and a staff caller may only
+ * act on tasks assigned to them or unassigned tasks. Mirrors RLS
+ * `tasks_update_staff` + `trg_task_lifecycle`, enforced at the action layer
+ * so unauthorized calls fail before touching the row.
+ */
+async function authorizeTaskMutation(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  taskId: string
+): Promise<
+  | { ok: true; userId: string; admin: boolean }
+  | { ok: false; error: string }
+> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Authentication required" };
 
-  const { error } = await supabase
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if (!isOperationalStaff(profile?.role)) {
+    return { ok: false, error: "Permission denied: Operational access required" };
+  }
+
+  if (!checkIsAdmin(profile?.role)) {
+    const { data: task } = await supabase
+      .from("tasks")
+      .select("assigned_to")
+      .eq("id", taskId)
+      .single();
+    if (task?.assigned_to && task.assigned_to !== user.id) {
+      return { ok: false, error: "Permission denied: This task is assigned to another staff member" };
+    }
+  }
+
+  return { ok: true, userId: user.id, admin: checkIsAdmin(profile?.role) };
+}
+
+/**
+ * Apply a guarded status transition: the UPDATE only lands if the task is
+ * currently in one of the action's allowed from-statuses. An invalid, stale,
+ * or retried transition matches zero rows — no write, no duplicate audit
+ * event, no appended status note.
+ */
+async function transitionTask(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  taskId: string,
+  action: keyof typeof TASK_TRANSITIONS,
+  updates: Record<string, unknown>
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data, error } = await supabase
     .from("tasks")
-    .update({
-      status: "in_progress",
-      started_at: new Date().toISOString(),
-    })
-    .eq("id", taskId);
+    .update(updates)
+    .eq("id", taskId)
+    .in("status", [...TASK_TRANSITIONS[action]])
+    .select("id");
 
   if (error) return { ok: false, error: error.message };
+  if (!data || data.length === 0) {
+    return { ok: false, error: "This transition is not available for the task's current state" };
+  }
 
   revalidatePath("/admin/operations");
   revalidatePath("/admin/operations/tasks");
   return { ok: true };
 }
 
+export async function startTask(taskId: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const authz = await authorizeTaskMutation(supabase, taskId);
+  if (!authz.ok) return authz;
+
+  return transitionTask(supabase, taskId, "start", {
+    status: "in_progress",
+    started_at: new Date().toISOString(),
+  });
+}
+
 export async function blockTask(taskId: string, reason?: string | null): Promise<ActionResult> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Authentication required" };
+  const authz = await authorizeTaskMutation(supabase, taskId);
+  if (!authz.ok) return authz;
 
   const updates: Record<string, unknown> = { status: "blocked" };
   if (reason) {
@@ -267,24 +353,13 @@ export async function blockTask(taskId: string, reason?: string | null): Promise
     updates.description = existing;
   }
 
-  const { error } = await supabase
-    .from("tasks")
-    .update(updates)
-    .eq("id", taskId);
-
-  if (error) return { ok: false, error: error.message };
-
-  revalidatePath("/admin/operations");
-  revalidatePath("/admin/operations/tasks");
-  return { ok: true };
+  return transitionTask(supabase, taskId, "block", updates);
 }
 
 export async function completeTask(taskId: string, notes?: string | null): Promise<ActionResult> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Authentication required" };
+  const authz = await authorizeTaskMutation(supabase, taskId);
+  if (!authz.ok) return authz;
 
   const updates: Record<string, unknown> = {
     status: "completed",
@@ -297,32 +372,14 @@ export async function completeTask(taskId: string, notes?: string | null): Promi
     updates.description = existing;
   }
 
-  const { error } = await supabase
-    .from("tasks")
-    .update(updates)
-    .eq("id", taskId);
-
-  if (error) return { ok: false, error: error.message };
-
-  revalidatePath("/admin/operations");
-  revalidatePath("/admin/operations/tasks");
-  return { ok: true };
+  return transitionTask(supabase, taskId, "complete", updates);
 }
 
 export async function cancelTask(taskId: string, reason?: string | null): Promise<ActionResult> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Authentication required" };
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (!checkIsAdmin(profile?.role)) {
+  const authz = await authorizeTaskMutation(supabase, taskId);
+  if (!authz.ok) return authz;
+  if (!authz.admin) {
     return { ok: false, error: "Permission denied: Only administrators can cancel operational tasks" };
   }
 
@@ -337,16 +394,7 @@ export async function cancelTask(taskId: string, reason?: string | null): Promis
     updates.description = existing;
   }
 
-  const { error } = await supabase
-    .from("tasks")
-    .update(updates)
-    .eq("id", taskId);
-
-  if (error) return { ok: false, error: error.message };
-
-  revalidatePath("/admin/operations");
-  revalidatePath("/admin/operations/tasks");
-  return { ok: true };
+  return transitionTask(supabase, taskId, "cancel", updates);
 }
 
 // ============================================================================

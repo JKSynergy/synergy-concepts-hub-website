@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   CheckSquare,
@@ -20,6 +21,7 @@ import {
 } from "lucide-react";
 import { Dialog } from "@/components/ux/dialog";
 import { StatusMark, type Tone } from "@/components/ux/primitives";
+import { sortTasksForWorkspace, filterTasks, deriveTaskWorkspaceSummary, isTaskOverdue } from "@/lib/operations/tasks";
 import {
   createTask,
   assignTask,
@@ -125,6 +127,10 @@ interface Props {
   isAdmin: boolean;
   isFinance: boolean;
   isStaff: boolean;
+  /** True when a section's query failed — render Unavailable, never a false empty/zero state. */
+  tasksUnavailable: boolean;
+  optionsUnavailable: boolean;
+  auditUnavailable: boolean;
 }
 
 function taskStatusTone(status: string): Tone {
@@ -172,12 +178,18 @@ export default function TasksManager({
   isAdmin,
   isFinance,
   isStaff,
+  tasksUnavailable,
+  optionsUnavailable,
+  auditUnavailable,
 }: Props) {
   const router = useRouter();
 
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(tasks[0]?.id || null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
+  const [dueFilter, setDueFilter] = useState<string>("all");
+  const [systemFilter, setSystemFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   // Modals
@@ -220,19 +232,18 @@ export default function TasksManager({
   const availableIncidents = incidents.filter((i) => !taskClientId || i.client_id === taskClientId);
   const availableSuspensions = suspensionCases.filter((s) => !taskClientId || s.client_id === taskClientId);
 
-  // Filtered tasks list
-  const filteredTasks = tasks.filter((t) => {
-    if (statusFilter !== "all" && t.status !== statusFilter) return false;
-    if (priorityFilter !== "all" && t.priority !== priorityFilter) return false;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const matchTitle = t.title.toLowerCase().includes(q);
-      const matchClient = (t.client?.company_name || t.client?.email || "").toLowerCase().includes(q);
-      const matchSystem = (t.system?.name || "").toLowerCase().includes(q);
-      return matchTitle || matchClient || matchSystem;
-    }
-    return true;
-  });
+  // Operational ordering (overdue → active → assigned → unassigned → terminal),
+  // then filters. sortTasksForWorkspace shares the Overview's attention order.
+  const taskSummary = deriveTaskWorkspaceSummary(tasks);
+  const sortedTasks = sortTasksForWorkspace(tasks);
+  const filteredTasks = filterTasks(sortedTasks, {
+    status: statusFilter,
+    priority: priorityFilter,
+    assignee: assigneeFilter,
+    due: dueFilter,
+    systemId: systemFilter,
+    search: searchQuery,
+  }, { currentUserId });
 
   // Permission helpers
   const isAssignedToMe = activeTask?.assigned_to === currentUserId;
@@ -467,6 +478,42 @@ export default function TasksManager({
               <option value="high">High</option>
               <option value="urgent">Urgent</option>
             </select>
+
+            <select
+              value={assigneeFilter}
+              onChange={(e) => setAssigneeFilter(e.target.value)}
+              className="ux-select"
+              style={{ fontSize: "0.8125rem", padding: "0.375rem 0.5rem" }}
+            >
+              <option value="all">All Assignees</option>
+              <option value="mine">Assigned to me</option>
+              <option value="unassigned">Unassigned</option>
+              {staffOptions.map((s) => (
+                <option key={s.id} value={s.id}>{s.label}</option>
+              ))}
+            </select>
+
+            <select
+              value={dueFilter}
+              onChange={(e) => setDueFilter(e.target.value)}
+              className="ux-select"
+              style={{ fontSize: "0.8125rem", padding: "0.375rem 0.5rem" }}
+            >
+              <option value="all">All Deadlines</option>
+              <option value="overdue">Overdue</option>
+            </select>
+
+            <select
+              value={systemFilter}
+              onChange={(e) => setSystemFilter(e.target.value)}
+              className="ux-select"
+              style={{ fontSize: "0.8125rem", padding: "0.375rem 0.5rem" }}
+            >
+              <option value="all">All Systems</option>
+              {systems.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -486,7 +533,46 @@ export default function TasksManager({
         )}
       </div>
 
-      {/* Main Master-Detail Layout */}
+      {optionsUnavailable && (
+        <div
+          style={{
+            padding: "0.625rem 1rem",
+            border: "1px solid var(--border)",
+            fontSize: "0.8125rem",
+            color: "var(--muted-foreground)",
+          }}
+        >
+          Some reference data is unavailable — assignment and linking options may be incomplete.{" "}
+          <button type="button" onClick={() => router.refresh()} className="ux-link">Retry</button>
+        </div>
+      )}
+
+      {/* Work summary — counts reflect all tasks, not the filtered list */}
+      {!tasksUnavailable && tasks.length > 0 && (
+        <div style={{ fontSize: "0.8125rem", color: "var(--muted-foreground)", display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+          <span><b style={{ color: "var(--foreground)" }}>{taskSummary.actionable}</b> actionable</span>
+          {taskSummary.overdue > 0 && <span><b style={{ color: "#b91c1c" }}>{taskSummary.overdue}</b> overdue</span>}
+          {taskSummary.unassigned > 0 && <span><b style={{ color: "var(--foreground)" }}>{taskSummary.unassigned}</b> unassigned</span>}
+          {taskSummary.blocked > 0 && <span><b style={{ color: "#b45309" }}>{taskSummary.blocked}</b> blocked</span>}
+        </div>
+      )}
+
+      {/* Main Master-Detail Layout — a failed query renders Unavailable, never a false empty list */}
+      {tasksUnavailable ? (
+        <div
+          style={{
+            border: "1px solid var(--border)",
+            borderRadius: "4px",
+            padding: "2.5rem",
+            textAlign: "center",
+            color: "var(--muted-foreground)",
+            fontSize: "0.8125rem",
+          }}
+        >
+          Tasks unavailable — the data source could not be reached.{" "}
+          <button type="button" onClick={() => router.refresh()} className="ux-link">Retry</button>
+        </div>
+      ) : (
       <div
         style={{
           display: "grid",
@@ -547,6 +633,7 @@ export default function TasksManager({
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.25rem" }}>
                       <span style={{ fontWeight: 600, fontSize: "0.875rem" }}>{t.title}</span>
                       <div style={{ display: "flex", gap: "0.375rem" }}>
+                        {isTaskOverdue(t, Date.now()) && <StatusMark tone="danger">overdue</StatusMark>}
                         <StatusMark tone={taskPriorityTone(t.priority)}>{t.priority}</StatusMark>
                         <StatusMark tone={taskStatusTone(t.status)}>{t.status}</StatusMark>
                       </div>
@@ -602,10 +689,17 @@ export default function TasksManager({
                       <StatusMark tone={taskStatusTone(activeTask.status)}>{activeTask.status}</StatusMark>
                     </span>
                     <StatusMark tone={taskPriorityTone(activeTask.priority)}>{activeTask.priority}</StatusMark>
+                    {isTaskOverdue(activeTask, Date.now()) && <StatusMark tone="danger">overdue</StatusMark>}
                   </div>
                   <div style={{ fontSize: "0.8125rem", color: "var(--muted-foreground)" }}>
                     Client: <b>{activeTask.client?.company_name || activeTask.client?.email}</b>
-                    {activeTask.system && <span> • System: <b>{activeTask.system.name}</b></span>}
+                    {activeTask.system && (
+                      <span> • System:{" "}
+                        <Link href={`/admin/systems/${activeTask.system.id}`} className="ux-link">
+                          <b>{activeTask.system.name}</b>
+                        </Link>
+                      </span>
+                    )}
                     {activeTask.resource && <span> • Resource: <b>{activeTask.resource.name}</b></span>}
                   </div>
                 </div>
@@ -767,12 +861,16 @@ export default function TasksManager({
                   )}
                   {activeTask.incident && (
                     <div style={{ background: "var(--surface)", padding: "0.5rem 0.75rem", borderRadius: "4px", border: "1px solid var(--border)" }}>
-                      <span className="ux-muted">Parent Incident:</span> <b>{activeTask.incident.title}</b>
+                      <span className="ux-muted">Parent Incident:</span>{" "}
+                      <Link href="/admin/operations/incidents" className="ux-link"><b>{activeTask.incident.title}</b></Link>
+                      {" "}<span className="ux-muted">({activeTask.incident.severity} • {activeTask.incident.status})</span>
                     </div>
                   )}
                   {activeTask.suspension_case && (
                     <div style={{ background: "var(--surface)", padding: "0.5rem 0.75rem", borderRadius: "4px", border: "1px solid var(--border)" }}>
-                      <span className="ux-muted">Suspension Case:</span> <b>{activeTask.suspension_case.reason}</b>
+                      <span className="ux-muted">Suspension Case:</span>{" "}
+                      <Link href="/admin/operations/suspensions" className="ux-link"><b>{activeTask.suspension_case.reason}</b></Link>
+                      {" "}<span className="ux-muted">({activeTask.suspension_case.status})</span>
                     </div>
                   )}
                 </div>
@@ -801,7 +899,12 @@ export default function TasksManager({
               <div style={{ marginTop: "1.25rem" }}>
                 <span className="ux-muted" style={{ fontSize: "0.8125rem", fontWeight: 600 }}>Activity History:</span>
                 {isAdmin ? (
-                  activeTaskAudit.length > 0 ? (
+                  auditUnavailable ? (
+                    <div className="ux-muted" style={{ fontSize: "0.8125rem", marginTop: "0.375rem" }}>
+                      Unavailable — activity history could not be loaded.{" "}
+                      <button type="button" onClick={() => router.refresh()} className="ux-link">Retry</button>
+                    </div>
+                  ) : activeTaskAudit.length > 0 ? (
                     <div
                       style={{
                         marginTop: "0.375rem",
@@ -852,6 +955,7 @@ export default function TasksManager({
           </div>
         )}
       </div>
+      )}
 
       {/* Create Task Modal */}
       {createModalOpen && (

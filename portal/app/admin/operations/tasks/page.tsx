@@ -28,8 +28,8 @@ export default async function TasksPage() {
   const isFinanceUser = isFinance(profile.role);
   const isStaffUser = isOperationalStaff(profile.role) && !isAdmin;
 
-  // 1. Fetch Tasks
-  const { data: tasksData } = await supabase
+  // 1. Fetch Tasks — keep the query error: a failed fetch is not an empty list.
+  const { data: tasksData, error: tasksError } = await supabase
     .from("tasks")
     .select(`
       id, client_id, system_id, resource_id, service_agreement_id, incident_id, suspension_case_id,
@@ -46,51 +46,56 @@ export default async function TasksPage() {
     `)
     .order("created_at", { ascending: false });
 
-  // 2. Fetch Option Reference Data
-  const { data: clientsData } = await supabase
+  // 2. Fetch Option Reference Data — errors are surfaced, not silently empty
+  const { data: clientsData, error: clientsError } = await supabase
     .from("profiles")
     .select("id, email, company_name, full_name")
     .eq("role", "client")
     .order("company_name");
 
-  const { data: systemsData } = await supabase
+  const { data: systemsData, error: systemsError } = await supabase
     .from("systems")
     .select("id, name, client_id")
     .order("name");
 
-  const { data: resourcesData } = await supabase
+  const { data: resourcesData, error: resourcesError } = await supabase
     .from("resources")
     .select("id, name, client_id, system_id")
     .order("name");
 
-  const { data: agreementsData } = await supabase
+  const { data: agreementsData, error: agreementsError } = await supabase
     .from("service_agreements")
     .select("id, name, client_id")
     .order("name");
 
-  const { data: incidentsData } = await supabase
+  const { data: incidentsData, error: incidentsError } = await supabase
     .from("incidents")
     .select("id, title, client_id")
     .order("title");
 
-  const { data: suspensionsData } = await supabase
+  const { data: suspensionsData, error: suspensionsError } = await supabase
     .from("suspension_cases")
     .select("id, reason, client_id")
     .order("created_at", { ascending: false });
 
-  const { data: staffData } = await supabase
+  const { data: staffData, error: staffError } = await supabase
     .from("profiles")
     .select("id, email, full_name, role")
     .in("role", ["staff", "admin"])
     .order("full_name");
 
   // Audit history (audit_logs is admin-only under RLS; empty for other roles)
-  const { data: taskAuditData } = await supabase
+  const { data: taskAuditData, error: taskAuditError } = await supabase
     .from("audit_logs")
     .select("id, action, record_id, created_at, actor:profiles!actor_id(full_name, email)")
     .eq("table_name", "tasks")
     .order("created_at", { ascending: false })
     .limit(300);
+
+  const optionsUnavailable = Boolean(
+    clientsError || systemsError || resourcesError || agreementsError ||
+    incidentsError || suspensionsError || staffError
+  );
 
   const formattedTasks: TaskItem[] = (tasksData ?? []).map((t) => ({
     ...t,
@@ -134,6 +139,9 @@ export default async function TasksPage() {
         isAdmin={isAdmin}
         isFinance={isFinanceUser}
         isStaff={isStaffUser}
+        tasksUnavailable={Boolean(tasksError)}
+        optionsUnavailable={optionsUnavailable}
+        auditUnavailable={isAdmin && Boolean(taskAuditError)}
       />
     </div>
   );

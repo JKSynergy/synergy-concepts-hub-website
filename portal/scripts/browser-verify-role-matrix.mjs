@@ -43,7 +43,16 @@ async function confirmRemoteTarget() {
   if (!expectedRef) {
     throw new Error("Remote mode refused: set MATRIX_EXPECT_SUPABASE_REF to the Supabase project ref the target must use.");
   }
-  const res = await fetch(`${BASE}/login`, { redirect: "manual", signal: AbortSignal.timeout(15000) });
+  let res = null, lastErr = null;
+  for (let attempt = 0; attempt < 4 && !res; attempt++) {
+    try {
+      res = await fetch(`${BASE}/login`, { redirect: "manual", signal: AbortSignal.timeout(20000) });
+    } catch (e) {
+      lastErr = e;
+      await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+    }
+  }
+  if (!res) throw new Error(`Could not reach ${BASE} after 4 attempts: ${lastErr?.message}`);
   const csp = res.headers.get("content-security-policy-report-only") || "";
   const hosts = new Set([...csp.matchAll(/(?:https|wss):\/\/([a-z0-9-]+)\.supabase\.co/gi)].map((m) => m[1].toLowerCase()));
   if (!hosts.has(expectedRef.toLowerCase())) {
@@ -161,21 +170,23 @@ async function visit(ws, path, marker) {
   // can contain marker strings, causing stale-body reads.
   await evalJs(ws, "window.__schNavToken = '1'");
   await sendCdp(ws, "Page.navigate", { url: `${BASE}${path}` });
+  // Read only the page-content container — nav link text can contain marker
+  // strings ("Provider Actions", "Operations") and the shell streams first.
+  const contentJs = "document.querySelector('.ux-page')?.innerText ?? document.body?.innerText ?? ''";
   const deadline = Date.now() + 45000;
   let url = "", lastBody = null, stableSince = null;
   while (Date.now() < deadline) {
     const swapped = (await evalJs(ws, "typeof window.__schNavToken === 'undefined'")) === true;
     url = (await evalJs(ws, "window.location.href")) || "";
-    const body = swapped ? ((await evalJs(ws, "document.body ? document.body.innerText : ''")) || "") : "";
+    const body = swapped ? ((await evalJs(ws, contentJs)) || "") : "";
     if (swapped && new URL(url, BASE).pathname === path && body.toLowerCase().includes(marker.toLowerCase())) {
-      // RSC streams the shell (nav contains marker text) before content —
-      // wait until the rendered body stops changing.
+      // RSC streams in chunks — wait until the rendered content stops changing.
       if (body === lastBody && stableSince && Date.now() - stableSince > 700) return { body, url };
       if (body !== lastBody) { lastBody = body; stableSince = Date.now(); }
     }
     await new Promise((r) => setTimeout(r, 350));
   }
-  const body = lastBody ?? ((await evalJs(ws, "document.body ? document.body.innerText : ''")) || "");
+  const body = lastBody ?? ((await evalJs(ws, contentJs)) || "");
   return { body, url };
 }
 

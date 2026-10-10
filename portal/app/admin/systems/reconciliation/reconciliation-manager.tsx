@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { GitCompareArrows, Check, X, EyeOff, ThumbsUp, Play, RefreshCw } from "lucide-react";
 import { Dialog } from "@/components/ux/dialog";
@@ -11,6 +11,7 @@ import {
   applyReconciliationItem,
   type ReviewDecision,
 } from "@/lib/actions/provider-reconciliation";
+import { sortReconItemsForAttention } from "@/lib/operations/action-center";
 
 export interface ReconItem {
   id: string;
@@ -60,6 +61,10 @@ interface Props {
   accounts: { id: string; provider_name: string | null; account_name: string }[];
   isAdmin: boolean;
   isFinance: boolean;
+  /** True when a section's query failed — render Unavailable, never a false empty list. */
+  itemsUnavailable: boolean;
+  runsUnavailable: boolean;
+  accountsUnavailable: boolean;
 }
 
 const CHANGE_LABELS: Record<string, string> = {
@@ -105,7 +110,15 @@ function snapshotField(s: Record<string, unknown> | null, key: string): string {
   return v == null ? "—" : String(v);
 }
 
-export default function ReconciliationManager({ items, runs, accounts, isAdmin }: Props) {
+export default function ReconciliationManager({
+  items,
+  runs,
+  accounts,
+  isAdmin,
+  itemsUnavailable,
+  runsUnavailable,
+  accountsUnavailable,
+}: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -113,7 +126,12 @@ export default function ReconciliationManager({ items, runs, accounts, isAdmin }
   const [detailFor, setDetailFor] = useState<ReconItem | null>(null);
   const [reconAccount, setReconAccount] = useState("");
 
-  const actionable = items.filter((i) => i.review_status !== "not_required");
+  // Pending review decisions lead the list, oldest first — display ordering
+  // only; review/apply transitions are enforced by the reconciliation RPCs.
+  const actionable = useMemo(
+    () => sortReconItemsForAttention(items.filter((i) => i.review_status !== "not_required")),
+    [items]
+  );
   const pending = actionable.filter((i) => ["pending_review", "acknowledged", "approved"].includes(i.review_status));
 
   async function run(fn: () => Promise<{ ok: boolean; error?: string; data?: unknown }>, okMsg?: string) {
@@ -167,7 +185,12 @@ export default function ReconciliationManager({ items, runs, accounts, isAdmin }
             <button className="ux-button" data-action="reconcile" disabled={busy || !reconAccount} onClick={onReconcile}>
               <RefreshCw size={14} /> Reconcile
             </button>
-            <span className="ux-muted">Manual only — reconciliation never runs on a schedule.</span>
+            <span className="ux-muted">
+              Manual only — reconciliation never runs on a schedule.
+              {accountsUnavailable && (
+                <><br /><span style={{ color: "#b91c1c" }}>Provider accounts unavailable — retry to run reconciliation.</span></>
+              )}
+            </span>
           </div>
         </div>
       )}
@@ -175,9 +198,14 @@ export default function ReconciliationManager({ items, runs, accounts, isAdmin }
       <div className="ux-card">
         <div className="ux-card-header">
           <h2>Reconciliation items</h2>
-          <p className="ux-muted">{pending.length} awaiting review</p>
+          <p className="ux-muted">{itemsUnavailable ? "—" : `${pending.length} awaiting review`}</p>
         </div>
-        {actionable.length === 0 ? (
+        {itemsUnavailable ? (
+          <p className="ux-muted" style={{ padding: "1rem" }}>
+            Unavailable — reconciliation findings could not be loaded. A failed query is not the same as no findings.{" "}
+            <button type="button" onClick={() => router.refresh()} className="ux-link">Retry</button>
+          </p>
+        ) : actionable.length === 0 ? (
           <p className="ux-muted" style={{ padding: "1rem" }}>No reconciliation findings yet.</p>
         ) : (
           <div className="ux-tablewrap">
@@ -258,7 +286,16 @@ export default function ReconciliationManager({ items, runs, accounts, isAdmin }
         )}
       </div>
 
-      {runs.length > 0 && (
+      {runsUnavailable && (
+        <div className="ux-card">
+          <div className="ux-card-header"><h2>Reconciliation runs</h2></div>
+          <p className="ux-muted" style={{ padding: "1rem" }}>
+            Unavailable — run history could not be loaded.{" "}
+            <button type="button" onClick={() => router.refresh()} className="ux-link">Retry</button>
+          </p>
+        </div>
+      )}
+      {!runsUnavailable && runs.length > 0 && (
         <div className="ux-card">
           <div className="ux-card-header"><h2>Reconciliation runs</h2></div>
           <div className="ux-tablewrap">

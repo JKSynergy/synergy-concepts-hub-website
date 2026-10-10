@@ -124,3 +124,40 @@ export function sortProposalsForAttention<T extends OperationProposalRow>(propos
     return a.id.localeCompare(b.id);
   });
 }
+
+// ─── Provider reconciliation items ──────────────────────────────────────────
+
+export interface ReconItemRow {
+  id: string;
+  review_status: string;
+  basis_stale?: boolean | null;
+  created_at?: string | null;
+}
+
+/**
+ * Review-queue ordering: proposals awaiting a human first —
+ * pending_review → acknowledged → approved (awaiting apply) → terminal
+ * (applied/rejected/dismissed/stale/not_required). Oldest first within
+ * pending groups so stale findings don't hide under fresh history.
+ * Display-only: review transitions are enforced by
+ * review_reconciliation_item / apply_reconciliation_item.
+ */
+const RECON_GROUP: Record<string, number> = {
+  pending_review: 0,
+  acknowledged: 1,
+  approved: 2,
+};
+
+export function sortReconItemsForAttention<T extends ReconItemRow>(items: T[]): T[] {
+  return [...items].sort((a, b) => {
+    const ga = RECON_GROUP[a.review_status] ?? 3;
+    const gb = RECON_GROUP[b.review_status] ?? 3;
+    if (ga !== gb) return ga - gb;
+    const d =
+      ga === 3
+        ? new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime()
+        : new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime();
+    if (d !== 0) return d;
+    return a.id.localeCompare(b.id);
+  });
+}

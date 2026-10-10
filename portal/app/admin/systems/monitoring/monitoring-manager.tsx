@@ -13,6 +13,7 @@ import {
   changeMonitoringScheduleFrequency,
   runMonitoringNow,
 } from "@/lib/actions/provider-monitoring";
+import { sortActionItems } from "@/lib/operations/action-center";
 
 export interface MonitoringSchedule {
   schedule_id: string;
@@ -96,6 +97,12 @@ interface Props {
   accounts: ScheduleAccount[];
   isAdmin: boolean;
   isFinance: boolean;
+  /** True when a section's query failed — render Unavailable, never a false empty/healthy state. */
+  systemHealthUnavailable: boolean;
+  schedulesUnavailable: boolean;
+  runsUnavailable: boolean;
+  signalsUnavailable: boolean;
+  accountsUnavailable: boolean;
 }
 
 const FREQUENCIES = [
@@ -143,7 +150,19 @@ function healthOf(s: MonitoringSchedule): { label: string; tone: Tone } {
   return { label: s.last_run_status, tone: "neutral" };
 }
 
-export default function MonitoringManager({ systemHealth, schedules, runs, signals, accounts, isAdmin }: Props) {
+export default function MonitoringManager({
+  systemHealth,
+  schedules,
+  runs,
+  signals,
+  accounts,
+  isAdmin,
+  systemHealthUnavailable,
+  schedulesUnavailable,
+  runsUnavailable,
+  signalsUnavailable,
+  accountsUnavailable,
+}: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -152,6 +171,9 @@ export default function MonitoringManager({ systemHealth, schedules, runs, signa
   const [accountId, setAccountId] = useState("");
   const [frequency, setFrequency] = useState<string>("every_12_hours");
   const [enabled, setEnabled] = useState(false);
+
+  // Open signals ordered by operational urgency — same ordering as Action Center.
+  const sortedSignals = useMemo(() => sortActionItems(signals), [signals]);
 
   const scheduledAccounts = useMemo(
     () => new Set(schedules.map((s) => s.provider_account_id)),
@@ -206,6 +228,12 @@ export default function MonitoringManager({ systemHealth, schedules, runs, signa
           <h2>System Health</h2>
           <p className="ux-muted">Derived from explicitly linked provider evidence; not an uptime check.</p>
         </div>
+        {systemHealthUnavailable ? (
+          <p className="ux-muted" style={{ padding: "1rem" }}>
+            Unavailable — system health could not be computed.{" "}
+            <button type="button" onClick={() => router.refresh()} className="ux-link">Retry</button>
+          </p>
+        ) : (
         <div className="ux-tablewrap">
           <table className="ux-table">
             <thead><tr><th>System</th><th>Client</th><th>Health</th><th>Infrastructure</th><th>Attention</th><th>Last evidence</th></tr></thead>
@@ -223,9 +251,16 @@ export default function MonitoringManager({ systemHealth, schedules, runs, signa
             </tbody>
           </table>
         </div>
+        )}
       </div>
 
-      {isAdmin && unscheduled.length > 0 && (
+      {isAdmin && accountsUnavailable && (
+        <p className="ux-muted" style={{ marginBottom: "1rem", fontSize: "0.8125rem" }}>
+          Provider accounts unavailable — the schedule form cannot load targets.{" "}
+          <button type="button" onClick={() => router.refresh()} className="ux-link">Retry</button>
+        </p>
+      )}
+      {isAdmin && !accountsUnavailable && unscheduled.length > 0 && (
         <div className="ux-card" style={{ marginBottom: "1rem" }}>
           <div className="ux-card-header"><h2>Add monitoring schedule</h2></div>
           <div style={{ padding: "0 1rem 1rem", display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
@@ -240,9 +275,16 @@ export default function MonitoringManager({ systemHealth, schedules, runs, signa
       <div className="ux-card">
         <div className="ux-card-header">
           <h2>Monitoring schedules</h2>
-          <p className="ux-muted">{schedules.filter((s) => s.enabled).length} enabled</p>
+          <p className="ux-muted">
+            {schedulesUnavailable ? "—" : `${schedules.filter((s) => s.enabled).length} enabled`}
+          </p>
         </div>
-        {schedules.length === 0 ? (
+        {schedulesUnavailable ? (
+          <p className="ux-muted" style={{ padding: "1rem" }}>
+            Unavailable — schedules could not be loaded. This is not the same as no monitoring being configured.{" "}
+            <button type="button" onClick={() => router.refresh()} className="ux-link">Retry</button>
+          </p>
+        ) : schedules.length === 0 ? (
           <p className="ux-muted" style={{ padding: "1rem" }}>
             No monitoring schedules configured. {isAdmin ? "Add one to start periodic observation." : ""}
           </p>
@@ -348,9 +390,14 @@ export default function MonitoringManager({ systemHealth, schedules, runs, signa
       <div className="ux-card" style={{ marginTop: "1rem" }}>
         <div className="ux-card-header">
           <h2><Bell size={16} style={{ verticalAlign: "-2px" }} /> Open monitoring signals</h2>
-          <p className="ux-muted">{signals.length} open</p>
+          <p className="ux-muted">{signalsUnavailable ? "—" : `${signals.length} open`}</p>
         </div>
-        {signals.length === 0 ? (
+        {signalsUnavailable ? (
+          <p className="ux-muted" style={{ padding: "1rem" }}>
+            Unavailable — the signals feed could not be loaded. A failed query is not evidence of zero alerts.{" "}
+            <button type="button" onClick={() => router.refresh()} className="ux-link">Retry</button>
+          </p>
+        ) : signals.length === 0 ? (
           <p className="ux-muted" style={{ padding: "1rem" }}>No open monitoring signals.</p>
         ) : (
           <div className="ux-tablewrap">
@@ -362,7 +409,7 @@ export default function MonitoringManager({ systemHealth, schedules, runs, signa
                 </tr>
               </thead>
               <tbody>
-                {signals.map((g) => (
+                {sortedSignals.map((g) => (
                   <tr key={g.id} data-signal={g.id}>
                     <td><StatusMark tone={sevTone(g.severity)}>{g.severity}</StatusMark></td>
                     <td>
@@ -388,9 +435,14 @@ export default function MonitoringManager({ systemHealth, schedules, runs, signa
       <div className="ux-card" style={{ marginTop: "1rem" }}>
         <div className="ux-card-header">
           <h2><Activity size={16} style={{ verticalAlign: "-2px" }} /> Monitoring history</h2>
-          <p className="ux-muted">{runs.length} recent runs</p>
+          <p className="ux-muted">{runsUnavailable ? "—" : `${runs.length} recent runs`}</p>
         </div>
-        {runs.length === 0 ? (
+        {runsUnavailable ? (
+          <p className="ux-muted" style={{ padding: "1rem" }}>
+            Unavailable — run history could not be loaded.{" "}
+            <button type="button" onClick={() => router.refresh()} className="ux-link">Retry</button>
+          </p>
+        ) : runs.length === 0 ? (
           <p className="ux-muted" style={{ padding: "1rem" }}>No monitoring runs yet.</p>
         ) : (
           <div className="ux-tablewrap">

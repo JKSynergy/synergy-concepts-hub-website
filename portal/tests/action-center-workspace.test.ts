@@ -15,8 +15,10 @@ import {
   ACTION_ITEM_DECISIONS,
   ACTIONABLE_SIGNAL_STATUSES,
   sortProposalsForAttention,
+  sortReconItemsForAttention,
   type ActionItemRow,
   type OperationProposalRow,
+  type ReconItemRow,
 } from "../lib/operations/action-center.ts";
 
 const NOW = new Date("2026-10-20T12:00:00.000Z").getTime();
@@ -142,4 +144,24 @@ test("verification_failed groups with failed — it needs attention, not celebra
   assert.equal(sorted.indexOf(sorted.find((p) => p.id === "verifFailed")!) <
     sorted.indexOf(sorted.find((p) => p.id === "verified")!), true);
   assert.equal(sorted[0].id, "proposed");
+});
+
+// ─── Reconciliation review-queue ordering ───────────────────────────────────
+
+function recon(partial: Partial<ReconItemRow> & { id: string }): ReconItemRow {
+  return { review_status: "pending_review", created_at: iso(0), ...partial };
+}
+
+test("reconciliation items surface pending_review → acknowledged → approved → terminal", () => {
+  const sorted = sortReconItemsForAttention([
+    recon({ id: "applied", review_status: "applied", created_at: iso(-1 * H) }),
+    recon({ id: "approved", review_status: "approved", created_at: iso(-3 * H) }),
+    recon({ id: "pendingOld", review_status: "pending_review", created_at: iso(-40 * H) }),
+    recon({ id: "pendingNew", review_status: "pending_review", created_at: iso(-2 * H) }),
+    recon({ id: "acked", review_status: "acknowledged", created_at: iso(-10 * H) }),
+    recon({ id: "dismissed", review_status: "dismissed", created_at: iso(-0.5 * H) }),
+  ]);
+  assert.deepEqual(sorted.map((i) => i.id), [
+    "pendingOld", "pendingNew", "acked", "approved", "dismissed", "applied",
+  ]);
 });

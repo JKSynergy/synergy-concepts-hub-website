@@ -34,25 +34,25 @@ export default async function ReconciliationPage() {
     redirect("/admin/systems/providers");
   }
 
-  const { data: items } = await supabase
+  const { data: items, error: itemsError } = await supabase
     .from("provider_reconciliation_overview")
     .select("*")
     .order("created_at", { ascending: false })
     .limit(200);
 
-  const { data: runs } = await supabase
+  const { data: runs, error: runsError } = await supabase
     .from("provider_reconciliation_runs")
     .select("*")
     .order("started_at", { ascending: false })
     .limit(25);
 
   // Accounts for the "Run reconciliation" control (admin only needs them).
-  const { data: accounts } = isAdmin
+  const { data: accounts, error: accountsError } = isAdmin
     ? await supabase
         .from("provider_connection_overview")
         .select("id, provider_name, account_name")
         .order("account_name")
-    : { data: [] };
+    : { data: [], error: null };
 
   return (
     <div className="ux-page ux-page--wide">
@@ -66,6 +66,9 @@ export default async function ReconciliationPage() {
         accounts={accounts ?? []}
         isAdmin={isAdmin}
         isFinance={isFinanceRole}
+        itemsUnavailable={Boolean(itemsError)}
+        runsUnavailable={Boolean(runsError)}
+        accountsUnavailable={isAdmin && Boolean(accountsError)}
       />
     </div>
   );

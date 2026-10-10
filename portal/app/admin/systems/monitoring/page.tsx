@@ -34,21 +34,29 @@ export default async function ProviderMonitoringPage() {
     redirect("/admin/operations/action-center");
   }
 
-  const systemHealth = await loadSystemHealthRows(supabase);
+  // Each section keeps its own query outcome — one failed query must not
+  // take the rest of the page down or render as a false empty/healthy state.
+  let systemHealth: Awaited<ReturnType<typeof loadSystemHealthRows>> = [];
+  let systemHealthUnavailable = false;
+  try {
+    systemHealth = await loadSystemHealthRows(supabase);
+  } catch {
+    systemHealthUnavailable = true;
+  }
 
-  const { data: schedules } = await supabase
+  const { data: schedules, error: schedulesError } = await supabase
     .from("provider_monitoring_overview")
     .select("*")
     .order("provider_name")
     .limit(200);
 
-  const { data: runs } = await supabase
+  const { data: runs, error: runsError } = await supabase
     .from("provider_monitoring_run_overview")
     .select("*")
     .order("started_at", { ascending: false })
     .limit(100);
 
-  const { data: signals } = await supabase
+  const { data: signals, error: signalsError } = await supabase
     .from("action_item_overview")
     .select("*")
     .eq("source", "provider_monitoring")
@@ -57,13 +65,13 @@ export default async function ProviderMonitoringPage() {
     .limit(100);
 
   // Schedule targets: provider accounts with a discovery adapter (admin only).
-  const { data: accounts } = isAdmin
+  const { data: accounts, error: accountsError } = isAdmin
     ? await supabase
         .from("provider_accounts")
         .select("id, account_name, status, providers(name, adapter_key)")
         .order("account_name")
         .limit(200)
-    : { data: [] };
+    : { data: [], error: null };
 
   return (
     <div className="ux-page ux-page--wide">
@@ -79,6 +87,11 @@ export default async function ProviderMonitoringPage() {
         accounts={(accounts ?? []) as never}
         isAdmin={isAdmin}
         isFinance={isFinanceRole}
+        systemHealthUnavailable={systemHealthUnavailable}
+        schedulesUnavailable={Boolean(schedulesError)}
+        runsUnavailable={Boolean(runsError)}
+        signalsUnavailable={Boolean(signalsError)}
+        accountsUnavailable={isAdmin && Boolean(accountsError)}
       />
     </div>
   );

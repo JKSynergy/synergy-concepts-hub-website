@@ -29,8 +29,8 @@ export default async function SuspensionsPage() {
   const isFinanceUser = isFinance(profile.role);
   const isStaffUser = isOperationalStaff(profile.role) && !isAdmin;
 
-  // 1. Fetch Suspension Cases
-  const { data: casesData } = await supabase
+  // 1. Fetch Suspension Cases — a failed query must never render as "no cases"
+  const { data: casesData, error: casesError } = await supabase
     .from("suspension_cases")
     .select(`
       id, service_agreement_id, client_id, system_id, reason, status,
@@ -46,7 +46,7 @@ export default async function SuspensionsPage() {
     .order("created_at", { ascending: false });
 
   // 2. Fetch Suspension Actions
-  const { data: actionsData } = await supabase
+  const { data: actionsData, error: actionsError } = await supabase
     .from("suspension_actions")
     .select(`
       id, suspension_case_id, resource_id, action_type, action_status,
@@ -71,7 +71,8 @@ export default async function SuspensionsPage() {
     .eq("role", "client")
     .order("company_name");
 
-  const { data: systemsData } = await supabase
+  // Application-level status — a failed systems query must never imply all live
+  const { data: systemsData, error: systemsError } = await supabase
     .from("systems")
     .select(
       "id, name, client_id, status, suspended_at, suspended_by, suspension_reason, suspension_note, resumed_at, resumed_by"
@@ -161,11 +162,15 @@ export default async function SuspensionsPage() {
 
       <ApplicationSuspensionSection
         systems={systems}
+        systemsUnavailable={Boolean(systemsError)}
         clients={clients}
         isAdmin={isAdmin}
       />
       <SuspensionsManager
         currentUserId={user.id}
+        casesUnavailable={Boolean(casesError)}
+        actionsUnavailable={Boolean(actionsError)}
+        systemsUnavailable={Boolean(systemsError)}
         cases={formattedCases}
         actions={formattedActions}
         agreements={agreements}

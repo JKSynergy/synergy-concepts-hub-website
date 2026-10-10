@@ -3,12 +3,43 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { isAdmin as checkIsAdmin, isOperationalStaff, isFinance } from "@/lib/security/roles";
+import { CASE_TRANSITIONS, ACTION_COMPLETABLE_STATUSES } from "@/lib/operations/suspensions";
 
 export type ActionResult<T = unknown> = {
   ok: boolean;
   data?: T;
   error?: string;
 };
+
+/**
+ * Guarded suspension-case transition: the UPDATE only lands if the case is
+ * currently in one of the action's allowed from-statuses. An invalid, stale,
+ * or retried transition matches zero rows — no write, no state regression,
+ * and no duplicate audit event (the lifecycle trigger only fires on actual
+ * changes).
+ */
+async function transitionSuspensionCase(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  caseId: string,
+  action: keyof typeof CASE_TRANSITIONS,
+  updates: Record<string, unknown>
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data, error } = await supabase
+    .from("suspension_cases")
+    .update(updates)
+    .eq("id", caseId)
+    .in("status", [...CASE_TRANSITIONS[action]])
+    .select("id");
+
+  if (error) return { ok: false, error: error.message };
+  if (!data || data.length === 0) {
+    return { ok: false, error: "This transition is not available for the case's current state" };
+  }
+
+  revalidatePath("/admin/operations/suspensions");
+  revalidatePath("/admin/agreements");
+  return { ok: true };
+}
 
 export interface CreateSuspensionCaseInput {
   serviceAgreementId: string;
@@ -143,18 +174,7 @@ export async function approveSuspensionCase(
     updatePayload.assigned_to = assignedTo;
   }
 
-  const { error } = await supabase
-    .from("suspension_cases")
-    .update(updatePayload)
-    .eq("id", caseId);
-
-  if (error) {
-    return { ok: false, error: error.message };
-  }
-
-  revalidatePath("/admin/operations/suspensions");
-  revalidatePath("/admin/agreements");
-  return { ok: true };
+  return transitionSuspensionCase(supabase, caseId, "approve", updatePayload);
 }
 
 export async function rejectSuspensionCase(
@@ -178,20 +198,10 @@ export async function rejectSuspensionCase(
     return { ok: false, error: "Permission denied: Only administrators can reject suspension cases" };
   }
 
-  const { error } = await supabase
-    .from("suspension_cases")
-    .update({
-      status: "rejected",
-      notes: rejectionNotes ? rejectionNotes.trim() : null,
-    })
-    .eq("id", caseId);
-
-  if (error) {
-    return { ok: false, error: error.message };
-  }
-
-  revalidatePath("/admin/operations/suspensions");
-  return { ok: true };
+  return transitionSuspensionCase(supabase, caseId, "reject", {
+    status: "rejected",
+    notes: rejectionNotes ? rejectionNotes.trim() : null,
+  });
 }
 
 export async function assignSuspensionCase(
@@ -246,19 +256,7 @@ export async function startCaseExecution(caseId: string): Promise<ActionResult> 
     return { ok: false, error: "Permission denied: Finance cannot execute suspensions" };
   }
 
-  const { error } = await supabase
-    .from("suspension_cases")
-    .update({
-      status: "executing",
-    })
-    .eq("id", caseId);
-
-  if (error) {
-    return { ok: false, error: error.message };
-  }
-
-  revalidatePath("/admin/operations/suspensions");
-  return { ok: true };
+  return transitionSuspensionCase(supabase, caseId, "execute_start", { status: "executing" });
 }
 
 export async function executeSuspensionCase(
@@ -291,20 +289,16 @@ export async function executeSuspensionCase(
     return { ok: false, error: "Suspension case not found" };
   }
 
-  const { error } = await supabase
-    .from("suspension_cases")
-    .update({
-      status: "suspended",
-      executed_at: new Date().toISOString(),
-      ...(notes ? { operational_notes: notes.trim() } : {}),
-    })
-    .eq("id", caseId);
+  const transition = await transitionSuspensionCase(supabase, caseId, "execute", {
+    status: "suspended",
+    executed_at: new Date().toISOString(),
+    ...(notes ? { operational_notes: notes.trim() } : {}),
+  });
+  if (!transition.ok) return transition;
 
-  if (error) {
-    return { ok: false, error: error.message };
-  }
-
-  // Update associated agreement status to suspended
+  // Update associated agreement status to suspended.
+  // NOTE: this is a second write, not atomic with the case transition — a
+  // failure here leaves the case suspended with the agreement still active.
   if (caseData.service_agreement_id) {
     await supabase
       .from("service_agreements")
@@ -382,7 +376,7 @@ export async function completeSuspensionAction(
     return { ok: false, error: "Permission denied: Finance cannot execute suspension actions" };
   }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("suspension_actions")
     .update({
       action_status: "completed",
@@ -391,10 +385,15 @@ export async function completeSuspensionAction(
       evidence_reference: evidenceReference.trim(),
       ...(notes ? { notes: notes.trim() } : {}),
     })
-    .eq("id", actionId);
+    .eq("id", actionId)
+    .in("action_status", [...ACTION_COMPLETABLE_STATUSES])
+    .select("id");
 
   if (error) {
     return { ok: false, error: error.message };
+  }
+  if (!data || data.length === 0) {
+    return { ok: false, error: "Action is not in a state that can be completed" };
   }
 
   revalidatePath("/admin/operations/suspensions");
@@ -421,7 +420,7 @@ export async function verifySuspensionAction(
     return { ok: false, error: "Permission denied: Only administrators can verify suspension actions" };
   }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("suspension_actions")
     .update({
       action_status: "verified",
@@ -429,10 +428,15 @@ export async function verifySuspensionAction(
       verified_at: new Date().toISOString(),
       ...(notes ? { notes: notes.trim() } : {}),
     })
-    .eq("id", actionId);
+    .eq("id", actionId)
+    .eq("action_status", "completed")
+    .select("id");
 
   if (error) {
     return { ok: false, error: error.message };
+  }
+  if (!data || data.length === 0) {
+    return { ok: false, error: "Only completed actions can be verified" };
   }
 
   revalidatePath("/admin/operations/suspensions");
@@ -456,15 +460,22 @@ export async function verifySuspensionCase(caseId: string): Promise<ActionResult
     return { ok: false, error: "Permission denied: Only administrators can verify suspension cases" };
   }
 
-  const { error } = await supabase
+  // Verify once — a retried verification must not overwrite the original
+  // timestamp or emit a second audit event.
+  const { data, error } = await supabase
     .from("suspension_cases")
     .update({
       verified_at: new Date().toISOString(),
     })
-    .eq("id", caseId);
+    .eq("id", caseId)
+    .is("verified_at", null)
+    .select("id");
 
   if (error) {
     return { ok: false, error: error.message };
+  }
+  if (!data || data.length === 0) {
+    return { ok: false, error: "Case is already verified" };
   }
 
   revalidatePath("/admin/operations/suspensions");
@@ -488,19 +499,9 @@ export async function initiateCaseRestoration(caseId: string): Promise<ActionRes
     return { ok: false, error: "Permission denied: Finance cannot manage restoration" };
   }
 
-  const { error } = await supabase
-    .from("suspension_cases")
-    .update({
-      status: "restoration_pending",
-    })
-    .eq("id", caseId);
-
-  if (error) {
-    return { ok: false, error: error.message };
-  }
-
-  revalidatePath("/admin/operations/suspensions");
-  return { ok: true };
+  return transitionSuspensionCase(supabase, caseId, "initiate_restoration", {
+    status: "restoration_pending",
+  });
 }
 
 export async function completeCaseRestoration(
@@ -533,20 +534,15 @@ export async function completeCaseRestoration(
     return { ok: false, error: "Suspension case not found" };
   }
 
-  const { error } = await supabase
-    .from("suspension_cases")
-    .update({
-      status: "restored",
-      restored_at: new Date().toISOString(),
-      ...(notes ? { operational_notes: notes.trim() } : {}),
-    })
-    .eq("id", caseId);
+  const transition = await transitionSuspensionCase(supabase, caseId, "complete_restoration", {
+    status: "restored",
+    restored_at: new Date().toISOString(),
+    ...(notes ? { operational_notes: notes.trim() } : {}),
+  });
+  if (!transition.ok) return transition;
 
-  if (error) {
-    return { ok: false, error: error.message };
-  }
-
-  // Restore service agreement status to active
+  // Restore service agreement status to active.
+  // NOTE: second write, not atomic with the case transition.
   if (caseData.service_agreement_id) {
     await supabase
       .from("service_agreements")
@@ -579,18 +575,8 @@ export async function cancelSuspensionCase(
     return { ok: false, error: "Permission denied: Only administrators can cancel suspension cases" };
   }
 
-  const { error } = await supabase
-    .from("suspension_cases")
-    .update({
-      status: "cancelled",
-      ...(notes ? { notes: notes.trim() } : {}),
-    })
-    .eq("id", caseId);
-
-  if (error) {
-    return { ok: false, error: error.message };
-  }
-
-  revalidatePath("/admin/operations/suspensions");
-  return { ok: true };
+  return transitionSuspensionCase(supabase, caseId, "cancel", {
+    status: "cancelled",
+    ...(notes ? { notes: notes.trim() } : {}),
+  });
 }

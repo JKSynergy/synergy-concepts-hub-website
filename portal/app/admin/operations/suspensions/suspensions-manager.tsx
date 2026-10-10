@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog } from "@/components/ux/dialog";
 import { StatusMark, type Tone } from "@/components/ux/primitives";
+import Link from "next/link";
+import { sortCasesForAttention, filterCases, caseSystemDiscrepancy } from "@/lib/operations/suspensions";
 import {
   createSuspensionCase,
   approveSuspensionCase,
@@ -176,6 +178,10 @@ interface AgreementResourcePair {
 
 interface Props {
   currentUserId: string;
+  /** True when a section's query failed — render Unavailable, never a false empty state. */
+  casesUnavailable: boolean;
+  actionsUnavailable: boolean;
+  systemsUnavailable: boolean;
   cases: SuspensionCaseItem[];
   actions: SuspensionActionItem[];
   agreements: AgreementOption[];
@@ -226,6 +232,9 @@ function actionStatusTone(status: string): Tone {
 
 export default function SuspensionsManager({
   currentUserId,
+  casesUnavailable,
+  actionsUnavailable,
+  systemsUnavailable,
   cases,
   actions,
   agreements,
@@ -282,17 +291,21 @@ export default function SuspensionsManager({
   const activeCase = cases.find((c) => c.id === selectedCaseId) || cases[0] || null;
   const caseActions = actions.filter((a) => a.suspension_case_id === activeCase?.id);
 
-  // Filtered cases
-  const filteredCases = cases.filter((c) => {
-    if (statusFilter !== "all" && c.status !== statusFilter) return false;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const matchReason = c.reason.toLowerCase().includes(q);
-      const matchClient = (c.client?.company_name || c.client?.email || "").toLowerCase().includes(q);
-      const matchAgreement = (c.service_agreement?.name || "").toLowerCase().includes(q);
-      return matchReason || matchClient || matchAgreement;
-    }
-    return true;
+  // Live application-level status of the case's linked system (authoritative),
+  // and any honest discrepancy between case workflow and real system state.
+  const linkedSystem = activeCase?.system_id ? systems.find((s) => s.id === activeCase.system_id) : undefined;
+  const discrepancy = activeCase
+    ? caseSystemDiscrepancy(
+        activeCase.status,
+        systemsUnavailable ? null : (linkedSystem?.status ?? null)
+      )
+    : null;
+
+  // Urgency ordering first (decisions & in-flight work before steady state),
+  // then the operator's filters.
+  const filteredCases = filterCases(sortCasesForAttention(cases), {
+    status: statusFilter,
+    query: searchQuery,
   });
 
   // When selectedAgreementId changes in Create modal, determine valid client & system
@@ -646,7 +659,22 @@ export default function SuspensionsManager({
         )}
       </div>
 
-      {/* Main Master-Detail Layout */}
+      {/* Main Master-Detail Layout — a failed case query renders Unavailable, never a false empty list */}
+      {casesUnavailable ? (
+        <div
+          style={{
+            border: "1px solid var(--border)",
+            borderRadius: "4px",
+            padding: "2.5rem",
+            textAlign: "center",
+            color: "var(--muted-foreground)",
+            fontSize: "0.8125rem",
+          }}
+        >
+          Suspension cases unavailable — the data source could not be reached.{" "}
+          <Link href="/admin/operations/suspensions" className="ux-link">Retry</Link>
+        </div>
+      ) : (
       <div
         style={{
           display: "grid",
@@ -762,10 +790,29 @@ export default function SuspensionsManager({
                     Client: <b>{activeCase.client?.company_name || activeCase.client?.email}</b>
                     {activeCase.system && (
                       <span>
-                        {" "}• System: <b>{activeCase.system.name}</b>
+                        {" "}• System:{" "}
+                        <Link href={`/admin/systems/${activeCase.system.id}`} className="ux-link">
+                          <b>{activeCase.system.name}</b>
+                        </Link>
+                        {linkedSystem && (
+                          <StatusMark tone={linkedSystem.status === "suspended" ? "danger" : "success"}>
+                            app {linkedSystem.status}
+                          </StatusMark>
+                        )}
+                        {systemsUnavailable && <StatusMark tone="neutral">app status unknown</StatusMark>}
                       </span>
                     )}
                   </div>
+                  {discrepancy === "case_active_system_live" && (
+                    <div className="ux-muted" style={{ fontSize: "0.75rem", marginTop: "0.375rem" }}>
+                      Case is {activeCase.status.replace(/_/g, " ")}, but the linked application reports live — verify whether the application-level suspension was applied via the Managed System Service Status section above.
+                    </div>
+                  )}
+                  {discrepancy === "case_closed_system_suspended" && (
+                    <div className="ux-muted" style={{ fontSize: "0.75rem", marginTop: "0.375rem" }}>
+                      Case is {activeCase.status}, but the linked application remains suspended at the application level — resumption may be deliberate or pending in the managed-system section.
+                    </div>
+                  )}
                 </div>
 
                 {/* Primary Action Buttons based on Role and Status */}
@@ -998,7 +1045,7 @@ export default function SuspensionsManager({
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
                 <div>
                   <h3 style={{ fontSize: "0.9375rem", fontWeight: 700, margin: 0 }}>
-                    Case actions ({caseActions.length})
+                    Case actions{actionsUnavailable ? "" : ` (${caseActions.length})`}
                   </h3>
                   <div style={{ fontSize: "0.8125rem", color: "var(--muted-foreground)", marginTop: "0.125rem" }}>
                     Components to suspend, verify, or restore with recorded evidence.
@@ -1020,7 +1067,21 @@ export default function SuspensionsManager({
                 )}
               </div>
 
-              {caseActions.length === 0 ? (
+              {actionsUnavailable ? (
+                <div
+                  style={{
+                    padding: "2rem",
+                    border: "1px dashed var(--border)",
+                    borderRadius: "4px",
+                    textAlign: "center",
+                    color: "var(--muted-foreground)",
+                    fontSize: "0.8125rem",
+                  }}
+                >
+                  Actions unavailable — the data source could not be reached.{" "}
+                  <Link href="/admin/operations/suspensions" className="ux-link">Retry</Link>
+                </div>
+              ) : caseActions.length === 0 ? (
                 <div
                   style={{
                     padding: "2rem",
@@ -1137,6 +1198,7 @@ export default function SuspensionsManager({
           </div>
         )}
       </div>
+      )}
 
       {/* MODAL 1: Create Suspension Case */}
       {createModalOpen && (

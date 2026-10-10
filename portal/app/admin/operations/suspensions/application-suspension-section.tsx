@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { StatusMark, type Tone } from "@/components/ux/primitives";
 import { Dialog } from "@/components/ux/dialog";
 import { suspendApplication, resumeApplication } from "@/lib/actions/application-suspension";
@@ -28,6 +29,8 @@ interface ClientOption {
 
 interface Props {
   systems: SystemWithSuspension[];
+  /** True when the systems query failed — never render a false "all live" state. */
+  systemsUnavailable: boolean;
   clients: ClientOption[];
   isAdmin: boolean;
 }
@@ -59,7 +62,7 @@ function fmt(ts: string | null): string {
   return `${d.toISOString().slice(0, 16).replace("T", " ")} UTC`;
 }
 
-export default function ApplicationSuspensionSection({ systems, clients, isAdmin }: Props) {
+export default function ApplicationSuspensionSection({ systems, systemsUnavailable, clients, isAdmin }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -146,9 +149,13 @@ export default function ApplicationSuspensionSection({ systems, clients, isAdmin
             Suspend or resume independent SCH-managed applications. Provider infrastructure is not affected.
           </p>
         </div>
-        <StatusMark tone={suspendedCount > 0 ? "danger" : "success"}>
-          {suspendedCount} suspended
-        </StatusMark>
+        {systemsUnavailable ? (
+          <StatusMark tone="neutral">status unavailable</StatusMark>
+        ) : (
+          <StatusMark tone={suspendedCount > 0 ? "danger" : "success"}>
+            {suspendedCount} suspended
+          </StatusMark>
+        )}
       </div>
 
       {error && <p className="ux-alert ux-alert-error" role="alert" style={{ margin: "1rem" }}>{error}</p>}
@@ -160,15 +167,24 @@ export default function ApplicationSuspensionSection({ systems, clients, isAdmin
             <tr><th>Client</th><th>System</th><th>Status</th><th>Suspended</th><th>Reason</th><th>Token</th><th>Actions</th></tr>
           </thead>
           <tbody>
-            {systems.length === 0 ? (
-              <tr><td colSpan={7} className="ux-muted">No systems available.</td></tr>
+            {systemsUnavailable ? (
+              <tr>
+                <td colSpan={7} className="ux-muted">
+                  System status unavailable — the data source could not be reached.{" "}
+                  <a href="/admin/operations/suspensions" className="ux-link">Retry</a>
+                </td>
+              </tr>
+            ) : systems.length === 0 ? (
+              <tr><td colSpan={7} className="ux-muted">No managed systems.</td></tr>
             ) : (
               systems.map((s) => {
                 const client = clients.find((c) => c.id === s.client_id);
                 return (
                   <tr key={s.id}>
                     <td>{client?.label || s.client_id}</td>
-                    <td>{s.name}</td>
+                    <td>
+                      <Link href={`/admin/systems/${s.id}`} className="ux-link">{s.name}</Link>
+                    </td>
                     <td><StatusMark tone={statusTone(s.status)}>{s.status}</StatusMark></td>
                     <td>{fmt(s.suspended_at)}</td>
                     <td>{s.suspension_reason ? s.suspension_reason.replace(/_/g, " ") : "—"}</td>

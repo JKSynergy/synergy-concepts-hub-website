@@ -21,7 +21,7 @@ export type BookingRow = {
 
 const STATUSES = ["pending", "confirmed", "completed", "cancelled"];
 
-export default function BookingsTable({ rows }: { rows: BookingRow[] }) {
+export default function BookingsTable({ rows, canDelete = false }: { rows: BookingRow[]; canDelete?: boolean }) {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("open");
   const [type, setType] = useState("all");
@@ -122,7 +122,14 @@ export default function BookingsTable({ rows }: { rows: BookingRow[] }) {
                     <StatusMark tone={BOOKING_TONE[b.status] ?? "neutral"}>{b.status}</StatusMark>
                   </td>
                   <td>
-                    <BookingActions bookingId={b.id} status={b.status as BookingStatus} title={b.title} />
+                    <BookingActions
+                      bookingId={b.id}
+                      status={b.status as BookingStatus}
+                      title={b.title}
+                      requester={b.requester}
+                      scheduledAt={b.scheduled_at}
+                      canDelete={canDelete}
+                    />
                   </td>
                 </tr>
               ))}

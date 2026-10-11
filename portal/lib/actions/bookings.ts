@@ -6,7 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getInviteRedirectUrlFromEnv } from "@/lib/portal-url";
 import { sendEmail } from "@/lib/email/notify";
 import type { BookingStatus, BookingType } from "@/lib/types";
-import { canManageServices, isOperationalStaff } from "@/lib/security/roles";
+import { canManageServices, isAdmin, isOperationalStaff } from "@/lib/security/roles";
 import { checkApplicationAccess } from "@/lib/actions/application-suspension";
 
 type ActionResult = { error?: string; success?: boolean; id?: string };
@@ -272,6 +272,33 @@ export async function convertBookingToProject(
   revalidatePath("/admin/bookings");
   revalidatePath("/admin/projects");
   return { success: true, id: project.id };
+}
+
+// Admin-only hard delete. The RPC performs the authorisation check, row lock,
+// dependency check, delete and audit write atomically — see migration 034.
+export async function deleteBooking(bookingId: string): Promise<ActionResult> {
+  const { supabase, role } = await requireStaff();
+  if (!isAdmin(role)) return { error: "Only an administrator can delete booking requests." };
+
+  const { data, error } = await supabase.rpc("delete_booking_admin", {
+    p_booking_id: bookingId,
+  });
+  if (error) return { error: error.message };
+
+  const result = (data ?? {}) as { deleted?: number; reason?: string; linked_projects?: number };
+  if (result.deleted !== 1) {
+    if (result.reason === "linked_project") {
+      return {
+        error: `This booking is linked to ${result.linked_projects ?? "a"} project${result.linked_projects === 1 ? "" : "s"}. Deleting it would erase that project's booking history — cancel or complete the request instead.`,
+      };
+    }
+    return { error: "Booking request not found — it may have been deleted already." };
+  }
+
+  revalidatePath("/admin/bookings");
+  revalidatePath(`/admin/bookings/${bookingId}`);
+  revalidatePath("/client/bookings");
+  return { success: true };
 }
 
 // ── Leads ──

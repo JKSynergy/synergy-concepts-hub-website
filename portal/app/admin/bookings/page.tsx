@@ -5,7 +5,7 @@ import NewBookingForm from "./new-booking-form";
 import BookingsTable, { type BookingRow } from "./bookings-table";
 import { PageHeader } from "@/components/ux/primitives";
 import type { Service, AcademyCourse } from "@/lib/types";
-import { isOperationalStaff } from "@/lib/security/roles";
+import { isAdmin, isOperationalStaff } from "@/lib/security/roles";
 
 export default async function AdminBookingsPage() {
   const supabase = await createClient();
@@ -100,7 +100,7 @@ export default async function AdminBookingsPage() {
           </>
         }
       />
-      <BookingsTable rows={rows} />
+      <BookingsTable rows={rows} canDelete={isAdmin(profile.role)} />
     </div>
   );
 }

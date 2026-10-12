@@ -16,7 +16,8 @@ const TONE: Record<MilestoneStatus, Tone> = {
   revision_requested: "danger",
 };
 const label = (s: string) => s.replace("_", " ");
-const fmt = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+// Fixed timezone so server (UTC) and client renders match — avoids hydration mismatches.
+const fmt = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Kampala" });
 
 export default function MilestonesSection({ projectId, milestones, readOnly = false }: { projectId: string; milestones: Milestone[]; readOnly?: boolean }) {
   const router = useRouter();

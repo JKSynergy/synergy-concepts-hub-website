@@ -69,7 +69,8 @@ export default function UpdatesSection({
                 <b>{u.author_name ?? "Team"}</b>
                 {u.is_internal && <span className="ux-tl-tag">Internal</span>}
                 <time dateTime={u.created_at}>
-                  {new Date(u.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  {/* Fixed timezone: server (UTC) and client must render identical text or React throws hydration error #418. */}
+                  {new Date(u.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Kampala" })}
                 </time>
               </div>
               <p>{u.content}</p>

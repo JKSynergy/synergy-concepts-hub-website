@@ -9,7 +9,8 @@ import { useFeedback } from "@/components/ux/feedback";
 import { Dialog } from "@/components/ux/dialog";
 
 function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  // Fixed timezone so server (UTC) and client renders match — avoids hydration mismatches.
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Kampala" });
 }
 
 /** Project summary + edit dialog. Same updateProject action as before. */

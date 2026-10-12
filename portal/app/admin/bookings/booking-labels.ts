@@ -18,8 +18,11 @@ export function bookingTypeText(t: string): string {
   return BOOKING_TYPE_TEXT[t] ?? t.replace(/_/g, " ");
 }
 
+// Fixed timezone so server (UTC) and client renders match — avoids hydration mismatches.
+const TZ = "Africa/Kampala";
+
 export function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: TZ });
 }
 
 export function fmtDateTime(iso: string) {
@@ -29,5 +32,6 @@ export function fmtDateTime(iso: string) {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: TZ,
   });
 }

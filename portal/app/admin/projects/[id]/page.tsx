@@ -7,7 +7,7 @@ import UpdatesSection from "@/components/updates-section";
 import DeliverablesSection from "@/components/deliverables-section";
 import StaffAssignments from "./staff-assignments";
 import type { Milestone, Project, ProjectUpdate, Deliverable } from "@/lib/types";
-import { isFinance, isInternal, isAdmin as isAdminRole, isOperationalStaff } from "@/lib/security/roles";
+import { canPublishDeliverables, isFinance, isInternal, isAdmin as isAdminRole, isOperationalStaff } from "@/lib/security/roles";
 
 export default async function AdminProjectDetailPage({
   params,
@@ -141,6 +141,7 @@ export default async function AdminProjectDetailPage({
             projectId={id}
             deliverables={(deliverables ?? []) as Deliverable[]}
             isStaff
+            canPublish={canPublishDeliverables(profile.role)}
           />
         )}
       </div>

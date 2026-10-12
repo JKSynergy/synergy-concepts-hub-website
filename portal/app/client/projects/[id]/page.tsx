@@ -101,6 +101,7 @@ export default async function ClientProjectDetailPage({
         projectId={id}
         deliverables={(deliverables ?? []) as Deliverable[]}
         isStaff={false}
+        canPublish={false}
       />
 
       <UpdatesSection projectId={id} updates={updatesWithAuthor} isStaff={false} />

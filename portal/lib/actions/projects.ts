@@ -1,10 +1,17 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail, projectUpdateEmail } from "@/lib/email/notify";
 import { deliverableStoragePath, isUuid, safeFileName } from "@/lib/security/access";
+import {
+  createDeliverableUploadIntent,
+  verifyDeliverableUploadIntent,
+  verifyUploadedObject,
+} from "@/lib/security/deliverable-upload-intent";
+import { validateDeliverableFile, validateDeliverableLabel } from "@/lib/deliverables";
 import { MILESTONE_STATUSES } from "@/lib/types";
 import type { MilestoneStatus, ProjectStatus } from "@/lib/types";
 import { isAdmin as isAdminRole, isOperationalStaff } from "@/lib/security/roles";
@@ -254,38 +261,123 @@ export async function addUpdate(
   return { success: true };
 }
 
-export async function uploadDeliverable(
+// Deliverable files upload straight from the browser to Supabase Storage with
+// a signed URL. Sending them through a server action would pipe the whole file
+// through the app server — past ~1MB the platform rejects the request with
+// 413 before the action even runs.
+const deliverableIntentSecret = () => {
+  const secret = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!secret) throw new Error("Missing upload-intent signing secret");
+  return secret;
+};
+
+async function canAccessProject(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  projectId: string
+): Promise<boolean> {
+  const { data, error } = await supabase.from("projects").select("id").eq("id", projectId).maybeSingle();
+  return !error && data?.id === projectId;
+}
+
+export async function prepareDeliverableUpload(
   projectId: string,
-  formData: FormData
-): Promise<ActionResult> {
-  const { isStaff } = await requireStaff();
-  if (!isStaff) return { error: "Forbidden" };
+  file: { name: string; size: number; type: string }
+): Promise<{ path?: string; token?: string; intent?: string; contentType?: string; error?: string }> {
+  const { supabase, user, isStaff } = await requireStaff();
+  if (!user || !isStaff) return { error: "Forbidden" };
+  if (!isUuid(projectId) || !(await canAccessProject(supabase, projectId))) return { error: "Project not found" };
+  if (!file || typeof file.name !== "string" || typeof file.size !== "number" || typeof file.type !== "string") {
+    return { error: "Invalid file" };
+  }
 
-  const file = formData.get("file") as File | null;
-  const name = ((formData.get("name") as string) || file?.name || "").trim();
-  if (!file || file.size === 0) return { error: "A file is required" };
+  const validation = validateDeliverableFile({ fileName: file.name, fileSize: file.size, fileType: file.type });
+  if (validation.error || !validation.contentType) return { error: validation.error ?? "Invalid file" };
 
-  if (!isUuid(projectId)) return { error: "Invalid project" };
+  const path = `${projectId}/${randomUUID()}-${safeFileName(file.name)}`;
   const admin = createAdminClient();
-  const path = `${projectId}/${Date.now()}-${safeFileName(file.name)}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
+  const { data, error } = await admin.storage.from("deliverables").createSignedUploadUrl(path);
+  if (error || !data) return { error: "Could not prepare upload" };
 
-  const { error: uploadError } = await admin.storage
-    .from("deliverables")
-    .upload(path, buffer, { contentType: file.type, upsert: false });
+  const intent = createDeliverableUploadIntent({
+    userId: user.id,
+    projectId,
+    path: data.path,
+    fileSize: file.size,
+    contentType: validation.contentType,
+  }, deliverableIntentSecret());
+  return { path: data.path, token: data.token, intent, contentType: validation.contentType };
+}
 
-  if (uploadError) return { error: uploadError.message };
+export async function registerDeliverable(
+  projectId: string,
+  input: { intent: string; name: string; isVisible: boolean }
+): Promise<ActionResult> {
+  const { supabase, user, isStaff } = await requireStaff();
+  if (!user || !isStaff) return { error: "Forbidden" };
+  if (!isUuid(projectId) || !(await canAccessProject(supabase, projectId))) return { error: "Project not found" };
+  if (!input || typeof input.intent !== "string" || typeof input.name !== "string" || typeof input.isVisible !== "boolean") {
+    return { error: "Invalid upload registration" };
+  }
+
+  const verified = verifyDeliverableUploadIntent(input.intent, deliverableIntentSecret(), { userId: user.id, projectId });
+  if (verified.error || !verified.intent) return { error: verified.error ?? "Invalid upload intent" };
+  const intent = verified.intent;
+  const name = validateDeliverableLabel(input.name);
+  if (!name) return { error: "Enter a valid display name (180 characters or fewer)" };
+
+  const admin = createAdminClient();
+  const { data: existing } = await admin.from("deliverables").select("id").eq("file_url", intent.path).maybeSingle();
+  if (existing) return { error: "This file has already been registered" };
+
+  const { data: object, error: infoError } = await admin.storage.from("deliverables").info(intent.path);
+  if (infoError || !object) return { error: "Uploaded file was not found" };
+  const objectCheck = verifyUploadedObject(intent, object);
+  if (objectCheck.error || objectCheck.fileSize === undefined || !objectCheck.contentType) {
+    return { error: objectCheck.error ?? "Uploaded file metadata is invalid" };
+  }
 
   const { error } = await admin.from("deliverables").insert({
     project_id: projectId,
     name,
-    file_url: path,
-    file_type: file.type,
-    file_size_bytes: file.size,
-    is_visible_to_client: formData.get("is_visible_to_client") !== "off",
+    file_url: intent.path,
+    file_type: objectCheck.contentType,
+    file_size_bytes: objectCheck.fileSize,
+    is_visible_to_client: input.isVisible,
   });
+  if (error) {
+    const { data: registered } = await admin.from("deliverables").select("id").eq("file_url", intent.path).maybeSingle();
+    return { error: registered ? "This file has already been registered" : "Could not register the uploaded file" };
+  }
 
-  if (error) return { error: error.message };
+  revalidatePath(`/admin/projects/${projectId}`);
+  revalidatePath(`/client/projects/${projectId}`);
+  return { success: true };
+}
+
+export async function setDeliverableVisibility(
+  projectId: string,
+  deliverableId: string,
+  visible: boolean
+): Promise<ActionResult> {
+  const { supabase, user, isStaff } = await requireStaff();
+  if (!user || !isStaff) return { error: "Forbidden" };
+  if (!isUuid(projectId) || !isUuid(deliverableId) || typeof visible !== "boolean") {
+    return { error: "Invalid deliverable visibility request" };
+  }
+  if (!(await canAccessProject(supabase, projectId))) return { error: "Project not found" };
+
+  const { data, error } = await supabase.rpc("set_deliverable_visibility", {
+    p_deliverable_id: deliverableId,
+    p_project_id: projectId,
+    p_visible: visible,
+  });
+  if (error) {
+    console.error("set_deliverable_visibility failed:", error.message);
+    return { error: "Could not change deliverable visibility" };
+  }
+  const result = data as { reason?: string } | null;
+  if (result?.reason === "not_found") return { error: "Deliverable not found" };
+
   revalidatePath(`/admin/projects/${projectId}`);
   revalidatePath(`/client/projects/${projectId}`);
   return { success: true };

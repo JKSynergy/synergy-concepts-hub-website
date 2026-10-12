@@ -11,7 +11,12 @@ const ALL4 = ["SELECT", "INSERT", "UPDATE", "DELETE"];
 /** Privilege model the authorization design assumes (see docs/PHASE2C-PRIVILEGE-BOOTSTRAP-RECOMMENDATION.md). */
 export const PRIVILEGE_MODEL = {
   service_role: Object.fromEntries(TABLES.map((t) => [t, ALL4])),
-  authenticated: Object.fromEntries(TABLES.map((t) => [t, t === "audit_logs" ? ["SELECT"] : t === "document_counters" ? [] : ALL4])),
+  authenticated: Object.fromEntries(TABLES.map((t) => [t,
+    t === "audit_logs" ? ["SELECT"]
+      : t === "document_counters" ? []
+        : t === "deliverables" ? ["SELECT", "INSERT", "DELETE"]
+          : ALL4
+  ])),
   anon: Object.fromEntries(TABLES.map((t) => [t, []])),
 };
 

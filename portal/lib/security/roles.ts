@@ -29,6 +29,8 @@ export const isStaff = (r: R) => r === "staff";
 export const isClient = (r: R) => r === "client";
 /** Operational staff rights (leads, bookings, project work, internal notes). Finance is NOT included. */
 export const isOperationalStaff = (r: R) => r === "admin" || r === "staff";
+/** May publish or unpublish project deliverables for clients. */
+export const canPublishDeliverables = isOperationalStaff;
 /** May read and operate invoices, payments, receipts and reports. */
 export const canAccessFinance = (r: R) => r === "admin" || r === "finance";
 /** Anyone who signs in to the /admin area. */

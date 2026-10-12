@@ -23,11 +23,13 @@ TO service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON
   public.profiles, public.service_catalog, public.bookings, public.leads,
   public.projects, public.project_assignments, public.project_milestones,
-  public.project_updates, public.deliverables, public.invoices,
-  public.invoice_line_items, public.payments, public.receipts,
-  public.academy_courses
+  public.project_updates, public.invoices, public.invoice_line_items,
+  public.payments, public.receipts, public.academy_courses
 TO authenticated;
 
+-- Visibility changes are governed by set_deliverable_visibility(); direct
+-- authenticated UPDATE is intentionally withheld by migration 036.
+GRANT SELECT, INSERT, DELETE ON public.deliverables TO authenticated;
 GRANT SELECT ON public.audit_logs TO authenticated;
 
 COMMIT;

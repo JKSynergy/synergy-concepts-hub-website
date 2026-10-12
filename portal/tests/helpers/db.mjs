@@ -23,7 +23,13 @@ CREATE TABLE auth.users (
 );
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS
   $$ SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
-CREATE TABLE storage.buckets (id text PRIMARY KEY, name text, public boolean);
+CREATE TABLE storage.buckets (
+  id text PRIMARY KEY,
+  name text,
+  public boolean,
+  file_size_limit bigint,
+  allowed_mime_types text[]
+);
 CREATE TABLE storage.objects (id uuid DEFAULT gen_random_uuid(), bucket_id text, name text, owner uuid);
 CREATE FUNCTION public.uuid_generate_v4() RETURNS uuid LANGUAGE sql AS $$ SELECT gen_random_uuid() $$;
 GRANT USAGE ON SCHEMA public, auth TO anon, authenticated, service_role;
@@ -45,8 +51,13 @@ export async function createDb({ upTo } = {}) {
       throw e;
     }
   }
-  // Tables created by migrations get the default privileges above (Supabase behaviour).
+  // PGlite does not consistently apply ALTER DEFAULT PRIVILEGES to every later
+  // migration-created table, so bootstrap the Supabase table grants explicitly.
   await db.exec("GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;");
+  // Preserve deliberate least-privilege revocations from the latest migration.
+  if (!upTo || upTo >= "036_deliverable_publication.sql") {
+    await db.exec("REVOKE UPDATE ON public.deliverables FROM PUBLIC, anon, authenticated;");
+  }
   return db;
 }
 

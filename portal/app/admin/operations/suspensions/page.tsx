@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { PageHeader } from "@/components/ux/primitives";
+import { Activity, ShieldCheck } from "lucide-react";
+import "./hosting.css";
 import { isInternal, isAdmin as checkIsAdmin, isOperationalStaff, isFinance } from "@/lib/security/roles";
 import SuspensionsManager from "./suspensions-manager";
 import ApplicationSuspensionSection from "./application-suspension-section";
@@ -154,11 +155,22 @@ export default async function SuspensionsPage() {
   }));
 
   return (
-    <div className="ux-page ux-page--wide">
-      <PageHeader
-        title="Suspensions"
-        description="Manage controlled service suspension and restoration."
-      />
+    <div className="ux-page ux-page--wide hx">
+      <header className="hx-head">
+        <div>
+          <div className="hx-crumb">
+            <span>operations</span>
+            <span>service-control</span>
+            <span>suspensions</span>
+          </div>
+          <h1>Suspensions</h1>
+          <p>Controlled suspension and restoration of SCH-managed services.</p>
+        </div>
+        <div className="hx-head-meta">
+          <span className="hx-chip"><ShieldCheck size={12} /> {isAdmin ? "role: admin" : isFinanceUser ? "role: finance" : "role: staff"}</span>
+          <span className="hx-chip"><Activity size={12} /> env: {process.env.VERCEL_ENV ?? process.env.NODE_ENV}</span>
+        </div>
+      </header>
 
       <ApplicationSuspensionSection
         systems={systems}

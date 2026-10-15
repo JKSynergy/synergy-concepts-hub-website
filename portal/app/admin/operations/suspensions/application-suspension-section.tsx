@@ -3,11 +3,10 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { StatusMark, type Tone } from "@/components/ux/primitives";
 import { Dialog } from "@/components/ux/dialog";
 import { suspendApplication, resumeApplication } from "@/lib/actions/application-suspension";
 import { generateSystemStatusToken } from "@/lib/actions/system-status";
-import { Power, PowerOff, KeyRound, Copy, Check } from "lucide-react";
+import { Power, PowerOff, KeyRound, Copy, Check, Server, Layers } from "lucide-react";
 
 interface SystemWithSuspension {
   id: string;
@@ -44,13 +43,33 @@ const REASON_OPTIONS = [
   { value: "OTHER", label: "Other" },
 ];
 
-function statusTone(status: string): Tone {
+type StateKind = "live" | "down" | "warn" | "build" | "idle";
+
+function stateKind(status: string): StateKind {
   switch (status) {
-    case "suspended": return "danger";
-    case "live": return "success";
-    case "maintenance_only": return "warning";
-    default: return "neutral";
+    case "suspended": return "down";
+    case "live": return "live";
+    case "maintenance_only": return "warn";
+    case "in_build": return "build";
+    default: return "idle";
   }
+}
+
+function reasonTagClass(reason: string): string {
+  switch (reason) {
+    case "NON_PAYMENT":
+    case "SECURITY": return "hx-tag--danger";
+    case "MAINTENANCE": return "hx-tag--info";
+    case "CLIENT_REQUEST":
+    case "CONTRACT_ENDED": return "hx-tag--warn";
+    default: return "";
+  }
+}
+
+/** Client labels arrive as "Company (email)" — split for a two-line tenant cell. */
+function splitClient(label: string): { name: string; email: string | null } {
+  const m = label.match(/^(.*)\s\(([^()]+@[^()]+)\)$/);
+  return m ? { name: m[1], email: m[2] } : { name: label, email: null };
 }
 
 function fmt(ts: string | null): string {
@@ -139,86 +158,146 @@ export default function ApplicationSuspensionSection({ systems, systemsUnavailab
   }
 
   const suspendedCount = systems.filter((s) => s.status === "suspended").length;
+  const liveCount = systems.filter((s) => s.status === "live").length;
+  const otherCount = systems.length - suspendedCount - liveCount;
+  const total = systems.length;
+  const pct = (n: number) => (total ? `${Math.round((n / total) * 100)}%` : "0%");
 
   return (
-    <div className="ux-card" style={{ marginBottom: "1.5rem" }}>
-      <div className="ux-card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: "1.125rem" }}>Managed System Service Status</h2>
-          <p className="ux-muted" style={{ margin: "0.25rem 0 0", fontSize: "0.85rem" }}>
-            Suspend or resume independent SCH-managed applications. Provider infrastructure is not affected.
-          </p>
+    <section className="hx-console" aria-labelledby="hx-console-title">
+      <div className="hx-console-bar">
+        <div className="hx-console-title">
+          <Server size={16} />
+          <div>
+            <h2 id="hx-console-title">Managed System Service Status</h2>
+            <div className="hx-console-sub">Application-layer control · provider infrastructure is not affected</div>
+          </div>
         </div>
         {systemsUnavailable ? (
-          <StatusMark tone="neutral">status unavailable</StatusMark>
+          <span className="hx-plane"><span className="hx-led" /> status unavailable</span>
         ) : (
-          <StatusMark tone={suspendedCount > 0 ? "danger" : "success"}>
-            {suspendedCount} suspended
-          </StatusMark>
+          <span className="hx-plane">
+            <span className={`hx-led ${suspendedCount > 0 ? "hx-led--down" : "hx-led--live"}`} />
+            {suspendedCount > 0 ? `${suspendedCount} service${suspendedCount === 1 ? "" : "s"} suspended` : "all services operational"}
+          </span>
         )}
       </div>
 
-      {error && <p className="ux-alert ux-alert-error" role="alert" style={{ margin: "1rem" }}>{error}</p>}
-      {notice && <p className="ux-alert ux-alert-success" role="status" style={{ margin: "1rem" }}>{notice}</p>}
+      <div className="hx-stats">
+        <div className="hx-stat">
+          <div className="hx-stat-label"><Layers size={12} /> Instances</div>
+          <div className="hx-stat-value">{systemsUnavailable ? "—" : total}</div>
+          <div className="hx-meter"><i style={{ width: "100%", background: "rgba(255,255,255,.35)" }} /></div>
+        </div>
+        <div className="hx-stat">
+          <div className="hx-stat-label"><span className="hx-led hx-led--live" style={{ width: 6, height: 6 }} /> Live</div>
+          <div className="hx-stat-value">{systemsUnavailable ? "—" : liveCount}<small>{systemsUnavailable ? "" : pct(liveCount)}</small></div>
+          <div className="hx-meter"><i style={{ width: pct(liveCount), background: "var(--hx-live)" }} /></div>
+        </div>
+        <div className="hx-stat">
+          <div className="hx-stat-label"><span className="hx-led hx-led--down" style={{ width: 6, height: 6 }} /> Suspended</div>
+          <div className="hx-stat-value">{systemsUnavailable ? "—" : suspendedCount}<small>{systemsUnavailable ? "" : pct(suspendedCount)}</small></div>
+          <div className="hx-meter"><i style={{ width: pct(suspendedCount), background: "var(--hx-down)" }} /></div>
+        </div>
+        <div className="hx-stat">
+          <div className="hx-stat-label"><span className="hx-led hx-led--build" style={{ width: 6, height: 6 }} /> Build / other</div>
+          <div className="hx-stat-value">{systemsUnavailable ? "—" : otherCount}<small>{systemsUnavailable ? "" : pct(otherCount)}</small></div>
+          <div className="hx-meter"><i style={{ width: pct(otherCount), background: "var(--hx-build)" }} /></div>
+        </div>
+      </div>
 
-      <div className="ux-tablewrap">
-        <table className="ux-table">
+      {error && <p className="ux-alert ux-alert-error" role="alert">{error}</p>}
+      {notice && <p className="ux-alert ux-alert-success" role="status">{notice}</p>}
+
+      <div className="hx-tablewrap">
+        <table className="hx-table">
           <thead>
-            <tr><th>Client</th><th>System</th><th>Status</th><th>Suspended</th><th>Reason</th><th>Token</th><th>Actions</th></tr>
+            <tr><th>Service</th><th>Tenant</th><th>State</th><th>Last suspension</th><th>Reason</th><th style={{ textAlign: "right" }}>Controls</th></tr>
           </thead>
           <tbody>
             {systemsUnavailable ? (
               <tr>
-                <td colSpan={7} className="ux-muted">
-                  System status unavailable — the data source could not be reached.{" "}
+                <td colSpan={6} className="hx-empty">
+                  ERR: system status unavailable — the data source could not be reached.{" "}
                   <a href="/admin/operations/suspensions" className="ux-link">Retry</a>
                 </td>
               </tr>
             ) : systems.length === 0 ? (
-              <tr><td colSpan={7} className="ux-muted">No managed systems.</td></tr>
+              <tr><td colSpan={6} className="hx-empty">No managed systems provisioned.</td></tr>
             ) : (
               systems.map((s) => {
                 const client = clients.find((c) => c.id === s.client_id);
+                const { name: tenant, email } = splitClient(client?.label || s.client_id);
+                const st = stateKind(s.status);
+                const isDown = s.status === "suspended";
+                const resumedAfter = !isDown && s.resumed_at && s.suspended_at && s.resumed_at >= s.suspended_at;
                 return (
-                  <tr key={s.id}>
-                    <td>{client?.label || s.client_id}</td>
+                  <tr key={s.id} className={isDown ? "is-down" : undefined}>
                     <td>
-                      <Link href={`/admin/systems/${s.id}`} className="ux-link">{s.name}</Link>
+                      <div className="hx-svc">
+                        <span className="hx-svc-icon"><Server size={16} /></span>
+                        <div>
+                          <Link href={`/admin/systems/${s.id}`} className="hx-svc-name">{s.name}</Link>
+                          <span className="hx-mono">sys_{s.id.replace(/-/g, "").slice(0, 10)}</span>
+                        </div>
+                      </div>
                     </td>
-                    <td><StatusMark tone={statusTone(s.status)}>{s.status}</StatusMark></td>
-                    <td>{fmt(s.suspended_at)}</td>
-                    <td>{s.suspension_reason ? s.suspension_reason.replace(/_/g, " ") : "—"}</td>
+                    <td className="hx-tenant">
+                      <b>{tenant}</b>
+                      {email && <span className="hx-mono">{email}</span>}
+                    </td>
                     <td>
-                      {isAdmin && (
-                        <button
-                          className="ux-button ux-button-secondary"
-                          disabled={busy}
-                          onClick={() => onGenerateToken(s)}
-                          title="Generate or rotate status token"
-                        >
-                          <KeyRound size={14} /> Token
-                        </button>
+                      <span className={`hx-state hx-state--${st}`}>
+                        <span className={`hx-led hx-led--${st}`} />
+                        {s.status.replace(/_/g, " ")}
+                      </span>
+                    </td>
+                    <td>
+                      {s.suspended_at ? (
+                        <div className="hx-event">
+                          {fmt(s.suspended_at)}
+                          {resumedAfter && <span>resumed {fmt(s.resumed_at)}</span>}
+                        </div>
+                      ) : (
+                        <span className="hx-mono">never</span>
+                      )}
+                    </td>
+                    <td>
+                      {s.suspension_reason ? (
+                        <span className={`hx-tag ${reasonTagClass(s.suspension_reason)}`}>{s.suspension_reason.replace(/_/g, " ")}</span>
+                      ) : (
+                        <span className="hx-mono">—</span>
                       )}
                     </td>
                     <td>
                       {isAdmin && (
-                        s.status === "suspended" ? (
+                        <div className="hx-actions">
                           <button
-                            className="ux-button ux-button-secondary"
+                            className="hx-btn"
                             disabled={busy}
-                            onClick={() => { setActiveSystem(s); setNote(s.suspension_note || ""); }}
+                            onClick={() => onGenerateToken(s)}
+                            title="Generate or rotate status token"
                           >
-                            <Power size={14} /> Resume
+                            <KeyRound size={13} /> Token
                           </button>
-                        ) : (
-                          <button
-                            className="ux-button ux-button-secondary"
-                            disabled={busy}
-                            onClick={() => { setActiveSystem(s); setReason("NON_PAYMENT"); setNote(""); }}
-                          >
-                            <PowerOff size={14} /> Suspend
-                          </button>
-                        )
+                          {isDown ? (
+                            <button
+                              className="hx-btn hx-btn--go"
+                              disabled={busy}
+                              onClick={() => { setActiveSystem(s); setNote(s.suspension_note || ""); }}
+                            >
+                              <Power size={13} /> Resume
+                            </button>
+                          ) : (
+                            <button
+                              className="hx-btn hx-btn--danger"
+                              disabled={busy}
+                              onClick={() => { setActiveSystem(s); setReason("NON_PAYMENT"); setNote(""); }}
+                            >
+                              <PowerOff size={13} /> Suspend
+                            </button>
+                          )}
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -227,6 +306,11 @@ export default function ApplicationSuspensionSection({ systems, systemsUnavailab
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="hx-console-foot">
+        <span>endpoint · portal.synergyconceptshub.com/api/systems/:id/status</span>
+        <span>times in UTC</span>
       </div>
 
       {activeSystem && activeSystem.status !== "suspended" && (
@@ -324,6 +408,6 @@ export default function ApplicationSuspensionSection({ systems, systemsUnavailab
           </div>
         </Dialog>
       )}
-    </div>
+    </section>
   );
 }

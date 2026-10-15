@@ -598,6 +598,8 @@ export default function SuspensionsManager({
         </div>
       )}
 
+      <div className="hx-section-label">Suspension cases · lifecycle queue</div>
+
       {/* Action Header & Filters */}
       <div
         style={{
@@ -696,6 +698,7 @@ export default function SuspensionsManager({
           }}
         >
           <div
+            className="hx-cases-head"
             style={{
               padding: "0.75rem 1rem",
               background: "var(--surface)",
@@ -712,8 +715,8 @@ export default function SuspensionsManager({
 
           <div style={{ maxHeight: "680px", overflowY: "auto" }}>
             {filteredCases.length === 0 ? (
-              <div style={{ padding: "2rem", textAlign: "center", color: "var(--muted-foreground)", fontSize: "0.8125rem" }}>
-                No suspension cases found.
+              <div className="hx-cases-empty" style={{ padding: "2rem", textAlign: "center", color: "var(--muted-foreground)", fontSize: "0.8125rem" }}>
+                No suspension cases in queue.
               </div>
             ) : (
               filteredCases.map((c) => {
@@ -1186,6 +1189,7 @@ export default function SuspensionsManager({
           </div>
         ) : (
           <div
+            className="hx-detail-empty"
             style={{
               padding: "3rem",
               border: "1px dashed var(--border)",
@@ -1194,7 +1198,7 @@ export default function SuspensionsManager({
               color: "var(--muted-foreground)",
             }}
           >
-            No suspension case selected.
+            Select a case to inspect its lifecycle.
           </div>
         )}
       </div>

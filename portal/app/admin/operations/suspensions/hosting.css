@@ -1,0 +1,166 @@
+/* ═══════════════════════════════════════════════════════════════
+   SUSPENSIONS — hosting / control-plane skin
+   Scoped under .hx so nothing else in the portal changes.
+   Same family as ux.css (navy, stone, orange, sharp hairlines) with
+   a console layer: mono data, LED status, resource tiles, grid bg.
+   ═══════════════════════════════════════════════════════════════ */
+.ux .hx {
+  --hx-mono: "JetBrains Mono", "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
+  --hx-console: #0B0F19;
+  --hx-console-2: #121826;
+  --hx-console-line: rgba(255, 255, 255, 0.08);
+  --hx-console-dim: rgba(255, 255, 255, 0.5);
+  --hx-live: #22C55E;
+  --hx-down: #EF4444;
+  --hx-warn: #F59E0B;
+  --hx-build: #3B82F6;
+  --hx-idle: #94A3B8;
+}
+
+/* ── Page header ─────────────────────────────────────────── */
+.ux .hx-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 32px; margin-bottom: 24px; }
+.ux .hx-crumb { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font: 500 11.5px/1 var(--hx-mono); color: var(--ux-muted); }
+.ux .hx-crumb span:not(:last-child)::after { content: "/"; margin-left: 8px; color: var(--ux-line-strong); }
+.ux .hx-crumb span:last-child { color: var(--ux-ink); }
+.ux .hx-head h1 { font-size: 28px; line-height: 1.15; }
+.ux .hx-head p { margin: 8px 0 0; color: var(--ux-muted); font-size: 14px; max-width: 62ch; }
+.ux .hx-head-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+.ux .hx-chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px;
+  border: 1px solid var(--ux-line); background: var(--ux-paper);
+  font: 500 11.5px/1 var(--hx-mono); color: var(--ux-ink); white-space: nowrap;
+}
+.ux .hx-chip svg { color: var(--ux-muted); }
+
+/* ── Control-plane console (stat strip + table) ──────────── */
+.ux .hx-console {
+  background: var(--hx-console); color: #E5E7EB;
+  border: 1px solid var(--hx-console); margin-bottom: 24px;
+  background-image:
+    linear-gradient(var(--hx-console-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--hx-console-line) 1px, transparent 1px);
+  background-size: 28px 28px; background-position: -1px -1px;
+}
+.ux .hx-console-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 12px 18px; border-bottom: 1px solid var(--hx-console-line);
+  background: rgba(11, 15, 25, 0.85);
+}
+.ux .hx-console-title { display: flex; align-items: center; gap: 10px; }
+.ux .hx-console-title h2 { color: #fff; font: 600 14px/1.2 var(--ux-f-display); letter-spacing: -0.01em; }
+.ux .hx-console-title svg { color: var(--ux-orange); }
+.ux .hx-console-sub { font: 400 11.5px/1.3 var(--hx-mono); color: var(--hx-console-dim); }
+.ux .hx-plane { display: inline-flex; align-items: center; gap: 8px; font: 500 11.5px/1 var(--hx-mono); color: var(--hx-console-dim); }
+
+.ux .hx-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-bottom: 1px solid var(--hx-console-line); }
+.ux .hx-stat { padding: 18px 18px 16px; border-right: 1px solid var(--hx-console-line); background: rgba(18, 24, 38, 0.6); }
+.ux .hx-stat:last-child { border-right: 0; }
+.ux .hx-stat-label { display: flex; align-items: center; gap: 8px; font: 500 10.5px/1 var(--hx-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--hx-console-dim); }
+.ux .hx-stat-value { margin-top: 10px; font: 600 30px/1 var(--hx-mono); color: #fff; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.ux .hx-stat-value small { font-size: 13px; font-weight: 400; color: var(--hx-console-dim); letter-spacing: 0; margin-left: 4px; }
+.ux .hx-meter { margin-top: 12px; height: 3px; background: rgba(255,255,255,0.08); overflow: hidden; }
+.ux .hx-meter i { display: block; height: 100%; }
+
+/* ── LEDs ────────────────────────────────────────────────── */
+.ux .hx-led { position: relative; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--hx-idle); flex-shrink: 0; }
+.ux .hx-led--live { background: var(--hx-live); box-shadow: 0 0 0 3px rgba(34,197,94,.18); }
+.ux .hx-led--down { background: var(--hx-down); box-shadow: 0 0 0 3px rgba(239,68,68,.2); }
+.ux .hx-led--warn { background: var(--hx-warn); box-shadow: 0 0 0 3px rgba(245,158,11,.2); }
+.ux .hx-led--build { background: var(--hx-build); box-shadow: 0 0 0 3px rgba(59,130,246,.2); }
+.ux .hx-led--live::after, .ux .hx-led--down::after {
+  content: ""; position: absolute; inset: 0; border-radius: 50%; background: inherit;
+  animation: hx-ping 2.2s cubic-bezier(0,0,.2,1) infinite;
+}
+@keyframes hx-ping { 75%, 100% { transform: scale(2.4); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .ux .hx-led::after { animation: none; display: none; } }
+
+/* ── Service instance table ──────────────────────────────── */
+.ux .hx-tablewrap { overflow-x: auto; background: var(--ux-paper); color: var(--ux-ink); }
+.ux .hx-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ux .hx-table th {
+  padding: 10px 14px; text-align: left; white-space: nowrap;
+  font: 500 10.5px/1 var(--hx-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ux-muted);
+  background: #FAFAF8; border-bottom: 1px solid var(--ux-line);
+}
+.ux .hx-table td { padding: 14px; border-bottom: 1px solid var(--ux-line); vertical-align: middle; }
+.ux .hx-table tbody tr { transition: background-color .12s; }
+.ux .hx-table tbody tr:hover { background: #FAFAF8; }
+.ux .hx-table tbody tr:last-child td { border-bottom: 0; }
+.ux .hx-table tr.is-down { background: linear-gradient(90deg, rgba(239,68,68,.06), transparent 40%); }
+.ux .hx-table tr.is-down td:first-child { box-shadow: inset 3px 0 0 var(--hx-down); }
+
+.ux .hx-svc { display: flex; align-items: center; gap: 12px; min-width: 220px; }
+.ux .hx-svc-icon {
+  display: grid; place-items: center; width: 34px; height: 34px; flex-shrink: 0;
+  background: var(--ux-stone); border: 1px solid var(--ux-line); color: var(--ux-navy);
+}
+.ux .hx-svc-name { display: block; font-weight: 600; color: var(--ux-navy); line-height: 1.3; }
+.ux a.hx-svc-name:hover { color: var(--ux-blue); }
+.ux .hx-mono { font-family: var(--hx-mono); font-size: 11.5px; color: var(--ux-muted); }
+.ux .hx-tenant b { display: block; font-weight: 500; color: var(--ux-ink); line-height: 1.3; }
+
+.ux .hx-state {
+  display: inline-flex; align-items: center; gap: 8px; height: 24px; padding: 0 10px 0 8px;
+  border: 1px solid var(--ux-line); background: var(--ux-paper);
+  font: 500 11.5px/1 var(--hx-mono); white-space: nowrap; text-transform: lowercase;
+}
+.ux .hx-state--live { color: #15803D; border-color: #BBF7D0; background: #F0FDF4; }
+.ux .hx-state--down { color: #B91C1C; border-color: #FECACA; background: #FEF2F2; }
+.ux .hx-state--warn { color: #B45309; border-color: #FDE68A; background: #FFFBEB; }
+.ux .hx-state--build { color: #1D4ED8; border-color: #BFDBFE; background: #EFF6FF; }
+
+.ux .hx-tag {
+  display: inline-block; padding: 3px 7px; font: 500 10.5px/1.2 var(--hx-mono); letter-spacing: .04em;
+  text-transform: uppercase; border: 1px solid var(--ux-line); color: var(--ux-muted); background: var(--ux-stone); white-space: nowrap;
+}
+.ux .hx-tag--danger { color: #B91C1C; border-color: #FECACA; background: #FEF2F2; }
+.ux .hx-tag--info { color: #1D4ED8; border-color: #BFDBFE; background: #EFF6FF; }
+.ux .hx-tag--warn { color: #B45309; border-color: #FDE68A; background: #FFFBEB; }
+
+.ux .hx-event { font: 400 11.5px/1.5 var(--hx-mono); color: var(--ux-ink); white-space: nowrap; }
+.ux .hx-event span { display: block; color: var(--ux-muted); font-size: 10.5px; }
+
+.ux .hx-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.ux .hx-btn {
+  display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px;
+  font: 500 12px/1 var(--hx-mono); color: var(--ux-ink); background: var(--ux-paper);
+  border: 1px solid var(--ux-line-strong); cursor: pointer; white-space: nowrap;
+  transition: background-color .12s, border-color .12s, color .12s;
+}
+.ux .hx-btn:hover:not(:disabled) { border-color: var(--ux-navy); background: var(--ux-stone); }
+.ux .hx-btn:disabled { opacity: .5; cursor: not-allowed; }
+.ux .hx-btn--danger:hover:not(:disabled) { color: #B91C1C; border-color: #B91C1C; background: #FEF2F2; }
+.ux .hx-btn--go { color: #fff; background: #15803D; border-color: #15803D; }
+.ux .hx-btn--go:hover:not(:disabled) { background: #166534; border-color: #166534; color: #fff; }
+.ux .hx-empty { padding: 28px 14px; text-align: center; color: var(--ux-muted); font: 400 12.5px/1.5 var(--hx-mono); }
+
+.ux .hx-console-foot {
+  display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 10px 18px; font: 400 11px/1.4 var(--hx-mono); color: var(--hx-console-dim);
+  background: rgba(11, 15, 25, 0.85); border-top: 1px solid var(--hx-console-line);
+}
+.ux .hx-console .ux-alert { margin: 12px 18px; }
+
+/* ── Cases area (SuspensionsManager) ─────────────────────── */
+.ux .hx-section-label {
+  display: flex; align-items: center; gap: 10px; margin: 8px 0 -8px;
+  font: 500 11px/1 var(--hx-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ux-muted);
+}
+.ux .hx-section-label::after { content: ""; flex: 1; height: 1px; background: var(--ux-line-strong); }
+.ux .hx input.ux-input, .ux .hx select.ux-select { font-family: var(--hx-mono); border-radius: 0; }
+.ux .hx .suspension-layout > div { border-radius: 0 !important; }
+.ux .hx-cases-head {
+  background: var(--hx-console) !important; color: #fff;
+  font-family: var(--hx-mono) !important; font-weight: 500 !important; letter-spacing: .06em; text-transform: uppercase; font-size: 11.5px !important;
+}
+.ux .hx-cases-empty, .ux .hx-detail-empty {
+  font-family: var(--hx-mono); font-size: 12px !important;
+  background-image: repeating-linear-gradient(-45deg, transparent 0 10px, rgba(11,15,25,.025) 10px 11px);
+}
+
+@media (max-width: 860px) {
+  .ux .hx-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ux .hx-stat:nth-child(2) { border-right: 0; }
+  .ux .hx-stat:nth-child(-n+2) { border-bottom: 1px solid var(--hx-console-line); }
+  .ux .hx .suspension-layout { grid-template-columns: 1fr !important; }
+}

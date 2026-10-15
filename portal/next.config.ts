@@ -20,6 +20,8 @@ try {
 const csp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline'",
+  "worker-src 'self'",
+  "manifest-src 'self'",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
   "img-src 'self' data: blob: https:",
@@ -63,7 +65,22 @@ const nextConfig: NextConfig & { outputFileTracingIncludes?: Record<string, stri
     ];
   },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
+      {
+        source: "/manifest.webmanifest",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+        ],
+      },
+    ];
   },
   outputFileTracingIncludes: {
     "/api/invoices/[id]/pdf": [

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { landingFor } from "@/lib/security/roles";
+import { resolvePostLoginRedirect } from "@/lib/security/roles";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -47,7 +47,7 @@ export async function GET(request: Request) {
       .eq("id", user.id)
       .single();
     const role = profile?.role ?? "client";
-    target = landingFor(role);
+    target = resolvePostLoginRedirect(role, searchParams.get("next"));
   }
 
   return NextResponse.redirect(`${origin}${target}`);

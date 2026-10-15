@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
-import { adminRouteRedirect, isAdmin, isFinance, landingFor } from "@/lib/security/roles";
+import { adminRouteRedirect, isAdmin, isFinance, landingFor, resolvePostLoginRedirect } from "@/lib/security/roles";
 
 export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname;
@@ -58,22 +58,27 @@ export async function updateSession(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    // A signed-in, active user who opens /login goes straight to their area.
-    if (path === "/login" && user) {
+    // A signed-in, active user who opens /login or / goes straight to their area.
+    if ((path === "/login" || path === "/") && user) {
       const { data: profile } = await supabase
         .from("profiles")
         .select("role, archived_at")
         .eq("id", user.id)
         .single();
       if (profile && !profile.archived_at) {
-        return NextResponse.redirect(new URL(landingFor(profile.role), request.url));
+        const target = resolvePostLoginRedirect(profile.role, request.nextUrl.searchParams.get("next"));
+        return NextResponse.redirect(new URL(target, request.url));
       }
       return supabaseResponse;
     }
 
     if (isProtected) {
       if (!user) {
-        return NextResponse.redirect(new URL("/login", request.url));
+        const loginUrl = new URL("/login", request.url);
+        if (path !== "/admin" && path !== "/client") {
+          loginUrl.searchParams.set("next", `${path}${request.nextUrl.search}`);
+        }
+        return NextResponse.redirect(loginUrl);
       }
 
       const { data: profile } = await supabase

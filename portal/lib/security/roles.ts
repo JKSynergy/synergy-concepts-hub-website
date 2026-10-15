@@ -69,3 +69,38 @@ export function adminRouteRedirect(role: R, path: string): string | null {
   // staff
   return STAFF_BLOCKED_PREFIXES.some((p) => under(path, p)) ? "/admin" : null;
 }
+
+/**
+ * Resolve a safe post-login redirect path for a user role.
+ * Only internal /admin/* or /client/* paths that the role is permitted to access
+ * are preserved; anything else falls back to landingFor(role).
+ */
+export function resolvePostLoginRedirect(role: R, nextPath: string | null | undefined): string {
+  const fallback = landingFor(role);
+  if (!nextPath || typeof nextPath !== "string") return fallback;
+  if (
+    !nextPath.startsWith("/") ||
+    nextPath.startsWith("//") ||
+    nextPath.includes("://") ||
+    nextPath.includes("\\") ||
+    /[\r\n\0]/.test(nextPath)
+  ) {
+    return fallback;
+  }
+
+  const qIndex = nextPath.indexOf("?");
+  const hIndex = nextPath.indexOf("#");
+  const cut = qIndex === -1 ? hIndex : hIndex === -1 ? qIndex : Math.min(qIndex, hIndex);
+  const pathname = cut === -1 ? nextPath : nextPath.slice(0, cut);
+
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    if (!isInternal(role)) return fallback;
+    return adminRouteRedirect(role, pathname) === null ? nextPath : fallback;
+  }
+
+  if (pathname === "/client" || pathname.startsWith("/client/")) {
+    return isClient(role) ? nextPath : fallback;
+  }
+
+  return fallback;
+}

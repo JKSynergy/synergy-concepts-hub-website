@@ -68,6 +68,29 @@ test("route policy: finance reaches finance, clients, projects and operations (r
   }
 });
 
+test("post-login redirect: preserves allowed internal deep links and blocks unauthorized or external URLs", () => {
+  assert.equal(R.resolvePostLoginRedirect("admin", "/admin/projects/123?tab=files"), "/admin/projects/123?tab=files");
+  assert.equal(R.resolvePostLoginRedirect("admin", "/admin/staff"), "/admin/staff");
+  assert.equal(R.resolvePostLoginRedirect("admin", "/client/projects"), "/admin");
+
+  assert.equal(R.resolvePostLoginRedirect("staff", "/admin/projects/123"), "/admin/projects/123");
+  assert.equal(R.resolvePostLoginRedirect("staff", "/admin/invoices"), "/admin");
+  assert.equal(R.resolvePostLoginRedirect("staff", "/admin/staff"), "/admin");
+  assert.equal(R.resolvePostLoginRedirect("staff", "/client"), "/admin");
+
+  assert.equal(R.resolvePostLoginRedirect("finance", "/admin/finances/provider-costs"), "/admin/finances/provider-costs");
+  assert.equal(R.resolvePostLoginRedirect("finance", "/admin/staff"), "/admin/invoices");
+  assert.equal(R.resolvePostLoginRedirect("finance", "/admin"), "/admin/invoices");
+
+  assert.equal(R.resolvePostLoginRedirect("client", "/client/invoices/abc-123"), "/client/invoices/abc-123");
+  assert.equal(R.resolvePostLoginRedirect("client", "/admin/projects"), "/client");
+
+  for (const bad of [null, undefined, "", "https://evil.example/admin", "//evil.example/admin", "/\\evil.example", "/login", "/auth/callback"]) {
+    assert.equal(R.resolvePostLoginRedirect("admin", bad), "/admin", String(bad));
+    assert.equal(R.resolvePostLoginRedirect("client", bad), "/client", String(bad));
+  }
+});
+
 // ── Lifecycle (server-action layer); parity with the database is in lifecycle-parity.test.mjs ──
 test("lifecycle: SENT -> DRAFT is refused with a readable message", () => {
   for (const from of ["sent", "overdue", "cancelled", "partially paid", "paid"]) assert.match(invoiceTransitionError(from, "draft", 0, 100), /cannot return to draft/);

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import "../ux.css";
-import { landingFor } from "@/lib/security/roles";
+import { landingFor, resolvePostLoginRedirect } from "@/lib/security/roles";
 
 // Fixed, safe messages. Nothing from the URL or from a provider is ever shown.
 const ERROR_MESSAGES: Record<string, string> = {
@@ -30,7 +30,9 @@ export default function LoginPage() {
     const oauthErr = params.get("error");
     if (oauthErr) {
       setError(ERROR_MESSAGES[oauthErr] ?? GENERIC_AUTH_ERROR);
-      window.history.replaceState({}, "", window.location.pathname);
+      params.delete("error");
+      const qs = params.toString();
+      window.history.replaceState({}, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
     }
   }, []);
 
@@ -69,10 +71,14 @@ export default function LoginPage() {
   async function handleGoogleSignIn() {
     setError("");
     const supabase = createClient();
+    const nextParam = new URLSearchParams(window.location.search).get("next");
+    const callbackUrl = nextParam
+      ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextParam)}`
+      : `${window.location.origin}/auth/callback`;
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: callbackUrl,
       },
     });
     if (oauthError) {
@@ -106,7 +112,8 @@ export default function LoginPage() {
         .single();
 
       const role = profile?.role ?? "client";
-      const target = landingFor(role);
+      const nextParam = new URLSearchParams(window.location.search).get("next");
+      const target = resolvePostLoginRedirect(role, nextParam);
       // Go straight in. No artificial delay.
       router.push(target);
       router.refresh();

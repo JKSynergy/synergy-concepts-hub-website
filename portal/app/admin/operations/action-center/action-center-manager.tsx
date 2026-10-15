@@ -164,7 +164,7 @@ export default function ActionCenterManager({
           </p>
         ) : (
           <div className="ux-tablewrap">
-            <table className="ux-table">
+            <table className="ux-table ux-table--stack ops-stack">
               <thead>
                 <tr>
                   <th>Severity</th><th>Signal</th><th>Recommended action</th>
@@ -175,8 +175,8 @@ export default function ActionCenterManager({
               <tbody>
                 {visible.map((i) => (
                   <tr key={i.id} data-item={i.id}>
-                    <td><StatusMark tone={sevTone(i.severity)}>{i.severity}</StatusMark></td>
-                    <td>
+                    <td data-label="Severity"><StatusMark tone={sevTone(i.severity)}>{i.severity}</StatusMark></td>
+                    <td data-label="Signal" className="ops-stack-lead">
                       {i.title}
                       <br />
                       <span className="ux-muted">
@@ -196,8 +196,8 @@ export default function ActionCenterManager({
                         </>
                       )}
                     </td>
-                    <td><span className="ux-muted">{i.recommended_action ?? "—"}</span></td>
-                    <td>
+                    <td data-label="Recommended action"><span className="ux-muted">{i.recommended_action ?? "—"}</span></td>
+                    <td data-label="Client / system">
                       {i.client_company ?? "—"}
                       {i.system_name ? (
                         <>
@@ -219,10 +219,10 @@ export default function ActionCenterManager({
                         <><br /><Link href="/admin/systems/monitoring" className="ux-link">Monitoring run</Link></>
                       ) : null}
                     </td>
-                    <td>{fmt(i.detected_at)}</td>
-                    <td><StatusMark tone={statusTone(i.status)}>{i.status}</StatusMark></td>
+                    <td data-label="Detected">{fmt(i.detected_at)}</td>
+                    <td data-label="Status"><StatusMark tone={statusTone(i.status)}>{i.status}</StatusMark></td>
                     {canReview && (
-                      <td>
+                      <td className="ops-stack-actions">
                         {["open", "acknowledged"].includes(i.status) && (
                           <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap" }}>
                             {i.status === "open" && (

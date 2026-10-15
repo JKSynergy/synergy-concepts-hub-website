@@ -155,7 +155,7 @@ export default async function SuspensionsPage() {
   }));
 
   return (
-    <div className="ux-page ux-page--wide hx">
+    <div className="ux-page ux-page--wide ops-page hx">
       <header className="hx-head">
         <div>
           <div className="hx-crumb">

@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { Dialog } from "@/components/ux/dialog";
+import { revealOpsDetail } from "@/components/ux/ops-mobile";
 import { StatusMark, type Tone } from "@/components/ux/primitives";
 import Link from "next/link";
 import {
@@ -497,7 +498,7 @@ export default function BackupsManager({
         />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+      <div className="ops-form-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
         <div>
           <label className="ux-label">Frequency</label>
           <select
@@ -544,7 +545,7 @@ export default function BackupsManager({
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+      <div className="ops-form-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
         <div>
           <label className="ux-label">Effective From</label>
           <input
@@ -716,8 +717,8 @@ export default function BackupsManager({
           gap: "1rem",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-          <div style={{ position: "relative", minWidth: "220px" }}>
+        <div className="ops-filters" style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+          <div className="ops-search" style={{ position: "relative", minWidth: "220px" }}>
             <Search className="w-4 h-4 text-muted-foreground" style={{ position: "absolute", left: "0.625rem", top: "0.625rem" }} />
             <input
               type="text"
@@ -729,7 +730,7 @@ export default function BackupsManager({
             />
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", flexWrap: "wrap" }}>
+          <div className="ops-filter-group" style={{ display: "flex", alignItems: "center", gap: "0.375rem", flexWrap: "wrap" }}>
             <Filter className="w-3.5 h-3.5 text-muted-foreground" />
             <select
               value={healthFilter}
@@ -841,7 +842,7 @@ export default function BackupsManager({
             <span>Backup Policies ({filteredPolicies.length})</span>
           </div>
 
-          <div style={{ maxHeight: "680px", overflowY: "auto" }}>
+          <div className="ops-list-scroll" style={{ maxHeight: "680px", overflowY: "auto" }}>
             {filteredPolicies.length === 0 ? (
               <div style={{ padding: "2rem", textAlign: "center", color: "var(--muted-foreground)", fontSize: "0.8125rem" }}>
                 No backup policies defined.
@@ -853,7 +854,7 @@ export default function BackupsManager({
                   <div
                     key={p.id}
                     id={`policy-card-${p.id}`}
-                    onClick={() => setSelectedPolicyId(p.id)}
+                    onClick={() => { setSelectedPolicyId(p.id); revealOpsDetail(); }}
                     style={{
                       padding: "0.875rem 1rem",
                       borderBottom: "1px solid var(--border)",
@@ -863,9 +864,9 @@ export default function BackupsManager({
                       transition: "all 0.1s ease",
                     }}
                   >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.25rem" }}>
+                    <div className="ops-card-top" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.25rem" }}>
                       <span style={{ fontWeight: 600, fontSize: "0.875rem" }}>{p.name}</span>
-                      <div style={{ display: "flex", gap: "0.375rem" }}>
+                      <div className="ops-marks" style={{ display: "flex", gap: "0.375rem" }}>
                         {!p.is_active && <StatusMark tone="neutral">inactive</StatusMark>}
                         <StatusMark tone={healthTone(p.health)}>{p.health}</StatusMark>
                       </div>
@@ -899,7 +900,7 @@ export default function BackupsManager({
 
         {/* Right Column: Policy Detail & Events */}
         {activePolicy ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+          <div className="ops-detail" style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
             {/* Header Card */}
             <div
               style={{
@@ -911,7 +912,7 @@ export default function BackupsManager({
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "1rem" }}>
                 <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.25rem" }}>
+                  <div className="ops-detail-title" style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.25rem" }}>
                     <DatabaseBackup className="w-5 h-5 text-indigo-500" />
                     <h2 style={{ fontSize: "1.125rem", fontWeight: 700, margin: 0 }}>
                       {activePolicy.name}
@@ -1292,7 +1293,7 @@ export default function BackupsManager({
             </p>
             <form onSubmit={handleCreatePolicy} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
               {policyFormFields}
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "0.5rem" }}>
+              <div className="ops-dialog-actions" style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "0.5rem" }}>
                 <button type="button" onClick={() => setCreateModalOpen(false)} className="ux-btn ux-btn--secondary">
                   Cancel
                 </button>
@@ -1317,7 +1318,7 @@ export default function BackupsManager({
             </p>
             <form onSubmit={handleEditPolicy} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
               {policyFormFields}
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "0.5rem" }}>
+              <div className="ops-dialog-actions" style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "0.5rem" }}>
                 <button type="button" onClick={() => setEditModalOpen(false)} className="ux-btn ux-btn--secondary">
                   Cancel
                 </button>
@@ -1401,7 +1402,7 @@ export default function BackupsManager({
                 />
               </div>
 
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "0.5rem" }}>
+              <div className="ops-dialog-actions" style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "0.5rem" }}>
                 <button type="button" onClick={() => setEventModalOpen(false)} className="ux-btn ux-btn--secondary">
                   Cancel
                 </button>
@@ -1449,7 +1450,7 @@ export default function BackupsManager({
                   style={{ width: "100%", resize: "vertical" }}
                 />
               </div>
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "0.5rem" }}>
+              <div className="ops-dialog-actions" style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "0.5rem" }}>
                 <button type="button" onClick={() => setEvidenceModalOpen(false)} className="ux-btn ux-btn--secondary">
                   Cancel
                 </button>

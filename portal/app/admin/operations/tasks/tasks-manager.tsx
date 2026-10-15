@@ -20,6 +20,7 @@ import {
   Slash,
 } from "lucide-react";
 import { Dialog } from "@/components/ux/dialog";
+import { revealOpsDetail } from "@/components/ux/ops-mobile";
 import { StatusMark, type Tone } from "@/components/ux/primitives";
 import { sortTasksForWorkspace, filterTasks, deriveTaskWorkspaceSummary, isTaskOverdue } from "@/lib/operations/tasks";
 import {
@@ -436,8 +437,8 @@ export default function TasksManager({
           gap: "1rem",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-          <div style={{ position: "relative", minWidth: "220px" }}>
+        <div className="ops-filters" style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+          <div className="ops-search" style={{ position: "relative", minWidth: "220px" }}>
             <Search className="w-4 h-4 text-muted-foreground" style={{ position: "absolute", left: "0.625rem", top: "0.625rem" }} />
             <input
               type="text"
@@ -449,7 +450,7 @@ export default function TasksManager({
             />
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}>
+          <div className="ops-filter-group" style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}>
             <Filter className="w-3.5 h-3.5 text-muted-foreground" />
             <select
               value={statusFilter}
@@ -608,7 +609,7 @@ export default function TasksManager({
             <span>Tasks ({filteredTasks.length})</span>
           </div>
 
-          <div style={{ maxHeight: "680px", overflowY: "auto" }}>
+          <div className="ops-list-scroll" style={{ maxHeight: "680px", overflowY: "auto" }}>
             {filteredTasks.length === 0 ? (
               <div style={{ padding: "2rem", textAlign: "center", color: "var(--muted-foreground)", fontSize: "0.8125rem" }}>
                 No operational tasks found.
@@ -620,7 +621,7 @@ export default function TasksManager({
                   <div
                     key={t.id}
                     id={`task-card-${t.id}`}
-                    onClick={() => setSelectedTaskId(t.id)}
+                    onClick={() => { setSelectedTaskId(t.id); revealOpsDetail(); }}
                     style={{
                       padding: "0.875rem 1rem",
                       borderBottom: "1px solid var(--border)",
@@ -630,9 +631,9 @@ export default function TasksManager({
                       transition: "all 0.1s ease",
                     }}
                   >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.25rem" }}>
+                    <div className="ops-card-top" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.25rem" }}>
                       <span style={{ fontWeight: 600, fontSize: "0.875rem" }}>{t.title}</span>
-                      <div style={{ display: "flex", gap: "0.375rem" }}>
+                      <div className="ops-marks" style={{ display: "flex", gap: "0.375rem" }}>
                         {isTaskOverdue(t, Date.now()) && <StatusMark tone="danger">overdue</StatusMark>}
                         <StatusMark tone={taskPriorityTone(t.priority)}>{t.priority}</StatusMark>
                         <StatusMark tone={taskStatusTone(t.status)}>{t.status}</StatusMark>
@@ -669,7 +670,7 @@ export default function TasksManager({
 
         {/* Right Column: Task Detail & Actions */}
         {activeTask ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+          <div className="ops-detail" style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
             {/* Header Card */}
             <div
               style={{
@@ -681,7 +682,7 @@ export default function TasksManager({
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "1rem" }}>
                 <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.25rem" }}>
+                  <div className="ops-detail-title" style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.25rem" }}>
                     <h2 style={{ fontSize: "1.125rem", fontWeight: 700, margin: 0 }}>
                       {activeTask.title}
                     </h2>
@@ -1007,7 +1008,7 @@ export default function TasksManager({
             />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+          <div className="ops-form-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
             <div>
               <label className="ux-label">Priority</label>
               <select
@@ -1043,7 +1044,7 @@ export default function TasksManager({
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+          <div className="ops-form-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
             <div>
               <label className="ux-label">System (Optional)</label>
               <select
@@ -1102,7 +1103,7 @@ export default function TasksManager({
             />
           </div>
 
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "0.5rem" }}>
+          <div className="ops-dialog-actions" style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "0.5rem" }}>
             <button
               type="button"
               onClick={() => setCreateModalOpen(false)}
@@ -1152,7 +1153,7 @@ export default function TasksManager({
               ))}
             </select>
           </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "0.5rem" }}>
+          <div className="ops-dialog-actions" style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "0.5rem" }}>
             <button type="button" onClick={() => setAssignModalOpen(false)} className="ux-btn ux-btn--secondary">
               Cancel
             </button>
@@ -1189,7 +1190,7 @@ export default function TasksManager({
               style={{ width: "100%", resize: "vertical" }}
             />
           </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
+          <div className="ops-dialog-actions" style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
             <button type="button" onClick={() => setBlockModalOpen(false)} className="ux-btn ux-btn--secondary">
               Cancel
             </button>
@@ -1225,7 +1226,7 @@ export default function TasksManager({
               style={{ width: "100%", resize: "vertical" }}
             />
           </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
+          <div className="ops-dialog-actions" style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
             <button type="button" onClick={() => setCompleteModalOpen(false)} className="ux-btn ux-btn--secondary">
               Cancel
             </button>
@@ -1262,7 +1263,7 @@ export default function TasksManager({
               style={{ width: "100%", resize: "vertical" }}
             />
           </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
+          <div className="ops-dialog-actions" style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
             <button type="button" onClick={() => setCancelModalOpen(false)} className="ux-btn ux-btn--secondary">
               Close
             </button>

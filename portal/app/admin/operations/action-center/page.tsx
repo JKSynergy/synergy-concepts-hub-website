@@ -32,7 +32,7 @@ export default async function ActionCenterPage() {
     .limit(200);
 
   return (
-    <div className="ux-page ux-page--wide">
+    <div className="ux-page ux-page--wide ops-page">
       <PageHeader
         title="Action Center"
         description="Signals that need attention. Acknowledge, resolve or dismiss them — resolving a condition clears its signal."

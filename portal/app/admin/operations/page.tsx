@@ -169,7 +169,7 @@ export default async function OperationsPage() {
   const attentionIncidents = incidentsOut.ok ? sortIncidentsForAttention(incidentsOut.data).slice(0, 5) : null;
 
   return (
-    <div className="ux-page ux-page--wide">
+    <div className="ux-page ux-page--wide ops-page">
       <PageHeader
         title="Operations"
         description="Keep operational work, incidents and service issues moving."

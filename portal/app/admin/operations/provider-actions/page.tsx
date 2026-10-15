@@ -59,7 +59,7 @@ export default async function ProviderActionsPage() {
     : { data: [], error: null };
 
   return (
-    <div className="ux-page ux-page--wide">
+    <div className="ux-page ux-page--wide ops-page">
       <PageHeader
         title="Provider Actions"
         description="Explicitly supported provider-side lifecycle actions. Every operation is proposed, approved by an administrator, executed server-side, and verified against the provider's actual state."

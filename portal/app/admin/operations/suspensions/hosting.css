@@ -164,3 +164,39 @@
   .ux .hx-stat:nth-child(-n+2) { border-bottom: 1px solid var(--hx-console-line); }
   .ux .hx .suspension-layout { grid-template-columns: 1fr !important; }
 }
+
+/* ── Phones: instance table becomes one card per service ─── */
+@media (max-width: 640px) {
+  .ux .hx-head h1 { font-size: 24px; }
+  .ux .hx-head-meta { width: 100%; }
+  .ux .hx-console-bar, .ux .hx-console-foot { padding-left: 14px; padding-right: 14px; }
+  .ux .hx-stat { padding: 14px 14px 12px; }
+  .ux .hx-stat-value { font-size: 24px; }
+
+  .ux .hx-table--stack thead { display: none; }
+  .ux .hx-table--stack, .ux .hx-table--stack tbody, .ux .hx-table--stack tr { display: block; width: 100%; }
+  .ux .hx-table--stack tr { padding: 14px; border-bottom: 1px solid var(--ux-line); }
+  .ux .hx-table--stack tbody tr:last-child { border-bottom: 0; }
+  .ux .hx-table--stack tr.is-down { box-shadow: inset 3px 0 0 var(--hx-down); }
+  .ux .hx-table--stack tr.is-down td:first-child { box-shadow: none; }
+  .ux .hx-table--stack td {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 6px 0; border-bottom: 0; text-align: right; min-width: 0;
+  }
+  .ux .hx-table--stack td[data-label]::before {
+    content: attr(data-label); flex-shrink: 0; text-align: left;
+    font: 500 10.5px/1.2 var(--hx-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ux-muted);
+  }
+  .ux .hx-table--stack td.hx-empty { display: block; text-align: center; }
+  .ux .hx-table--stack td.hx-cell-svc { display: block; text-align: left; padding: 0 0 8px; }
+  .ux .hx-table--stack .hx-svc { min-width: 0; }
+  .ux .hx-table--stack .hx-svc > div { min-width: 0; overflow-wrap: anywhere; }
+  .ux .hx-table--stack .hx-tenant { flex-wrap: wrap; }
+  .ux .hx-table--stack .hx-tenant b, .ux .hx-table--stack .hx-tenant .hx-mono { overflow-wrap: anywhere; }
+  .ux .hx-table--stack .hx-tenant > :not(:first-child) { flex-basis: 100%; }
+  .ux .hx-table--stack .hx-event { white-space: normal; }
+  .ux .hx-table--stack td.hx-cell-actions { display: block; padding-top: 10px; }
+  .ux .hx-table--stack td.hx-cell-actions:empty { display: none; }
+  .ux .hx-table--stack .hx-actions { justify-content: stretch; gap: 8px; }
+  .ux .hx-table--stack .hx-actions .hx-btn { flex: 1 1 0; justify-content: center; height: 40px; }
+}

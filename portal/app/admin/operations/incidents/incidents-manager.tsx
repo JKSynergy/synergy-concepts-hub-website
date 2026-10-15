@@ -19,6 +19,7 @@ import {
   Activity,
 } from "lucide-react";
 import { Dialog } from "@/components/ux/dialog";
+import { revealOpsDetail } from "@/components/ux/ops-mobile";
 import { StatusMark, type Tone } from "@/components/ux/primitives";
 import Link from "next/link";
 import { sortIncidentsForWork, filterIncidents } from "@/lib/operations/incidents";
@@ -424,8 +425,8 @@ export default function IncidentsManager({
           gap: "1rem",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-          <div style={{ position: "relative", minWidth: "220px" }}>
+        <div className="ops-filters" style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+          <div className="ops-search" style={{ position: "relative", minWidth: "220px" }}>
             <Search className="w-4 h-4 text-muted-foreground" style={{ position: "absolute", left: "0.625rem", top: "0.625rem" }} />
             <input
               type="text"
@@ -437,7 +438,7 @@ export default function IncidentsManager({
             />
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}>
+          <div className="ops-filter-group" style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}>
             <Filter className="w-3.5 h-3.5 text-muted-foreground" />
             <select
               value={statusFilter}
@@ -549,7 +550,7 @@ export default function IncidentsManager({
             <span>Incidents ({filteredIncidents.length})</span>
           </div>
 
-          <div style={{ maxHeight: "680px", overflowY: "auto" }}>
+          <div className="ops-list-scroll" style={{ maxHeight: "680px", overflowY: "auto" }}>
             {filteredIncidents.length === 0 ? (
               <div style={{ padding: "2rem", textAlign: "center", color: "var(--muted-foreground)", fontSize: "0.8125rem" }}>
                 No operational incidents found.
@@ -561,7 +562,7 @@ export default function IncidentsManager({
                   <div
                     key={i.id}
                     id={`incident-card-${i.id}`}
-                    onClick={() => setSelectedIncidentId(i.id)}
+                    onClick={() => { setSelectedIncidentId(i.id); revealOpsDetail(); }}
                     style={{
                       padding: "0.875rem 1rem",
                       borderBottom: "1px solid var(--border)",
@@ -571,9 +572,9 @@ export default function IncidentsManager({
                       transition: "all 0.1s ease",
                     }}
                   >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.25rem" }}>
+                    <div className="ops-card-top" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.25rem" }}>
                       <span style={{ fontWeight: 600, fontSize: "0.875rem" }}>{i.title}</span>
-                      <div style={{ display: "flex", gap: "0.375rem" }}>
+                      <div className="ops-marks" style={{ display: "flex", gap: "0.375rem" }}>
                         <StatusMark tone={incidentSeverityTone(i.severity)}>{i.severity}</StatusMark>
                         <StatusMark tone={incidentStatusTone(i.status)}>{i.status}</StatusMark>
                       </div>
@@ -610,7 +611,7 @@ export default function IncidentsManager({
 
         {/* Right Column: Incident Detail & Triage */}
         {activeIncident ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+          <div className="ops-detail" style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
             {/* Header Card */}
             <div
               style={{
@@ -622,7 +623,7 @@ export default function IncidentsManager({
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "1rem" }}>
                 <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.25rem" }}>
+                  <div className="ops-detail-title" style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.25rem" }}>
                     <h2 style={{ fontSize: "1.125rem", fontWeight: 700, margin: 0 }}>
                       {activeIncident.title}
                     </h2>
@@ -977,7 +978,7 @@ export default function IncidentsManager({
             />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+          <div className="ops-form-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
             <div>
               <label className="ux-label">Severity</label>
               <select
@@ -1013,7 +1014,7 @@ export default function IncidentsManager({
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+          <div className="ops-form-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
             <div>
               <label className="ux-label">System (Optional)</label>
               <select
@@ -1061,7 +1062,7 @@ export default function IncidentsManager({
             />
           </div>
 
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "0.5rem" }}>
+          <div className="ops-dialog-actions" style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "0.5rem" }}>
             <button
               type="button"
               onClick={() => setCreateModalOpen(false)}
@@ -1111,7 +1112,7 @@ export default function IncidentsManager({
               ))}
             </select>
           </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "0.5rem" }}>
+          <div className="ops-dialog-actions" style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "0.5rem" }}>
             <button type="button" onClick={() => setAssignModalOpen(false)} className="ux-btn ux-btn--secondary">
               Cancel
             </button>
@@ -1148,7 +1149,7 @@ export default function IncidentsManager({
               style={{ width: "100%", resize: "vertical" }}
             />
           </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
+          <div className="ops-dialog-actions" style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
             <button type="button" onClick={() => setResolveModalOpen(false)} className="ux-btn ux-btn--secondary">
               Cancel
             </button>
@@ -1184,7 +1185,7 @@ export default function IncidentsManager({
               style={{ width: "100%", resize: "vertical" }}
             />
           </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
+          <div className="ops-dialog-actions" style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
             <button type="button" onClick={() => setCloseModalOpen(false)} className="ux-btn ux-btn--secondary">
               Cancel
             </button>
@@ -1221,7 +1222,7 @@ export default function IncidentsManager({
               style={{ width: "100%", resize: "vertical" }}
             />
           </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
+          <div className="ops-dialog-actions" style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
             <button type="button" onClick={() => setCancelModalOpen(false)} className="ux-btn ux-btn--secondary">
               Close
             </button>

@@ -210,7 +210,7 @@ export default function ApplicationSuspensionSection({ systems, systemsUnavailab
       {notice && <p className="ux-alert ux-alert-success" role="status">{notice}</p>}
 
       <div className="hx-tablewrap">
-        <table className="hx-table">
+        <table className="hx-table hx-table--stack">
           <thead>
             <tr><th>Service</th><th>Tenant</th><th>State</th><th>Last suspension</th><th>Reason</th><th style={{ textAlign: "right" }}>Controls</th></tr>
           </thead>
@@ -233,7 +233,7 @@ export default function ApplicationSuspensionSection({ systems, systemsUnavailab
                 const resumedAfter = !isDown && s.resumed_at && s.suspended_at && s.resumed_at >= s.suspended_at;
                 return (
                   <tr key={s.id} className={isDown ? "is-down" : undefined}>
-                    <td>
+                    <td className="hx-cell-svc">
                       <div className="hx-svc">
                         <span className="hx-svc-icon"><Server size={16} /></span>
                         <div>
@@ -242,17 +242,17 @@ export default function ApplicationSuspensionSection({ systems, systemsUnavailab
                         </div>
                       </div>
                     </td>
-                    <td className="hx-tenant">
+                    <td className="hx-tenant" data-label="Tenant">
                       <b>{tenant}</b>
                       {email && <span className="hx-mono">{email}</span>}
                     </td>
-                    <td>
+                    <td data-label="State">
                       <span className={`hx-state hx-state--${st}`}>
                         <span className={`hx-led hx-led--${st}`} />
                         {s.status.replace(/_/g, " ")}
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Last suspension">
                       {s.suspended_at ? (
                         <div className="hx-event">
                           {fmt(s.suspended_at)}
@@ -262,14 +262,14 @@ export default function ApplicationSuspensionSection({ systems, systemsUnavailab
                         <span className="hx-mono">never</span>
                       )}
                     </td>
-                    <td>
+                    <td data-label="Reason">
                       {s.suspension_reason ? (
                         <span className={`hx-tag ${reasonTagClass(s.suspension_reason)}`}>{s.suspension_reason.replace(/_/g, " ")}</span>
                       ) : (
                         <span className="hx-mono">—</span>
                       )}
                     </td>
-                    <td>
+                    <td className="hx-cell-actions">
                       {isAdmin && (
                         <div className="hx-actions">
                           <button
@@ -340,7 +340,7 @@ export default function ApplicationSuspensionSection({ systems, systemsUnavailab
                 placeholder="Optional internal note"
               />
             </div>
-            <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+            <div className="ops-dialog-actions" style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
               <button type="button" className="ux-button ux-button-secondary" onClick={() => setActiveSystem(null)} disabled={busy}>Cancel</button>
               <button type="submit" className="ux-button" disabled={busy || !reason}>Suspend managed system</button>
             </div>
@@ -373,7 +373,7 @@ export default function ApplicationSuspensionSection({ systems, systemsUnavailab
           <p className="ux-muted" style={{ fontSize: "0.85rem" }}>
             Endpoint: <code>https://portal.synergyconceptshub.com/api/systems/{tokenSystem.id}/status</code>
           </p>
-          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1rem" }}>
+          <div className="ops-dialog-actions" style={{ display: "flex", justifyContent: "flex-end", marginTop: "1rem" }}>
             <button type="button" className="ux-button ux-button-secondary" onClick={() => { setTokenSystem(null); setGeneratedToken(null); }}>Done</button>
           </div>
         </Dialog>
@@ -401,7 +401,7 @@ export default function ApplicationSuspensionSection({ systems, systemsUnavailab
                 placeholder="Optional internal note"
               />
             </div>
-            <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+            <div className="ops-dialog-actions" style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
               <button type="button" className="ux-button ux-button-secondary" onClick={() => setActiveSystem(null)} disabled={busy}>Cancel</button>
               <button type="button" className="ux-button" onClick={onResume} disabled={busy}>Resume managed system</button>
             </div>

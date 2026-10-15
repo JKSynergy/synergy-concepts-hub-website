@@ -116,7 +116,7 @@ export default async function TasksPage() {
   }));
 
   return (
-    <div className="ux-page ux-page--wide">
+    <div className="ux-page ux-page--wide ops-page">
       <PageHeader
         title="Tasks"
         description="Operational work assigned to the team."

@@ -138,7 +138,7 @@ export default async function BackupsPage() {
     .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
 
   return (
-    <div className="ux-page ux-page--wide">
+    <div className="ux-page ux-page--wide ops-page">
       <PageHeader
         title="Backups"
         description="Backup coverage and verification for client systems."

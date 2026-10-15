@@ -41,6 +41,16 @@ export function AppShell({
   // Close when the route changes.
   useEffect(() => setOpen(false), [pathname]);
 
+  // On narrow screens the section tabs scroll sideways; keep the active one visible.
+  useEffect(() => {
+    const bar = document.querySelector<HTMLElement>(".ux-tabs");
+    const tab = bar?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!bar || !tab || bar.scrollWidth <= bar.clientWidth) return;
+    const t = tab.getBoundingClientRect();
+    const r = bar.getBoundingClientRect();
+    bar.scrollLeft += t.left - r.left - (r.width - t.width) / 2;
+  }, [pathname]);
+
   // Open drawer: move focus in, trap Tab, close on Escape, return focus to Menu.
   useEffect(() => {
     if (!open) return;

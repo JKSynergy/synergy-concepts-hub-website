@@ -577,3 +577,67 @@ textarea.ux-input { min-height: 84px; resize: vertical; }
     overflow-wrap: anywhere;
   }
 }
+
+/* ===== Operations — phone & tablet (prefix ops-) =====
+   Scoped to .ops-page (every /admin/operations screen). The manager
+   screens carry inline styles, so overrides here need !important. */
+.ux .ops-detail { scroll-margin-top: 66px; }
+.ux .ops-page .ux-ops-sub-head { flex-wrap: wrap; }
+
+@media (max-width: 900px) {
+  /* stacked master-detail: keep the list short so the detail is reachable */
+  .ux .ops-page .ops-list-scroll { max-height: min(48vh, 420px) !important; }
+}
+
+@media (max-width: 640px) {
+  .ux .ops-page .ux-head { margin-bottom: 24px; }
+
+  /* filters: full-width search, selects on a two-column grid */
+  .ux .ops-page .ops-filters { width: 100%; }
+  .ux .ops-page .ops-search { flex: 1 1 100%; min-width: 0 !important; }
+  .ux .ops-page .ops-filter-group { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; gap: 8px !important; }
+  .ux .ops-page .ops-filter-group > svg { display: none; }
+  .ux .ops-page .ops-filters select { width: 100%; min-width: 0; }
+  .ux .ops-page :has(> .ops-filters) > button { width: 100%; justify-content: center; }
+
+  /* 16px text stops iOS zooming into fields; 40px gives a usable tap target */
+  .ux .ops-page input:not([type="checkbox"]):not([type="radio"]),
+  .ux .ops-page select,
+  .ux .ops-page textarea { font-size: 16px !important; }
+  .ux .ops-page select, .ux .ops-page input.ux-input { min-height: 40px; }
+  .ux .ops-page .ux-btn--sm, .ux .ops-page .ux-btn--small,
+  .ux .ops-page .ux-button, .ux .ops-page .hx-btn { min-height: 40px; }
+
+  /* list rows and detail headers: let titles and status marks wrap */
+  .ux .ops-page .ops-card-top { flex-wrap: wrap; gap: 4px 10px; }
+  .ux .ops-page .ops-marks, .ux .ops-page .ops-wrap { flex-wrap: wrap !important; row-gap: 4px !important; }
+  .ux .ops-page .ops-detail-title { flex-wrap: wrap; row-gap: 6px !important; }
+  .ux .ops-page .ops-detail-title > h2 { flex-basis: 100%; overflow-wrap: anywhere; }
+  .ux .ops-page .ops-detail > div[style*="padding: 1.25rem"] { padding: 16px !important; }
+  .ux .ops-page .ops-split { flex-wrap: wrap; gap: 12px; }
+
+  /* dialogs: bottom sheet, single padding, one-column forms */
+  .ux .ops-page .ux-overlay { align-items: flex-end; padding: 0; }
+  .ux .ops-page .ux-dialog { max-width: none !important; max-height: 92vh; padding: 20px 16px calc(20px + env(safe-area-inset-bottom)); }
+  .ux .ops-page .ux-dialog > div[style*="padding: 1.5rem"] { padding: 0 !important; }
+  .ux .ops-page .ops-form-2col { grid-template-columns: minmax(0, 1fr) !important; }
+  .ux .ops-page .ops-dialog-actions { flex-wrap: wrap-reverse; }
+  .ux .ops-page .ops-dialog-actions > button { flex: 1 1 140px; justify-content: center; }
+
+  /* stacked tables (Action Center, Provider Actions) */
+  .ux .ops-page .ux-card > .ux-tablewrap { padding: 0 14px; }
+  .ux .ops-page .ops-stack tr { padding: 14px 0; }
+  .ux .ops-page .ops-stack td { padding: 3px 0; overflow-wrap: anywhere; }
+  .ux .ops-page .ops-stack td[data-label]::before { display: block; margin: 6px 0 1px; font-size: 10.5px; }
+  .ux .ops-page .ops-stack td.ops-stack-lead { font-weight: 600; color: var(--ux-navy); }
+  .ux .ops-page .ops-stack td.ops-stack-lead::before { margin-top: 0; }
+  .ux .ops-page .ops-stack td.ops-stack-lead .ux-muted { font-weight: 400; }
+  .ux .ops-page .ops-stack td.ops-stack-actions:not(:empty) { padding-top: 10px; }
+  .ux .ops-page .ops-stack td.ops-stack-actions > div { gap: 8px !important; }
+  .ux .ops-page .ops-stack tbody tr:hover { background: transparent; }
+  .ux .ops-page .ops-stack tr { display: flex; flex-direction: column; }
+  .ux .ops-page .ops-stack td.ops-stack-lead { order: -1; }
+  .ux .ops-page .ux-card-header > div { width: 100%; display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px !important; }
+  .ux .ops-page .ux-card-header > div > :is(p, label) { grid-column: 1 / -1; }
+  .ux .ops-page .ux-card-header > div > select { width: 100%; }
+}

@@ -98,7 +98,7 @@ export default async function IncidentsPage() {
   }));
 
   return (
-    <div className="ux-page ux-page--wide">
+    <div className="ux-page ux-page--wide ops-page">
       <PageHeader
         title="Incidents"
         description="Track and resolve issues affecting client systems and services."

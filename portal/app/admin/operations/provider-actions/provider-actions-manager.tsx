@@ -219,7 +219,7 @@ export default function ProviderActionsManager({
           <p className="ux-muted" style={{ padding: "1rem" }}>No provider operations proposed yet.</p>
         ) : (
           <div className="ux-tablewrap">
-            <table className="ux-table">
+            <table className="ux-table ux-table--stack ops-stack">
               <thead>
                 <tr>
                   <th>Provider</th><th>Account</th><th>Resource</th><th>Operation</th>
@@ -229,21 +229,21 @@ export default function ProviderActionsManager({
               <tbody>
                 {sortedProposals.map((p) => (
                   <tr key={p.id} style={{ cursor: "pointer" }} onClick={() => setDetailFor(p)}>
-                    <td>{p.provider_name}</td>
-                    <td>{p.account_name}</td>
-                    <td>
+                    <td data-label="Provider" className="ops-stack-lead">{p.provider_name}</td>
+                    <td data-label="Account">{p.account_name}</td>
+                    <td data-label="Resource">
                       {p.sch_resource_name ?? p.external_name ?? "—"}
                       {p.external_resource_id ? <><br /><code>{p.external_resource_id}</code></> : null}
                     </td>
-                    <td>{PROVIDER_OPERATION_DEFS[p.operation_key as ProviderOperationKey]?.label ?? p.operation_key}</td>
-                    <td>{p.provider_status ?? "—"}</td>
-                    <td>{fmt(p.created_at)}</td>
-                    <td>
+                    <td data-label="Operation">{PROVIDER_OPERATION_DEFS[p.operation_key as ProviderOperationKey]?.label ?? p.operation_key}</td>
+                    <td data-label="Provider state">{p.provider_status ?? "—"}</td>
+                    <td data-label="Requested">{fmt(p.created_at)}</td>
+                    <td data-label="Status">
                       <StatusMark tone={statusTone(p.status)}>{p.status.replaceAll("_", " ")}</StatusMark>
                       {p.basis_stale && p.status !== "stale" ? <><br /><span className="ux-muted">stale basis</span></> : null}
                     </td>
                     {isAdmin && (
-                      <td onClick={(e) => e.stopPropagation()}>
+                      <td className="ops-stack-actions" onClick={(e) => e.stopPropagation()}>
                         <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap" }}>
                           {p.status === "proposed" && (
                             <>
@@ -299,7 +299,7 @@ export default function ProviderActionsManager({
         <div className="ux-card">
           <div className="ux-card-header"><h2>Execution history</h2></div>
           <div className="ux-tablewrap">
-            <table className="ux-table">
+            <table className="ux-table ux-table--stack ops-stack">
               <thead>
                 <tr>
                   <th>Started</th><th>Operation</th><th>Provider result</th>
@@ -309,12 +309,12 @@ export default function ProviderActionsManager({
               <tbody>
                 {executions.map((e) => (
                   <tr key={e.id}>
-                    <td>{fmt(e.started_at)}</td>
-                    <td>{PROVIDER_OPERATION_DEFS[e.operation_key as ProviderOperationKey]?.label ?? e.operation_key}</td>
-                    <td>{e.provider_result_category ?? "—"}</td>
-                    <td><StatusMark tone={statusTone(e.status)}>{e.status.replaceAll("_", " ")}</StatusMark></td>
-                    <td>{e.observed_provider_status ?? "—"}</td>
-                    <td className="ux-muted">{e.safe_error_message ?? "—"}</td>
+                    <td data-label="Started" className="ops-stack-lead">{fmt(e.started_at)}</td>
+                    <td data-label="Operation">{PROVIDER_OPERATION_DEFS[e.operation_key as ProviderOperationKey]?.label ?? e.operation_key}</td>
+                    <td data-label="Provider result">{e.provider_result_category ?? "—"}</td>
+                    <td data-label="Verification"><StatusMark tone={statusTone(e.status)}>{e.status.replaceAll("_", " ")}</StatusMark></td>
+                    <td data-label="Observed">{e.observed_provider_status ?? "—"}</td>
+                    <td data-label="Detail" className="ux-muted">{e.safe_error_message ?? "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -330,7 +330,7 @@ export default function ProviderActionsManager({
           <p className="ux-muted">
             {target.provider_name} · {target.account_name} · requested {fmt(target.created_at)}
           </p>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", margin: "1rem 0" }}>
+          <div className="ops-form-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", margin: "1rem 0" }}>
             <div>
               <p className="ux-row-label">SCH resource</p>
               <p>Name: {target.sch_resource_name ?? "—"}</p>
@@ -359,7 +359,7 @@ export default function ProviderActionsManager({
               ))}
             </div>
           )}
-          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1rem" }}>
+          <div className="ops-dialog-actions" style={{ display: "flex", justifyContent: "flex-end", marginTop: "1rem" }}>
             <button className="ux-button ux-button-secondary" onClick={() => setDetailFor(null)}>
               <Check size={13} /> Close
             </button>
@@ -422,7 +422,7 @@ export default function ProviderActionsManager({
                 placeholder="Why is this operation needed?"
               />
             </label>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "0.5rem" }}>
+            <div className="ops-dialog-actions" style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "0.5rem" }}>
               <button className="ux-button ux-button-secondary" onClick={() => setProposeOpen(false)}>Cancel</button>
               <button
                 className="ux-button"

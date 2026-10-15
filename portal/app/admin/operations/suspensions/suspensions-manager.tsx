@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog } from "@/components/ux/dialog";
+import { revealOpsDetail } from "@/components/ux/ops-mobile";
 import { StatusMark, type Tone } from "@/components/ux/primitives";
 import Link from "next/link";
 import { sortCasesForAttention, filterCases, caseSystemDiscrepancy } from "@/lib/operations/suspensions";
@@ -610,8 +611,8 @@ export default function SuspensionsManager({
           gap: "1rem",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-          <div style={{ position: "relative", minWidth: "220px" }}>
+        <div className="ops-filters" style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+          <div className="ops-search" style={{ position: "relative", minWidth: "220px" }}>
             <Search
               className="w-4 h-4 text-muted-foreground"
               style={{ position: "absolute", left: "0.75rem", top: "50%", transform: "translateY(-50%)" }}
@@ -713,7 +714,7 @@ export default function SuspensionsManager({
             <span>Cases ({filteredCases.length})</span>
           </div>
 
-          <div style={{ maxHeight: "680px", overflowY: "auto" }}>
+          <div className="ops-list-scroll" style={{ maxHeight: "680px", overflowY: "auto" }}>
             {filteredCases.length === 0 ? (
               <div className="hx-cases-empty" style={{ padding: "2rem", textAlign: "center", color: "var(--muted-foreground)", fontSize: "0.8125rem" }}>
                 No suspension cases in queue.
@@ -725,7 +726,7 @@ export default function SuspensionsManager({
                   <div
                     key={c.id}
                     id={`case-card-${c.id}`}
-                    onClick={() => setSelectedCaseId(c.id)}
+                    onClick={() => { setSelectedCaseId(c.id); revealOpsDetail(); }}
                     style={{
                       padding: "0.875rem 1rem",
                       borderBottom: "1px solid var(--border)",
@@ -735,7 +736,7 @@ export default function SuspensionsManager({
                       transition: "all 0.1s ease",
                     }}
                   >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.25rem" }}>
+                    <div className="ops-card-top" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.25rem" }}>
                       <span style={{ fontWeight: 600, fontSize: "0.875rem" }}>
                         {c.service_agreement?.name || "Agreement"}
                       </span>
@@ -769,7 +770,7 @@ export default function SuspensionsManager({
 
         {/* Right Column: Case Lifecycle Detail & Actions */}
         {activeCase ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+          <div className="ops-detail" style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
             {/* Header Card */}
             <div
               style={{
@@ -781,7 +782,7 @@ export default function SuspensionsManager({
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "1rem" }}>
                 <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.25rem" }}>
+                  <div className="ops-detail-title" style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.25rem" }}>
                     <h2 style={{ fontSize: "1.125rem", fontWeight: 700, margin: 0 }}>
                       {activeCase.service_agreement?.name}
                     </h2>
@@ -1045,7 +1046,7 @@ export default function SuspensionsManager({
                 padding: "1.25rem",
               }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+              <div className="ops-split" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
                 <div>
                   <h3 style={{ fontSize: "0.9375rem", fontWeight: 700, margin: 0 }}>
                     Case actions{actionsUnavailable ? "" : ` (${caseActions.length})`}
@@ -1138,7 +1139,7 @@ export default function SuspensionsManager({
                             </div>
                           )}
 
-                          <div style={{ display: "flex", gap: "1rem", fontSize: "0.75rem", color: "var(--muted-foreground)", marginTop: "0.375rem" }}>
+                          <div className="ops-wrap" style={{ display: "flex", gap: "1rem", fontSize: "0.75rem", color: "var(--muted-foreground)", marginTop: "0.375rem" }}>
                             {act.performed_by_user && (
                               <span>Performed by: {act.performed_by_user.full_name || act.performed_by_user.email}</span>
                             )}
@@ -1154,7 +1155,7 @@ export default function SuspensionsManager({
                         </div>
 
                         {/* Action controls */}
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <div className="ops-wrap" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                           {canCompleteAction && act.action_status !== "completed" && act.action_status !== "verified" && (
                             <button
                               onClick={() => {
@@ -1298,7 +1299,7 @@ export default function SuspensionsManager({
                 />
               </div>
 
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "0.5rem" }}>
+              <div className="ops-dialog-actions" style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "0.5rem" }}>
                 <button
                   type="button"
                   onClick={() => setCreateModalOpen(false)}
@@ -1345,7 +1346,7 @@ export default function SuspensionsManager({
                 />
               </div>
 
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
+              <div className="ops-dialog-actions" style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
                 <button
                   type="button"
                   onClick={() => setRejectModalOpen(false)}
@@ -1391,7 +1392,7 @@ export default function SuspensionsManager({
                 </select>
               </div>
 
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
+              <div className="ops-dialog-actions" style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
                 <button
                   type="button"
                   onClick={() => setAssignModalOpen(false)}
@@ -1487,7 +1488,7 @@ export default function SuspensionsManager({
                 />
               </div>
 
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
+              <div className="ops-dialog-actions" style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
                 <button
                   type="button"
                   onClick={() => setAddActionModalOpen(false)}
@@ -1544,7 +1545,7 @@ export default function SuspensionsManager({
                 />
               </div>
 
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
+              <div className="ops-dialog-actions" style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
                 <button
                   type="button"
                   onClick={() => setCompleteActionModalOpen(false)}

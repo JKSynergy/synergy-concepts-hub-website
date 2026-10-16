@@ -140,7 +140,7 @@ test("managed status token: only the SHA-256 hash reaches the database", () => {
 
 test("managed status: endpoint returns minimal status only", () => {
   const src = readFileSync("app/api/systems/[id]/status/route.ts", "utf8");
-  assert.ok(/NextResponse\.json\(\{ status \}\)/.test(src),
+  assert.ok(/json\(\{ status \}, 200\)/.test(src),
     "endpoint response must contain only the status field");
   assert.ok(!/suspension_reason|suspension_note|suspension_at|resumed_at|resumed_by/.test(src),
     "endpoint must not expose internal suspension metadata");
@@ -169,4 +169,12 @@ test("managed status: status values other than suspended are live from endpoint 
   );
   const finalRow = (await db.query(`SELECT status FROM public.systems WHERE id = '${IDS.systemA}'`)).rows[0];
   assert.equal(finalRow.status, "suspended");
+});
+
+test("managed status: transient failures are never reported as not-found or suspended", () => {
+  const src = readFileSync("app/api/systems/[id]/status/route.ts", "utf8");
+  assert.ok(/if \(error\)[\s\S]{0,300}503/.test(src), "database errors return 503, not 404");
+  assert.ok(/no-store/.test(src), "status responses are never cached");
+  assert.ok(/recordFailure\(failKey\)/.test(src), "only failed auth attempts are throttled");
+  assert.ok(!/isRateLimited\(systemId\)/.test(src), "valid-token checks are not rate limited per system");
 });

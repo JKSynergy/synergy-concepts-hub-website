@@ -713,9 +713,9 @@ export default function ProviderCostsManager({
         <div
           style={{
             padding: "0.75rem 1rem",
-            background: "#fef2f2",
-            border: "1px solid #fecaca",
-            color: "#b91c1c",
+            background: "var(--ux-danger-bg)",
+            border: "1px solid var(--ux-danger-line)",
+            color: "var(--ux-danger)",
             borderRadius: "4px",
             fontSize: "0.8125rem",
             display: "flex",
@@ -726,7 +726,7 @@ export default function ProviderCostsManager({
           <span>{errorMessage}</span>
           <button
             onClick={() => setErrorMessage(null)}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "#b91c1c" }}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ux-danger)" }}
           >
             <X className="w-4 h-4" />
           </button>
@@ -1074,7 +1074,7 @@ export default function ProviderCostsManager({
                       onClick={handleCancel}
                       disabled={isSubmitting}
                       className="ux-btn ux-btn--secondary ux-btn--sm"
-                      style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", color: "#b91c1c" }}
+                      style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", color: "var(--ux-danger)" }}
                     >
                       <XCircle className="w-3.5 h-3.5" />
                       <span>Cancel Cost</span>

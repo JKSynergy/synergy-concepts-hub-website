@@ -608,9 +608,9 @@ export default function BackupsManager({
           id="finance-context-banner"
           style={{
             padding: "0.75rem 1rem",
-            background: "#eff6ff",
-            border: "1px solid #bfdbfe",
-            color: "#1e40af",
+            background: "var(--ux-info-bg)",
+            border: "1px solid var(--ux-info-line)",
+            color: "var(--ux-info)",
             borderRadius: "4px",
             fontSize: "0.8125rem",
           }}
@@ -625,9 +625,9 @@ export default function BackupsManager({
           id="staff-operational-banner"
           style={{
             padding: "0.75rem 1rem",
-            background: "#f0fdf4",
-            border: "1px solid #bbf7d0",
-            color: "#166534",
+            background: "var(--ux-success-bg)",
+            border: "1px solid var(--ux-success-line)",
+            color: "var(--ux-success)",
             borderRadius: "4px",
             fontSize: "0.8125rem",
           }}
@@ -641,9 +641,9 @@ export default function BackupsManager({
         <div
           style={{
             padding: "0.75rem 1rem",
-            background: "#fef2f2",
-            border: "1px solid #fecaca",
-            color: "#b91c1c",
+            background: "var(--ux-danger-bg)",
+            border: "1px solid var(--ux-danger-line)",
+            color: "var(--ux-danger)",
             borderRadius: "4px",
             fontSize: "0.8125rem",
             display: "flex",
@@ -654,7 +654,7 @@ export default function BackupsManager({
           <span>{errorMessage}</span>
           <button
             onClick={() => setErrorMessage(null)}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "#b91c1c" }}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ux-danger)" }}
           >
             <X className="w-4 h-4" />
           </button>
@@ -962,7 +962,7 @@ export default function BackupsManager({
                       onClick={handleToggleActive}
                       disabled={isSubmitting}
                       className="ux-btn ux-btn--secondary ux-btn--sm"
-                      style={{ color: activePolicy.is_active ? "#b91c1c" : "#059669" }}
+                      style={{ color: activePolicy.is_active ? "var(--ux-danger)" : "var(--ux-success)" }}
                     >
                       {activePolicy.is_active ? (
                         <>
@@ -1066,7 +1066,7 @@ export default function BackupsManager({
                 {activePolicy.last_failure_reason && (
                   <div>
                     <span className="ux-muted">Last Failure:</span>
-                    <div style={{ fontWeight: 600, marginTop: "0.125rem", color: "#dc2626" }}>
+                    <div style={{ fontWeight: 600, marginTop: "0.125rem", color: "var(--ux-danger)" }}>
                       {activePolicy.last_failure_reason}
                     </div>
                   </div>
@@ -1161,7 +1161,7 @@ export default function BackupsManager({
                             <span className="ux-muted" style={{ fontSize: "0.6875rem" }}>no evidence</span>
                           )}
                           {ev.status === "failed" && ev.failure_reason && (
-                            <span style={{ fontSize: "0.75rem", color: "#dc2626" }}>{ev.failure_reason}</span>
+                            <span style={{ fontSize: "0.75rem", color: "var(--ux-danger)" }}>{ev.failure_reason}</span>
                           )}
                         </div>
                         <div className="ux-muted" style={{ fontSize: "0.75rem", marginTop: "0.25rem" }}>

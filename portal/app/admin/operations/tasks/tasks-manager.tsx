@@ -374,9 +374,9 @@ export default function TasksManager({
           id="finance-context-banner"
           style={{
             padding: "0.75rem 1rem",
-            background: "#eff6ff",
-            border: "1px solid #bfdbfe",
-            color: "#1e40af",
+            background: "var(--ux-info-bg)",
+            border: "1px solid var(--ux-info-line)",
+            color: "var(--ux-info)",
             borderRadius: "4px",
             fontSize: "0.8125rem",
           }}
@@ -391,9 +391,9 @@ export default function TasksManager({
           id="staff-operational-banner"
           style={{
             padding: "0.75rem 1rem",
-            background: "#f0fdf4",
-            border: "1px solid #bbf7d0",
-            color: "#166534",
+            background: "var(--ux-success-bg)",
+            border: "1px solid var(--ux-success-line)",
+            color: "var(--ux-success)",
             borderRadius: "4px",
             fontSize: "0.8125rem",
           }}
@@ -407,9 +407,9 @@ export default function TasksManager({
         <div
           style={{
             padding: "0.75rem 1rem",
-            background: "#fef2f2",
-            border: "1px solid #fecaca",
-            color: "#b91c1c",
+            background: "var(--ux-danger-bg)",
+            border: "1px solid var(--ux-danger-line)",
+            color: "var(--ux-danger)",
             borderRadius: "4px",
             fontSize: "0.8125rem",
             display: "flex",
@@ -420,7 +420,7 @@ export default function TasksManager({
           <span>{errorMessage}</span>
           <button
             onClick={() => setErrorMessage(null)}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "#b91c1c" }}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ux-danger)" }}
           >
             <X className="w-4 h-4" />
           </button>
@@ -552,9 +552,9 @@ export default function TasksManager({
       {!tasksUnavailable && tasks.length > 0 && (
         <div style={{ fontSize: "0.8125rem", color: "var(--muted-foreground)", display: "flex", gap: "1rem", flexWrap: "wrap" }}>
           <span><b style={{ color: "var(--foreground)" }}>{taskSummary.actionable}</b> actionable</span>
-          {taskSummary.overdue > 0 && <span><b style={{ color: "#b91c1c" }}>{taskSummary.overdue}</b> overdue</span>}
+          {taskSummary.overdue > 0 && <span><b style={{ color: "var(--ux-danger)" }}>{taskSummary.overdue}</b> overdue</span>}
           {taskSummary.unassigned > 0 && <span><b style={{ color: "var(--foreground)" }}>{taskSummary.unassigned}</b> unassigned</span>}
-          {taskSummary.blocked > 0 && <span><b style={{ color: "#b45309" }}>{taskSummary.blocked}</b> blocked</span>}
+          {taskSummary.blocked > 0 && <span><b style={{ color: "var(--ux-warning)" }}>{taskSummary.blocked}</b> blocked</span>}
         </div>
       )}
 
@@ -745,7 +745,7 @@ export default function TasksManager({
                       }}
                       disabled={isSubmitting}
                       className="ux-btn ux-btn--secondary ux-btn--sm"
-                      style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", color: "#b91c1c" }}
+                      style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", color: "var(--ux-danger)" }}
                     >
                       <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
                       <span>Mark Blocked</span>
@@ -829,7 +829,7 @@ export default function TasksManager({
                 {activeTask.completed_at && (
                   <div>
                     <span className="ux-muted">Completed At:</span>
-                    <div style={{ fontWeight: 600, marginTop: "0.125rem", color: "#059669" }}>
+                    <div style={{ fontWeight: 600, marginTop: "0.125rem", color: "var(--ux-success)" }}>
                       {new Date(activeTask.completed_at).toLocaleString()}
                     </div>
                   </div>
@@ -837,7 +837,7 @@ export default function TasksManager({
                 {activeTask.cancelled_at && (
                   <div>
                     <span className="ux-muted">Cancelled At:</span>
-                    <div style={{ fontWeight: 600, marginTop: "0.125rem", color: "#dc2626" }}>
+                    <div style={{ fontWeight: 600, marginTop: "0.125rem", color: "var(--ux-danger)" }}>
                       {new Date(activeTask.cancelled_at).toLocaleString()}
                     </div>
                   </div>

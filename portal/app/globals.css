@@ -12,3 +12,7 @@ body {
   background: #f4f3f0;
   color: #161b26;
 }
+
+/* Dark theme for anything outside .ux (see app/ux.css) */
+html[data-theme="dark"] { color-scheme: dark; }
+html[data-theme="dark"] body { background: #0F141F; color: #E6E8EC; }

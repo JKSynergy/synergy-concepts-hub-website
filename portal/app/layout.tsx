@@ -2,6 +2,10 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { PwaRegister } from "@/components/pwa-register";
 
+// Sets the theme before first paint so there is no light/dark flash.
+// Saved choice (components/ux/theme-toggle.tsx) wins; otherwise the device setting.
+const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem("sch-theme");if(t!=="light"&&t!=="dark"){t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}var r=document.documentElement;r.dataset.theme=t;r.style.colorScheme=t}catch(e){}})()`;
+
 export const metadata: Metadata = {
   title: "SCH Portal",
   applicationName: "Synergy Concepts Hub Portal",
@@ -36,7 +40,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className="min-h-screen antialiased">
         <PwaRegister />
         {children}

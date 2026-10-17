@@ -362,9 +362,9 @@ export default function IncidentsManager({
           id="finance-context-banner"
           style={{
             padding: "0.75rem 1rem",
-            background: "#eff6ff",
-            border: "1px solid #bfdbfe",
-            color: "#1e40af",
+            background: "var(--ux-info-bg)",
+            border: "1px solid var(--ux-info-line)",
+            color: "var(--ux-info)",
             borderRadius: "4px",
             fontSize: "0.8125rem",
           }}
@@ -379,9 +379,9 @@ export default function IncidentsManager({
           id="staff-operational-banner"
           style={{
             padding: "0.75rem 1rem",
-            background: "#f0fdf4",
-            border: "1px solid #bbf7d0",
-            color: "#166534",
+            background: "var(--ux-success-bg)",
+            border: "1px solid var(--ux-success-line)",
+            color: "var(--ux-success)",
             borderRadius: "4px",
             fontSize: "0.8125rem",
           }}
@@ -395,9 +395,9 @@ export default function IncidentsManager({
         <div
           style={{
             padding: "0.75rem 1rem",
-            background: "#fef2f2",
-            border: "1px solid #fecaca",
-            color: "#b91c1c",
+            background: "var(--ux-danger-bg)",
+            border: "1px solid var(--ux-danger-line)",
+            color: "var(--ux-danger)",
             borderRadius: "4px",
             fontSize: "0.8125rem",
             display: "flex",
@@ -408,7 +408,7 @@ export default function IncidentsManager({
           <span>{errorMessage}</span>
           <button
             onClick={() => setErrorMessage(null)}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "#b91c1c" }}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ux-danger)" }}
           >
             <X className="w-4 h-4" />
           </button>
@@ -763,15 +763,15 @@ export default function IncidentsManager({
 
               {/* Status progression */}
               <div className="ux-muted" style={{ marginTop: "1rem", display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", fontSize: "0.8125rem" }}>
-                <span style={{ fontWeight: activeIncident.status === "open" ? 700 : 400, color: activeIncident.status === "open" ? "var(--ux-navy)" : undefined }}>Open</span>
+                <span style={{ fontWeight: activeIncident.status === "open" ? 700 : 400, color: activeIncident.status === "open" ? "var(--ux-strong)" : undefined }}>Open</span>
                 <span>→</span>
-                <span style={{ fontWeight: activeIncident.status === "acknowledged" ? 700 : 400, color: activeIncident.status === "acknowledged" ? "var(--ux-navy)" : undefined }}>Acknowledged</span>
+                <span style={{ fontWeight: activeIncident.status === "acknowledged" ? 700 : 400, color: activeIncident.status === "acknowledged" ? "var(--ux-strong)" : undefined }}>Acknowledged</span>
                 <span>→</span>
-                <span style={{ fontWeight: ["investigating", "monitoring"].includes(activeIncident.status) ? 700 : 400, color: ["investigating", "monitoring"].includes(activeIncident.status) ? "var(--ux-navy)" : undefined }}>Investigation</span>
+                <span style={{ fontWeight: ["investigating", "monitoring"].includes(activeIncident.status) ? 700 : 400, color: ["investigating", "monitoring"].includes(activeIncident.status) ? "var(--ux-strong)" : undefined }}>Investigation</span>
                 <span>→</span>
-                <span style={{ fontWeight: activeIncident.status === "resolved" ? 700 : 400, color: activeIncident.status === "resolved" ? "var(--ux-navy)" : undefined }}>Resolved</span>
+                <span style={{ fontWeight: activeIncident.status === "resolved" ? 700 : 400, color: activeIncident.status === "resolved" ? "var(--ux-strong)" : undefined }}>Resolved</span>
                 <span>→</span>
-                <span style={{ fontWeight: activeIncident.status === "closed" ? 700 : 400, color: activeIncident.status === "closed" ? "var(--ux-navy)" : undefined }}>Closed</span>
+                <span style={{ fontWeight: activeIncident.status === "closed" ? 700 : 400, color: activeIncident.status === "closed" ? "var(--ux-strong)" : undefined }}>Closed</span>
               </div>
 
               {/* Incident Metadata Grid */}
@@ -817,7 +817,7 @@ export default function IncidentsManager({
                 {activeIncident.resolved_at && (
                   <div>
                     <span className="ux-muted">Resolved At:</span>
-                    <div style={{ fontWeight: 600, marginTop: "0.125rem", color: "#059669" }}>
+                    <div style={{ fontWeight: 600, marginTop: "0.125rem", color: "var(--ux-success)" }}>
                       {new Date(activeIncident.resolved_at).toLocaleString()}
                     </div>
                   </div>
@@ -825,7 +825,7 @@ export default function IncidentsManager({
                 {activeIncident.closed_at && (
                   <div>
                     <span className="ux-muted">Closed At:</span>
-                    <div style={{ fontWeight: 600, marginTop: "0.125rem", color: "#2563eb" }}>
+                    <div style={{ fontWeight: 600, marginTop: "0.125rem", color: "var(--ux-info)" }}>
                       {new Date(activeIncident.closed_at).toLocaleString()}
                     </div>
                   </div>
@@ -859,11 +859,11 @@ export default function IncidentsManager({
                     style={{
                       marginTop: "0.375rem",
                       padding: "0.875rem",
-                      background: "#f0fdf4",
-                      border: "1px solid #bbf7d0",
+                      background: "var(--ux-success-bg)",
+                      border: "1px solid var(--ux-success-line)",
                       borderRadius: "4px",
                       fontSize: "0.8125rem",
-                      color: "#166534",
+                      color: "var(--ux-success)",
                       lineHeight: 1.6,
                       whiteSpace: "pre-wrap",
                     }}

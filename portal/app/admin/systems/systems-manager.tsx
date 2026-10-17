@@ -259,7 +259,7 @@ export default function SystemsManager({
       )}
 
       {errorMsg && (
-        <div className="ux-alert ux-alert--danger" style={{ marginBottom: "1rem", padding: "0.75rem 1rem", borderRadius: "6px", backgroundColor: "rgba(220, 38, 38, 0.1)", color: "#ef4444" }}>
+        <div className="ux-alert ux-alert--danger" style={{ marginBottom: "1rem", padding: "0.75rem 1rem", borderRadius: "6px", backgroundColor: "rgba(220, 38, 38, 0.1)", color: "var(--ux-danger)" }}>
           {errorMsg}
         </div>
       )}

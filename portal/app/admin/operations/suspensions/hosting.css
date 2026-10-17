@@ -80,11 +80,11 @@
 .ux .hx-table th {
   padding: 10px 14px; text-align: left; white-space: nowrap;
   font: 500 10.5px/1 var(--hx-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ux-muted);
-  background: #FAFAF8; border-bottom: 1px solid var(--ux-line);
+  background: var(--ux-subtle); border-bottom: 1px solid var(--ux-line);
 }
 .ux .hx-table td { padding: 14px; border-bottom: 1px solid var(--ux-line); vertical-align: middle; }
 .ux .hx-table tbody tr { transition: background-color .12s; }
-.ux .hx-table tbody tr:hover { background: #FAFAF8; }
+.ux .hx-table tbody tr:hover { background: var(--ux-subtle); }
 .ux .hx-table tbody tr:last-child td { border-bottom: 0; }
 .ux .hx-table tr.is-down { background: linear-gradient(90deg, rgba(239,68,68,.06), transparent 40%); }
 .ux .hx-table tr.is-down td:first-child { box-shadow: inset 3px 0 0 var(--hx-down); }
@@ -200,3 +200,14 @@
   .ux .hx-table--stack .hx-actions { justify-content: stretch; gap: 8px; }
   .ux .hx-table--stack .hx-actions .hx-btn { flex: 1 1 0; justify-content: center; height: 40px; }
 }
+
+/* ── Dark theme: status tints (see DARK THEME in app/ux.css) ── */
+html[data-theme="dark"] .ux .hx-state--live { color: var(--ux-success); border-color: var(--ux-success-line); background: var(--ux-success-bg); }
+html[data-theme="dark"] .ux .hx-state--down,
+html[data-theme="dark"] .ux .hx-tag--danger { color: var(--ux-danger); border-color: var(--ux-danger-line); background: var(--ux-danger-bg); }
+html[data-theme="dark"] .ux .hx-state--warn,
+html[data-theme="dark"] .ux .hx-tag--warn { color: var(--ux-warning); border-color: var(--ux-warning-line); background: var(--ux-warning-bg); }
+html[data-theme="dark"] .ux .hx-state--build,
+html[data-theme="dark"] .ux .hx-tag--info { color: var(--ux-info); border-color: var(--ux-info-line); background: var(--ux-info-bg); }
+html[data-theme="dark"] .ux .hx-btn--danger:hover:not(:disabled) { color: var(--ux-danger); border-color: var(--ux-danger); background: var(--ux-danger-bg); }
+html[data-theme="dark"] .ux .hx-console { border-color: var(--ux-line); }

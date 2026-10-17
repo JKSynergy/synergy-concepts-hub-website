@@ -547,9 +547,9 @@ export default function SuspensionsManager({
           id="finance-context-banner"
           style={{
             padding: "0.75rem 1rem",
-            background: "#eff6ff",
-            border: "1px solid #bfdbfe",
-            color: "#1e40af",
+            background: "var(--ux-info-bg)",
+            border: "1px solid var(--ux-info-line)",
+            color: "var(--ux-info)",
             borderRadius: "4px",
             fontSize: "0.8125rem",
           }}
@@ -564,9 +564,9 @@ export default function SuspensionsManager({
           id="staff-operational-banner"
           style={{
             padding: "0.75rem 1rem",
-            background: "#f0fdf4",
-            border: "1px solid #bbf7d0",
-            color: "#166534",
+            background: "var(--ux-success-bg)",
+            border: "1px solid var(--ux-success-line)",
+            color: "var(--ux-success)",
             borderRadius: "4px",
             fontSize: "0.8125rem",
           }}
@@ -579,9 +579,9 @@ export default function SuspensionsManager({
         <div
           style={{
             padding: "0.75rem 1rem",
-            background: "#fef2f2",
-            border: "1px solid #fecaca",
-            color: "#b91c1c",
+            background: "var(--ux-danger-bg)",
+            border: "1px solid var(--ux-danger-line)",
+            color: "var(--ux-danger)",
             borderRadius: "4px",
             fontSize: "0.8125rem",
             display: "flex",
@@ -592,7 +592,7 @@ export default function SuspensionsManager({
           <span>{errorMessage}</span>
           <button
             onClick={() => setErrorMessage(null)}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "#b91c1c" }}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ux-danger)" }}
           >
             <X className="w-4 h-4" />
           </button>
@@ -946,27 +946,27 @@ export default function SuspensionsManager({
 
               {/* Lifecycle status progression */}
               <div className="ux-muted" style={{ marginTop: "1rem", display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", fontSize: "0.8125rem" }}>
-                <span style={{ fontWeight: ["proposed", "pending_approval"].includes(activeCase.status) ? 700 : 400, color: ["proposed", "pending_approval"].includes(activeCase.status) ? "var(--ux-navy)" : undefined }}>
+                <span style={{ fontWeight: ["proposed", "pending_approval"].includes(activeCase.status) ? 700 : 400, color: ["proposed", "pending_approval"].includes(activeCase.status) ? "var(--ux-strong)" : undefined }}>
                   Proposed
                 </span>
                 <ArrowRight className="w-3 h-3 text-muted-foreground" />
-                <span style={{ fontWeight: activeCase.status === "approved" ? 700 : 400, color: activeCase.status === "approved" ? "var(--ux-navy)" : undefined }}>
+                <span style={{ fontWeight: activeCase.status === "approved" ? 700 : 400, color: activeCase.status === "approved" ? "var(--ux-strong)" : undefined }}>
                   Approved
                 </span>
                 <ArrowRight className="w-3 h-3 text-muted-foreground" />
-                <span style={{ fontWeight: activeCase.status === "executing" ? 700 : 400, color: activeCase.status === "executing" ? "var(--ux-navy)" : undefined }}>
+                <span style={{ fontWeight: activeCase.status === "executing" ? 700 : 400, color: activeCase.status === "executing" ? "var(--ux-strong)" : undefined }}>
                   Executing
                 </span>
                 <ArrowRight className="w-3 h-3 text-muted-foreground" />
-                <span style={{ fontWeight: activeCase.status === "suspended" ? 700 : 400, color: activeCase.status === "suspended" ? "var(--ux-navy)" : undefined }}>
+                <span style={{ fontWeight: activeCase.status === "suspended" ? 700 : 400, color: activeCase.status === "suspended" ? "var(--ux-strong)" : undefined }}>
                   Suspended
                 </span>
                 <ArrowRight className="w-3 h-3 text-muted-foreground" />
-                <span style={{ fontWeight: activeCase.status === "restoration_pending" ? 700 : 400, color: activeCase.status === "restoration_pending" ? "var(--ux-navy)" : undefined }}>
+                <span style={{ fontWeight: activeCase.status === "restoration_pending" ? 700 : 400, color: activeCase.status === "restoration_pending" ? "var(--ux-strong)" : undefined }}>
                   Restoration
                 </span>
                 <ArrowRight className="w-3 h-3 text-muted-foreground" />
-                <span style={{ fontWeight: activeCase.status === "restored" ? 700 : 400, color: activeCase.status === "restored" ? "var(--ux-navy)" : undefined }}>
+                <span style={{ fontWeight: activeCase.status === "restored" ? 700 : 400, color: activeCase.status === "restored" ? "var(--ux-strong)" : undefined }}>
                   Restored
                 </span>
               </div>
@@ -1014,7 +1014,7 @@ export default function SuspensionsManager({
                 {activeCase.verified_at && (
                   <div>
                     <span className="ux-muted">Verified At:</span>
-                    <div style={{ fontWeight: 600, marginTop: "0.125rem", color: "#059669" }}>
+                    <div style={{ fontWeight: 600, marginTop: "0.125rem", color: "var(--ux-success)" }}>
                       {new Date(activeCase.verified_at).toLocaleString()}
                     </div>
                   </div>
@@ -1022,7 +1022,7 @@ export default function SuspensionsManager({
                 {activeCase.restored_at && (
                   <div>
                     <span className="ux-muted">Restored At:</span>
-                    <div style={{ fontWeight: 600, marginTop: "0.125rem", color: "#2563eb" }}>
+                    <div style={{ fontWeight: 600, marginTop: "0.125rem", color: "var(--ux-info)" }}>
                       {new Date(activeCase.restored_at).toLocaleString()}
                     </div>
                   </div>
@@ -1147,7 +1147,7 @@ export default function SuspensionsManager({
                               <span>At: {new Date(act.performed_at).toLocaleString()}</span>
                             )}
                             {act.verified_by_user && (
-                              <span style={{ color: "#059669" }}>
+                              <span style={{ color: "var(--ux-success)" }}>
                                 Verified by: {act.verified_by_user.full_name || act.verified_by_user.email}
                               </span>
                             )}

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { NavLink } from "@/components/nav-link";
 import { createClient } from "@/lib/supabase/client";
 import { FeedbackProvider } from "./feedback";
+import { ThemeToggle } from "./theme-toggle";
 
 export type ShellItem = { href: string; label: string; match: string[]; exact?: boolean };
 export type ShellGroup = { label?: string; ariaLabel: string; items: ShellItem[] };
@@ -136,6 +137,7 @@ export function AppShell({
           <div className="ux-user">
             <b>{userLabel}</b>
             <span>{userRole}</span>
+            <ThemeToggle />
             <button type="button" onClick={signOut}>
               Sign out
             </button>

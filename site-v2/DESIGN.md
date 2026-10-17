@@ -10,7 +10,7 @@
 5. Hybrid editorial/business language: more structured and corporate than SMA, more visual where creative work needs it. SMA keeps its own cardless, educational style.
 
 ## System (assets/css/sch.css, about 17 KB, replaces the 163 KB ecosystem.css)
-- **Colour:** navy #0B0F19, white, warm stone #F4F3F0, logo orange #ED8C22 (buttons and marks on dark only), darker orange #B25B00 for small text on light, logo blue #1773B9 reserved. No gradients, glows, glass or blur.
+- **Colour (dark site, Oct 2026):** the whole site is dark. Three surfaces carry the section rhythm: navy #0B0F19 (header, hero, work, contact, footer), "paper" #111622 (default sections) and "stone" #171D2A (alternate sections). Text #EEF0F3, secondary text #A3ABB9, hairlines white at 12%. Logo orange #ED8C22 for buttons and marks, #F29A3C for small orange text, blue lifted to #6AB0E8. Client logos keep their white square frames. No gradients, glows, glass or blur.
 - **Type:** Sora (headings) and Inter (body). Space Grotesk removed. One scale, tight tracking on display sizes.
 - **Shape:** 2px corners, 1px rules, no shadows.
 - **Rhythm:** sections alternate white, stone and navy only when the content changes character (navy for Hero, Work and Contact).

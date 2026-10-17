@@ -190,7 +190,7 @@ export default function ProviderActionsManager({
             <span className="ux-muted">
               Operations are proposed, approved, executed server-side, then verified against the provider.
               {targetsUnavailable && (
-                <><br /><span style={{ color: "#b91c1c" }}>Operation targets unavailable — retry to load the resource list.</span></>
+                <><br /><span style={{ color: "var(--ux-danger)" }}>Operation targets unavailable — retry to load the resource list.</span></>
               )}
             </span>
             <button className="ux-button" data-action="new-operation" onClick={() => setProposeOpen(true)}>

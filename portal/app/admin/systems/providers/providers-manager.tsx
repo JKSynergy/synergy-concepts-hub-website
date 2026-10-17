@@ -563,7 +563,7 @@ export default function ProvidersManager({
             {accountDiscovered.length === 0 ? (
               <p className="ux-muted" style={{ padding: "1rem 0" }}>No discovered resources yet. Run discovery to populate this list.</p>
             ) : (
-              <div style={{ borderTop: "1px solid var(--ux-border, #E5E7EB)", borderBottom: "1px solid var(--ux-border, #E5E7EB)" }}>
+              <div style={{ borderTop: "1px solid var(--ux-line)", borderBottom: "1px solid var(--ux-line)" }}>
                 {tree.workspace && (
                   <div
                     key={tree.workspace.id}

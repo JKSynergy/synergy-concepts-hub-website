@@ -188,7 +188,7 @@ export default function ReconciliationManager({
             <span className="ux-muted">
               Manual only — reconciliation never runs on a schedule.
               {accountsUnavailable && (
-                <><br /><span style={{ color: "#b91c1c" }}>Provider accounts unavailable — retry to run reconciliation.</span></>
+                <><br /><span style={{ color: "var(--ux-danger)" }}>Provider accounts unavailable — retry to run reconciliation.</span></>
               )}
             </span>
           </div>

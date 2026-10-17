@@ -5,18 +5,22 @@
    ========================================================================== */
 
 :root {
-  /* Colour: existing Synergy identity (navy, logo orange, logo blue), used sparingly */
+  /* Colour: dark theme (Oct 2026). Same Synergy identity on a dark site.
+     Token names are unchanged so every component follows: "paper" and "stone"
+     are now the two dark section surfaces and "ink" is the light text colour.
+     Section rhythm, darkest to lightest: navy (hero, work, contact, header,
+     footer) > paper (default) > stone (alternate). */
   --navy: #0B0F19;
   --navy-2: #111827;
-  --ink: #161B26;
-  --muted: #5B6472;
-  --paper: #FFFFFF;
-  --stone: #F4F3F0;
-  --line: #E1DFDA;
+  --ink: #EEF0F3;
+  --muted: #A3ABB9;
+  --paper: #111622;
+  --stone: #171D2A;
+  --line: rgba(255, 255, 255, .12);
   --line-dark: rgba(255, 255, 255, .14);
-  --orange: #ED8C22;        /* logo orange: fills and marks on dark */
-  --orange-text: #B25B00;   /* orange as text on light (AA contrast) */
-  --blue: #1773B9;          /* logo blue: links on light only */
+  --orange: #ED8C22;        /* logo orange: fills, buttons and marks */
+  --orange-text: #F29A3C;   /* orange as small text on the dark surfaces (AA) */
+  --blue: #6AB0E8;          /* logo blue, lifted for dark backgrounds */
 
   /* Type: two families, one scale */
   --f-display: 'Sora', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -41,7 +45,7 @@
 
 /* ---------- Base ---------- */
 *, *::before, *::after { box-sizing: border-box; }
-html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; color-scheme: dark; background: var(--navy); }
 body {
   margin: 0; background: var(--paper); color: var(--ink);
   font: 400 1rem/1.65 var(--f-body);
@@ -214,7 +218,7 @@ a.row:hover .a { transform: translateX(4px); }
 .field { display: grid; gap: 4px; margin-bottom: 24px; }
 .field label { font-size: .8125rem; color: var(--fg-2); }
 .field input, .field select, .field textarea { width: 100%; background: transparent; border: 0; border-bottom: 1px solid var(--rule); border-radius: 0; padding: 12px 0; font-size: 1rem; color: var(--fg); }
-.field select option { color: #111; }
+.field select option { color: var(--ink); background: var(--navy-2); }
 .field textarea { resize: vertical; min-height: 120px; }
 .field input:focus, .field select:focus, .field textarea:focus { outline: 0; border-color: var(--orange); }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }

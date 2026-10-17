@@ -7,7 +7,7 @@ Run:  python build.py             Output: HTML files next to this script (the pu
                                   relative), or serve it with `python preview.py`.
 Edit copy in this file; edit the look in assets/css/sch.css.
 Portfolio items come from _review/portfolio.json. After editing it, run build_images.py first."""
-import os, sys, html, json, shutil
+import os, sys, html, json, shutil, datetime, subprocess
 
 SRC = os.path.dirname(os.path.abspath(__file__))
 PREVIEW = "--preview" in sys.argv
@@ -64,7 +64,9 @@ NAV = [
     ("Photography", "/creative/photography/"),
     ("Design", "/creative/design/"),
     ("Social", "/creative/social-media-content/"),
+    ("Products", "/products/"),
     ("Work", "/work/"),
+    ("About", "/about/"),
 ]
 # Pages that highlight a nav item other than their own URL
 NAV_PARENT = {}
@@ -135,8 +137,74 @@ def _relativize(out, path):
     out = _re.sub(r'(srcset=")([^"]*)"', lambda m: m.group(1) + _re.sub(r"(^|,\s*)/(?!/)", lambda n: n.group(1) + pre, m.group(2)) + '"', out)
     return out
 
-def page(path, title, desc, body, current="", schema="", out_file=None):
+DEFAULT_OG_IMAGE = (f"{IMG}brand-stationery.jpg", 1400, 1400, "Synergy Concepts Hub stationery: notebook, letterhead, business card and mug")
+PAGE_LASTMOD = {}
+
+def og_from_item(item_id, fallback=DEFAULT_OG_IMAGE):
+    if item_id and item_id in _SIZES and _SIZES[item_id].get("dir") == "public":
+        files = _SIZES[item_id]["files"]
+        chosen = files.get("1280") or files.get("full") or next(iter(files.values()))
+        it = next((x for x in ITEMS if x["id"] == item_id), None)
+        alt = it["alt"] if it and it.get("alt") else fallback[3]
+        return (f"{IMG}work/{chosen[0]}", chosen[1], chosen[2], alt)
+    return fallback
+
+def _source_lastmod():
+    """Return the latest Git commit date among the source files that determine public page content.
+
+    Public pages are generated entirely from build.py and the portfolio metadata files,
+    so their lastmod should reflect the most recent change to any of those inputs, not the
+    build execution date. If Git history is unavailable, fall back to today and document it.
+    """
+    sources = [
+        "build.py",
+        "_review/portfolio.json",
+        "_review/portfolio.images.json",
+    ]
+    dates = []
+    for rel in sources:
+        try:
+            lg = subprocess.run(
+                ["git", "log", "-1", "--format=%cs", "--", rel],
+                cwd=SRC, capture_output=True, text=True, timeout=5, check=False
+            )
+            dt = lg.stdout.strip()
+            if _re.match(r"^\d{4}-\d{2}-\d{2}$", dt):
+                dates.append(dt)
+        except Exception:
+            pass
+    if dates:
+        return max(dates)
+    # Deterministic fallback: build date. This is not a verified content-change date.
+    return datetime.date.today().isoformat()
+
+SOURCE_LASTMOD = _source_lastmod()
+
+def json_ld(*entities):
+    payload = {
+        "@context": "https://schema.org",
+        "@graph": [e for e in entities if e],
+    }
+    return f'<script type="application/ld+json">{json.dumps(payload, ensure_ascii=False, separators=(",", ":"))}</script>'
+
+def breadcrumb_ld(*crumbs):
+    return {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": idx + 1,
+                "name": name,
+                "item": f"{SITE}{href}",
+            }
+            for idx, (name, href) in enumerate(crumbs)
+        ],
+    }
+
+def page(path, title, desc, body, current="", schema="", out_file=None, og_img=None):
     url = SITE + path
+    og_path, og_w, og_h, og_alt = og_img or DEFAULT_OG_IMAGE
+    og_url_full = f"{SITE}{og_path}"
     # out_file: write a single top-level file (used for 404.html) with noindex and no canonical
     canon = "" if out_file else f'<link rel="canonical" href="{url}">'
     robots = '<meta name="robots" content="noindex">' if (out_file or PREVIEW) else ""
@@ -151,13 +219,21 @@ def page(path, title, desc, body, current="", schema="", out_file=None):
 <title>{esc(title)}</title>
 <meta name="description" content="{esc(desc)}">
 {canon}{robots}
+<meta property="og:locale" content="en_UG">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Synergy Concepts Hub">
 <meta property="og:title" content="{esc(title)}">
 <meta property="og:description" content="{esc(desc)}">
 {"" if out_file else f'<meta property="og:url" content="{url}">'}
-<meta property="og:image" content="{SITE}{IMG}brand-stationery.jpg">
+<meta property="og:image" content="{og_url_full}">
+<meta property="og:image:width" content="{og_w}">
+<meta property="og:image:height" content="{og_h}">
+<meta property="og:image:alt" content="{esc(og_alt)}">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{esc(title)}">
+<meta name="twitter:description" content="{esc(desc)}">
+<meta name="twitter:image" content="{og_url_full}">
+<meta name="twitter:image:alt" content="{esc(og_alt)}">
 <meta name="theme-color" content="#0B0F19">
 <link rel="icon" type="image/png" href="{IMG}logo-mark-light.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -178,13 +254,19 @@ def page(path, title, desc, body, current="", schema="", out_file=None):
     if PREVIEW:
         out = _relativize(out, "/" if out_file else path)
     if out_file:
-        with open(os.path.join(ROOT, out_file), "w", encoding="utf8") as f:
-            f.write(out)
+        target = os.path.join(ROOT, out_file)
+        if not (os.path.exists(target) and open(target, encoding="utf8").read() == out):
+            with open(target, "w", encoding="utf8", newline="\n") as f:
+                f.write(out)
         return
     d = os.path.join(ROOT, path.strip("/"))
     os.makedirs(d, exist_ok=True)
-    with open(os.path.join(d, "index.html"), "w", encoding="utf8") as f:
-        f.write(out)
+    target = os.path.join(d, "index.html")
+    if not (os.path.exists(target) and open(target, encoding="utf8").read() == out):
+        with open(target, "w", encoding="utf8", newline="\n") as f:
+            f.write(out)
+    if not PREVIEW:
+        PAGE_LASTMOD[path] = SOURCE_LASTMOD
 
 # ---------- shared blocks ----------
 def sec_head(num, label, h2, lede=""):
@@ -358,8 +440,69 @@ def cta_link(key):
 def plain(lst):
     return '<ul class="plain-list">' + "".join(f"<li>{i}</li>" for i in lst) + "</ul>"
 
-# ---------- HOME ----------
-LD = f'''<script type="application/ld+json">{{"@context":"https://schema.org","@type":"ProfessionalService","name":"Synergy Concepts Hub","url":"{SITE}","logo":"{SITE}{IMG}logo-mark-light.png","image":"{SITE}{IMG}brand-stationery.jpg","description":"Technology and business creative company in Kampala, Uganda: photography and video, graphic design and branding, social media content, business systems, websites, AI and automation, and managed technology.","email":"{EMAIL}","telephone":"{PHONE_TEL}","address":{{"@type":"PostalAddress","addressLocality":"Kampala","addressCountry":"UG"}},"areaServed":"UG","sameAs":["https://www.linkedin.com/company/synergyconceptshub","https://www.youtube.com/@synergycapturefilms_ug"]}}</script>'''
+# ---------- STRUCTURED DATA ----------
+ORG_ID = f"{SITE}/#organization"
+ORG_REF = {"@id": ORG_ID}
+ORG_ENTITY = {
+    "@type": ["Organization", "ProfessionalService"],
+    "@id": ORG_ID,
+    "name": "Synergy Concepts Hub",
+    "url": f"{SITE}/",
+    "logo": {
+        "@type": "ImageObject",
+        "url": f"{SITE}{IMG}logo-mark-light.png",
+        "width": 250,
+        "height": 256,
+    },
+    "image": f"{SITE}{IMG}brand-stationery.jpg",
+    "description": "Technology and business creative company in Kampala, Uganda: photography and video, graphic design and branding, social media content, business systems, websites, AI and automation, and managed technology.",
+    "email": EMAIL,
+    "telephone": PHONE_TEL,
+    "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Kampala",
+        "addressCountry": "UG",
+    },
+    "areaServed": {
+        "@type": "Country",
+        "name": "Uganda",
+    },
+    "department": [
+        {
+            "@type": "Organization",
+            "name": "Synergy Capture Films",
+            "url": f"{SITE}/creative/photography/",
+            "description": "Photography and video production side of Synergy Concepts Hub in Kampala, Uganda.",
+        },
+        {
+            "@type": "Organization",
+            "name": "Synergy Creative Hub",
+            "url": f"{SITE}/creative/design/",
+            "description": "Graphic design, brand identity and company profile design side of Synergy Concepts Hub in Kampala, Uganda.",
+        },
+    ],
+    "subOrganization": {
+        "@type": "EducationalOrganization",
+        "name": "Synergy Multimedia Academy",
+        "url": SMA,
+        "description": "Education brand by Synergy Concepts Hub offering creative and digital media courses.",
+    },
+    "sameAs": [
+        "https://www.linkedin.com/company/synergyconceptshub",
+        "https://www.instagram.com/synergycapturefilms_weddings",
+        "https://www.youtube.com/@synergycapturefilms_ug",
+        SMA,
+    ],
+}
+WEBSITE_ENTITY = {
+    "@type": "WebSite",
+    "@id": f"{SITE}/#website",
+    "url": f"{SITE}/",
+    "name": "Synergy Concepts Hub",
+    "publisher": ORG_REF,
+    "inLanguage": "en",
+}
+HOME_LD = json_ld(ORG_ENTITY, WEBSITE_ENTITY)
 
 TECH = [
     ("01", "Business Systems", "Software for lending, bookings, customer records and daily operations, built around how your business works.", "/technology/#business-systems"),
@@ -401,7 +544,7 @@ def selected_work():
 home = f'''
 <section class="hero"><div class="wrap">
 <p class="eyebrow">Synergy Concepts Hub &middot; Kampala, Uganda</p>
-<h1>Technology and creative work for growing businesses.</h1>
+<h1>Business software, websites, photography and design.</h1>
 <p class="lede">We photograph, design and produce content for businesses, and build the systems, websites and automation they run on.</p>
 <div class="actions"><a class="btn" href="/contact/">Start a Project</a><a class="link" href="/work/">See our work &rarr;</a></div>
 </div></section>
@@ -429,7 +572,8 @@ home = f'''
 <section class="sec stone sec--tight" id="products"><div class="wrap">
 {sec_head("03", "Products", "We also build our own software.")}
 <div class="rows rows--sm">
-<a class="row row--kind" href="/products/"><span class="n">In use</span><span class="t">SMA Sync</span><span class="d">Offline-first media synchronization software for creative production workflows. Built by Synergy. Used by SMA.</span><span class="a" aria-hidden="true">&rarr;</span></a>
+<a class="row row--kind" href="/products/#quickcredit"><span class="n">In use</span><span class="t">QuickCredit</span><span class="d">Enterprise lending platform with mobile money integration, credit scoring and real-time analytics.</span><span class="a" aria-hidden="true">&rarr;</span></a>
+<a class="row row--kind" href="/products/#sma-sync"><span class="n">In use</span><span class="t">SMA Sync</span><span class="d">Offline-first media synchronization software for creative production workflows. Built by Synergy. Used by SMA.</span><span class="a" aria-hidden="true">&rarr;</span></a>
 <a class="row row--kind" href="/products/"><span class="n">Coming soon</span><span class="t">Creative and media recovery tools</span><span class="d">Tools for creative production, and for recovering and organizing photo and video files.</span><span class="a" aria-hidden="true">&rarr;</span></a>
 </div>
 </div></section>
@@ -443,9 +587,9 @@ home = f'''
 
 {contact_block()}
 '''
-page("/", "Synergy Concepts Hub | Technology and Business Creative, Kampala, Uganda",
-     "Photography, graphic design and content production, plus business systems, websites and automation, for growing businesses in Uganda.",
-     home, schema=LD)
+page("/", "Synergy Concepts Hub | Software, Design & Photography in Uganda",
+     "Synergy Concepts Hub builds custom business software, websites and automation, and produces commercial photography and graphic design in Kampala, Uganda.",
+     home, schema=HOME_LD)
 
 # ---------- TECHNOLOGY ----------
 def svc(id_, n, title, intro, deliver, suited, work=""):
@@ -456,7 +600,7 @@ def svc(id_, n, title, intro, deliver, suited, work=""):
 
 tech_body = f'''
 <section class="page-head"><div class="wrap"><p class="eyebrow">Technology</p>
-<h1>Business technology, built and looked after.</h1>
+<h1>Custom business software, websites and systems in Uganda.</h1>
 <p class="lede">We design, build and run the software your business depends on. One team, from first conversation to ongoing support.</p></div></section>
 <section class="sec"><div class="wrap">
 {svc("business-systems","01","Business Systems","Software that follows the way your business already works: lending, bookings, customer records, approvals and reporting.",
@@ -483,9 +627,26 @@ tech_body = f'''
 </ol></div></section>
 {cta_band("Tell us what you need to build.")}
 '''
-page("/technology/", "Business Systems, Websites, AI Automation and Managed Hosting in Uganda | Synergy Concepts Hub",
-     "Custom business software, websites and platforms, AI and automation, and managed hosting and support for businesses in Kampala and across Uganda.",
-     tech_body, "/technology/")
+TECH_LD = json_ld(
+    breadcrumb_ld(("Home", "/"), ("Technology", "/technology/")),
+    {
+        "@type": "Service",
+        "@id": f"{SITE}/technology/#service",
+        "name": "Custom Business Software, Websites, AI Automation and Managed Hosting",
+        "url": f"{SITE}/technology/",
+        "provider": ORG_REF,
+        "areaServed": {"@type": "Country", "name": "Uganda"},
+        "serviceType": [
+            "Custom Business Software & Internal Tools",
+            "Business & Corporate Websites",
+            "Workflow & AI Automation",
+            "Managed Hosting & Infrastructure Support",
+        ],
+    },
+)
+page("/technology/", "Custom Software, Websites & Business Systems in Kampala, Uganda",
+     "Custom business software, corporate websites, workflow automation and managed hosting built and supported by Synergy Concepts Hub in Kampala, Uganda.",
+     tech_body, "/technology/", schema=TECH_LD)
 
 # ---------- CREATIVE ----------
 PHOTO_GROUPS = [  # key, title, description, gallery columns
@@ -534,7 +695,7 @@ client_design = [it for it in items("design") if "own brand" not in (it.get("cli
 
 creative_body = f'''
 <section class="page-head"><div class="wrap"><p class="eyebrow">Creative</p>
-<h1>Photography, design and content for businesses.</h1>
+<h1>Commercial photography, graphic design and campaign production.</h1>
 <p class="lede">Photography and video by Synergy Capture Films, design and branding by Synergy Creative Hub, and content produced for social media and campaigns.</p>
 <nav class="jump" aria-label="Creative services"><a href="#photography-video">Photography &amp; Video</a><a href="#graphic-design">Graphic Design &amp; Branding</a><a href="#social-media-content">Social Media Content</a><a href="#campaign-content-production">Campaign &amp; Content Production</a></nav></div></section>
 <section class="sec"><div class="wrap">
@@ -564,37 +725,97 @@ creative_body = f'''
 </div></section>
 {cta_band("Need design or content for your business?")}
 '''
-page("/creative/", "Photography, Graphic Design and Content Production in Kampala | Synergy Concepts Hub",
-     "Photography and video, graphic design and branding, social media content and campaign production for businesses in Kampala and across Uganda.",
-     creative_body, "/creative/")
+CREATIVE_LD = json_ld(
+    breadcrumb_ld(("Home", "/"), ("Creative", "/creative/")),
+    {
+        "@type": "Service",
+        "@id": f"{SITE}/creative/#service",
+        "name": "Business Creative, Commercial Photography, Graphic Design and Campaign Production",
+        "url": f"{SITE}/creative/",
+        "provider": ORG_REF,
+        "areaServed": {"@type": "City", "name": "Kampala"},
+        "serviceType": [
+            "Commercial Photography & Video Production",
+            "Graphic Design & Brand Identity",
+            "Social Media Content Production",
+            "Campaign & Content Production",
+        ],
+    },
+)
+page("/creative/", "Business Creative, Video & Campaign Production | Kampala, Uganda",
+     "Commercial photography, video production, graphic design, brand identity and campaign content for businesses in Kampala by Synergy Concepts Hub.",
+     creative_body, "/creative/", schema=CREATIVE_LD)
 
 # ---------- PHOTOGRAPHY ----------
 _jump, _secs = gallery_sections("photography", PHOTO_GROUPS, "photography")
 photo_body = f'''
 <section class="page-head"><div class="wrap"><p class="eyebrow"><a href="/creative/" style="text-decoration:none">Creative</a> &nbsp;/&nbsp; Photography &amp; Video &middot; Synergy Capture Films</p>
-<h1>Photography for people, products and brands.</h1>
+<h1>Portrait, studio and product photography in Kampala.</h1>
 <p class="lede">Portraits, studio sessions and product photography by Synergy Capture Films, the photography and video side of Synergy Concepts Hub. Select any image to see it larger.</p>
 <div class="actions" style="margin-top:36px"><a class="btn" href="{CTA["photography"][1]}">{CTA["photography"][0]}</a></div>{_jump}</div></section>
 <section class="sec"><div class="wrap">{_secs}</div></section>
 {cta_band("Planning a shoot?", CTA["photography"][0], CTA["photography"][1])}
 '''
-page("/creative/photography/", "Photography in Kampala: Portraits, Studio and Product | Synergy Capture Films",
-     "Professional portraits, studio sessions and product photography in Kampala by Synergy Capture Films, part of Synergy Concepts Hub.",
-     photo_body, "/creative/photography/")
+PHOTO_LD = json_ld(
+    breadcrumb_ld(("Home", "/"), ("Creative", "/creative/"), ("Photography & Video", "/creative/photography/")),
+    {
+        "@type": "Service",
+        "@id": f"{SITE}/creative/photography/#service",
+        "name": "Commercial, Portrait, Studio and Product Photography in Kampala",
+        "url": f"{SITE}/creative/photography/",
+        "provider": {
+            "@type": "Organization",
+            "name": "Synergy Capture Films",
+            "parentOrganization": ORG_REF,
+        },
+        "areaServed": {"@type": "City", "name": "Kampala"},
+        "serviceType": [
+            "Corporate Headshots & Portraits",
+            "Studio Photography Sessions",
+            "Product & Brand Photography",
+            "Wedding & Ceremony Photography",
+            "Business & Promotional Video",
+        ],
+    },
+)
+page("/creative/photography/", "Commercial, Portrait & Studio Photography in Kampala | Synergy",
+     "Corporate headshots, studio portraits, product photography, weddings and business video in Kampala by Synergy Capture Films (Synergy Concepts Hub).",
+     photo_body, "/creative/photography/", schema=PHOTO_LD, og_img=og_from_item("christine-10"))
 
 # ---------- DESIGN ----------
 _jump, _secs = gallery_sections("design", DESIGN_GROUPS, "design")
 design_body = f'''
 <section class="page-head"><div class="wrap"><p class="eyebrow"><a href="/creative/" style="text-decoration:none">Creative</a> &nbsp;/&nbsp; Graphic Design &amp; Branding &middot; Synergy Creative Hub</p>
-<h1>Identity, documents and promotional design.</h1>
+<h1>Graphic design, brand identity and company profiles.</h1>
 <p class="lede">Logos, company profiles and promotional design by Synergy Creative Hub. Work for clients is credited to the client; Synergy&rsquo;s own brands are labelled as such. Select any design to see it larger.</p>
 <div class="actions" style="margin-top:36px"><a class="btn" href="{CTA["design"][1]}">{CTA["design"][0]}</a></div>{_jump}</div></section>
 <section class="sec"><div class="wrap">{_secs}</div></section>
 {cta_band("Need a brand or a document designed?", CTA["design"][0], CTA["design"][1])}
 '''
+DESIGN_LD = json_ld(
+    breadcrumb_ld(("Home", "/"), ("Creative", "/creative/"), ("Graphic Design & Branding", "/creative/design/")),
+    {
+        "@type": "Service",
+        "@id": f"{SITE}/creative/design/#service",
+        "name": "Graphic Design, Logo Design, Brand Identity and Company Profiles in Kampala",
+        "url": f"{SITE}/creative/design/",
+        "provider": {
+            "@type": "Organization",
+            "name": "Synergy Creative Hub",
+            "parentOrganization": ORG_REF,
+        },
+        "areaServed": {"@type": "City", "name": "Kampala"},
+        "serviceType": [
+            "Logo Design & Brand Identity",
+            "Company Profiles & Presentation Design",
+            "Social Media & Promotional Graphics",
+            "Corporate Stationery & Collateral",
+        ],
+    },
+)
 page("/creative/design/", "Graphic Design and Branding in Kampala | Synergy Creative Hub",
-     "Logo design, brand identity, company profiles and promotional design in Kampala by Synergy Creative Hub, part of Synergy Concepts Hub.",
-     design_body, "/creative/design/")
+     "Logo design, brand identity, company profiles, presentations and promotional design in Kampala by Synergy Creative Hub, part of Synergy Concepts Hub.",
+     design_body, "/creative/design/", schema=DESIGN_LD, og_img=og_from_item("matsen-01"))
 
 # ---------- SOCIAL MEDIA CONTENT ----------
 _social = items("design", "social")
@@ -605,8 +826,8 @@ _social_examples = f'''<section class="sec stone" id="examples"><div class="wrap
 _split_pic = first("photography", "product")
 sm_body = f'''
 <section class="page-head"><div class="wrap"><p class="eyebrow"><a href="/creative/" style="text-decoration:none">Creative</a> &nbsp;/&nbsp; Social Media Content</p>
-<h1>A month of content, from one recording session.</h1>
-<p class="lede">We plan, shoot and edit the photos, videos and graphics your business needs for social media. You post them when it suits you.</p>
+<h1>Monthly social media content production for businesses.</h1>
+<p class="lede">We plan, shoot and edit the photos, videos and graphics your business needs for social media in one monthly recording session. You post them when it suits you.</p>
 <div class="actions" style="margin-top:36px"><a class="btn" href="{CTA["social"][1]}">{CTA["social"][0]}</a></div></div></section>
 <section class="sec"><div class="wrap">
 {sec_head("", "How it works", "Plan, record, deliver.")}
@@ -632,28 +853,82 @@ sm_body = f'''
 <div class="actions"><a class="btn" href="{CTA["social"][1]}">Request a quote</a></div>
 </div></section>
 '''
-page("/creative/social-media-content/", "Social Media Content Production for Businesses in Kampala | Synergy Concepts Hub",
-     "Business photography, video and short-form content for social media, produced in one recording session a month. Based in Kampala, Uganda.",
-     sm_body, "/creative/social-media-content/")
+SOCIAL_LD = json_ld(
+    breadcrumb_ld(("Home", "/"), ("Creative", "/creative/"), ("Social Media Content", "/creative/social-media-content/")),
+    {
+        "@type": "Service",
+        "@id": f"{SITE}/creative/social-media-content/#service",
+        "name": "Social Media Content Production for Businesses in Kampala",
+        "url": f"{SITE}/creative/social-media-content/",
+        "provider": ORG_REF,
+        "areaServed": {"@type": "City", "name": "Kampala"},
+        "serviceType": [
+            "Monthly Social Media Content Production",
+            "Short-Form Video Production (Reels, Shorts, TikTok)",
+            "Social Media Graphic Design",
+            "Social Media Account Management",
+        ],
+    },
+)
+page("/creative/social-media-content/", "Social Media Content Production in Kampala | Synergy Concepts",
+     "Business photography, short-form video and graphic design for social media, planned and recorded in one monthly session in Kampala, Uganda.",
+     sm_body, "/creative/social-media-content/", schema=SOCIAL_LD, og_img=og_from_item("flyer-watches-2"))
 
 # ---------- PRODUCTS ----------
 prod_body = f'''
 <section class="page-head"><div class="wrap"><p class="eyebrow">Products</p>
-<h1>Software we build ourselves.</h1>
-<p class="lede">Synergy doesn&rsquo;t only build technology for clients. Synergy also builds its own technology products.</p></div></section>
+<h1>Software products built by Synergy Concepts Hub.</h1>
+<p class="lede">Alongside client systems and creative work, Synergy Concepts Hub develops and maintains its own software products in Kampala, Uganda.</p></div></section>
 <section class="sec"><div class="wrap">
 <div class="cards">
-<div class="card"><span class="k">In use</span><h2 class="h3">SMA Sync</h2><p>Offline-first media synchronization software for creative production workflows.</p><p class="small">Built by Synergy. Used by SMA. <!-- Internal product: do not add download, purchase, pricing or sign-up links unless Synergy decides to release it publicly. --></p></div>
-<div class="card"><span class="k">Coming soon</span><h2 class="h3">Creative Tools</h2><p>Software tools for creative production, built from problems we encounter in our own work.</p></div>
-<div class="card"><span class="k">Coming soon</span><h2 class="h3">Media Recovery Tools</h2><p>Tools for recovering and organizing photo and video files.</p></div>
+<div class="card" id="quickcredit"><span class="k">In use &middot; Financial systems</span><h2 class="h3">QuickCredit</h2><p>Enterprise lending and credit management platform built for lending operations, combining borrower workflows, mobile money integration, credit scoring and real-time analytics.</p><p class="small"><a class="link" href="https://quickcreditclientportal.netlify.app/home" target="_blank" rel="noopener">View QuickCredit platform &#8599;</a></p></div>
+<div class="card" id="sma-sync"><span class="k">In use &middot; Media workflows</span><h2 class="h3">SMA Sync</h2><p>Offline-first media synchronization software designed for creative production and training workflows where reliable local file synchronization is essential.</p><p class="small">Built by Synergy Concepts Hub. Used by Synergy Multimedia Academy. <!-- Internal product: do not add download, purchase, pricing or sign-up links unless Synergy decides to release it publicly. --></p></div>
+<div class="card" id="recovery-tools"><span class="k">Coming soon</span><h2 class="h3">Creative &amp; Media Recovery Tools</h2><p>Practical utilities for creative production teams to organize, verify and recover photo and video files from studio and field shoots.</p></div>
 </div>
-<div class="prose" style="margin-top:72px"><p>Product pages will be added here as each product is ready to be shown.</p></div>
+<div class="prose" style="margin-top:72px">
+<p>Each product grows out of real operational needs in business finance, media production and creative education. Dedicated product documentation and release details are published as products open to external organisations.</p>
+</div>
 </div></section>
-<section class="sec stone sec--tight"><div class="wrap"><div class="actions" style="justify-content:space-between"><p class="prose">Questions about our products?</p><a class="link" href="/contact/?service=products">Get in touch &rarr;</a></div></div></section>
+<section class="sec stone sec--tight"><div class="wrap"><div class="actions" style="justify-content:space-between"><p class="prose">Interested in QuickCredit or our software products?</p><a class="link" href="/contact/?service=products">Get in touch &rarr;</a></div></div></section>
 '''
-page("/products/", "Software Products by Synergy Concepts Hub",
-     "Software and creative technology products built by Synergy Concepts Hub in Kampala, Uganda, starting with SMA Sync.",
-     prod_body, "/products/")
+PRODUCTS_LD = json_ld(
+    breadcrumb_ld(("Home", "/"), ("Products", "/products/")),
+    {
+        "@type": "ItemList",
+        "@id": f"{SITE}/products/#list",
+        "name": "Software Products by Synergy Concepts Hub",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "item": {
+                    "@type": "SoftwareApplication",
+                    "name": "QuickCredit",
+                    "applicationCategory": "BusinessApplication",
+                    "operatingSystem": "Web",
+                    "url": f"{SITE}/products/#quickcredit",
+                    "description": "Enterprise lending platform with mobile money integration, credit scoring and real-time analytics.",
+                    "creator": ORG_REF,
+                },
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "item": {
+                    "@type": "SoftwareApplication",
+                    "name": "SMA Sync",
+                    "applicationCategory": "MultimediaApplication",
+                    "url": f"{SITE}/products/#sma-sync",
+                    "description": "Offline-first media synchronization software for creative production workflows.",
+                    "creator": ORG_REF,
+                },
+            },
+        ],
+    },
+)
+page("/products/", "Software Products: QuickCredit & SMA Sync | Synergy Concepts",
+     "Proprietary software products built by Synergy Concepts Hub in Uganda, including the QuickCredit lending platform and SMA Sync media workflow tool.",
+     prod_body, "/products/", schema=PRODUCTS_LD)
 
 # ---------- WORK ----------
 TECHW = [  # name, type, description, cats, link
@@ -685,7 +960,7 @@ def work_block(category, title, page_href, cta_key, limit=6):
     keep = {it.get("set") or it["id"] for it in picked}
     sel = [it for it in its if (it.get("set") or it["id"]) in keep]
     return f'''<div class="wblock" data-cat="creative {category}" id="{category}">
-<div class="wblock-head"><p class="wsub">{title}</p><p class="wlinks"><a class="link" href="{page_href}">All {title.lower()} &rarr;</a>{cta_link(cta_key)}</p></div>
+<div class="wblock-head"><h2 class="wsub">{title}</h2><p class="wlinks"><a class="link" href="{page_href}">All {title.lower()} &rarr;</a>{cta_link(cta_key)}</p></div>
 {gallery(sel, "c3", "work-" + category)}</div>'''
 
 _work_creative = work_block("photography", "Photography", "/creative/photography/", "photography") + \
@@ -701,18 +976,29 @@ filter_btns = "".join(
 
 work_body = f'''
 <section class="page-head"><div class="wrap"><p class="eyebrow">Work</p>
-<h1>What we have built and made.</h1>
+<h1>Selected photography, design, systems and websites.</h1>
 <p class="lede">Photography, design, systems and websites for businesses in Uganda and across East Africa.</p></div></section>
 <section class="sec dark"><div class="wrap">
 <div class="filters" role="group" aria-label="Filter work">{filter_btns}</div>
 <div data-group id="creative">{_work_creative}</div>
-<div data-group id="technology" style="margin-top:72px"><p class="wsub">Technology and websites</p><div class="rows" id="websites">{tech_rows}</div></div>
+<div data-group id="technology" style="margin-top:72px"><h2 class="wsub">Technology and websites</h2><div class="rows" id="websites">{tech_rows}</div></div>
 </div></section>
 {cta_band("Want to see something specific?")}
 '''
-page("/work/", "Work: Photography, Design, Systems and Websites | Synergy Concepts Hub",
-     "Selected photography, graphic design, business systems and websites by Synergy Concepts Hub, Kampala, Uganda.",
-     work_body, "/work/")
+WORK_LD = json_ld(
+    breadcrumb_ld(("Home", "/"), ("Work", "/work/")),
+    {
+        "@type": "CollectionPage",
+        "@id": f"{SITE}/work/#collection",
+        "name": "Selected Work: Photography, Design, Business Systems and Websites",
+        "url": f"{SITE}/work/",
+        "description": "Selected commercial photography, graphic design, business systems and websites by Synergy Concepts Hub in Kampala, Uganda.",
+        "about": ORG_REF,
+    },
+)
+page("/work/", "Selected Work: Photography, Design & Systems | Synergy Uganda",
+     "Selected commercial photography, brand identity, company profiles, business systems and websites delivered by Synergy Concepts Hub in Uganda.",
+     work_body, "/work/", schema=WORK_LD, og_img=og_from_item("matsen-01"))
 
 # ---------- CASE STUDIES (only when the case and all its pages are approved) ----------
 CASE_URLS = []
@@ -738,47 +1024,72 @@ for _c in _MANIFEST.get("cases", []):
 {cta_band("Need something similar?", CTA["design"][0], CTA["design"][1])}
 '''
     _url = f'/work/{_c["slug"]}/'
-    page(_url, f'{_c["title"]} | Synergy Concepts Hub', f'Case study: {_c["title"]}.', _body, "/work/")
+    _case_ld = json_ld(
+        breadcrumb_ld(("Home", "/"), ("Work", "/work/"), (_c["title"], _url)),
+    )
+    page(_url, f'{_c["title"]} | Synergy Concepts Hub', f'Case study: {_c["title"]}.', _body, "/work/", schema=_case_ld)
     CASE_URLS.append(_url)
 
 # ---------- ABOUT ----------
 about_body = f'''
 <section class="page-head"><div class="wrap"><p class="eyebrow">About</p>
-<h1>A technology and creative company in Kampala.</h1>
-<p class="lede">Synergy Concepts Hub builds business systems, websites and automation, produces design and content for businesses, and develops its own software products.</p></div></section>
+<h1>About Synergy Concepts Hub in Kampala, Uganda.</h1>
+<p class="lede">Synergy Concepts Hub is a Kampala-based technology and business creative company building software systems, websites, photography, design and digital products for growing organisations.</p></div></section>
 <section class="sec"><div class="wrap">
-{sec_head("", "Two brands", "One team, two clear brands.")}
+{sec_head("", "Structure", "One company across technology, creative and education.")}
 <div class="rows">
-<div class="row"><span class="n">01</span><span class="t">Synergy Concepts Hub</span><span class="d">Technology, business creative and software products. This website.</span></div>
-<a class="row" href="{SMA}" target="_blank" rel="noopener"><span class="n">02</span><span class="t">Synergy Multimedia Academy</span><span class="d">Courses, holiday programs and creative learning. Its own brand and its own website.</span><span class="a" aria-hidden="true">&#8599;</span></a>
+<div class="row"><span class="n">01</span><span class="t">Synergy Concepts Hub</span><span class="d">The main consolidated company for business technology, creative production and proprietary software products such as QuickCredit and SMA Sync.</span></div>
+<a class="row" href="/creative/photography/"><span class="n">02</span><span class="t">Synergy Capture Films</span><span class="d">Our commercial photography and video production division: corporate portraits, studio sessions, product photography, weddings and business video.</span><span class="a" aria-hidden="true">&rarr;</span></a>
+<a class="row" href="/creative/design/"><span class="n">03</span><span class="t">Synergy Creative Hub</span><span class="d">Our graphic design and branding division: logos, brand identity systems, company profiles, presentations and promotional collateral.</span><span class="a" aria-hidden="true">&rarr;</span></a>
+<a class="row" href="{SMA}" target="_blank" rel="noopener"><span class="n">04</span><span class="t">Synergy Multimedia Academy</span><span class="d">Our dedicated education brand offering practical courses, holiday programs and multimedia training on its own website.</span><span class="a" aria-hidden="true">&#8599;</span></a>
 </div></div></section>
 <section class="sec stone"><div class="wrap">
 {sec_head("", "How we work", "Understand, build, support.")}
 <ol class="steps">
-<li><h3>Understand</h3><p>We start by understanding the business, the problem and what needs to change.</p></li>
-<li><h3>Build</h3><p>We design and build practical technology and creative solutions around that need.</p></li>
-<li><h3>Support</h3><p>We stay involved where ongoing maintenance, infrastructure or creative support is required.</p></li>
+<li><h3>Understand</h3><p>We start by understanding the business, the operational or creative need, and what needs to change.</p></li>
+<li><h3>Build</h3><p>We design, photograph and build practical software, websites and visual work around that need.</p></li>
+<li><h3>Support</h3><p>We stay involved where ongoing maintenance, managed hosting or recurring creative production is required.</p></li>
 </ol>
 <!-- PLACEHOLDER: founder or team introduction and company story. Add only information supplied by Synergy. -->
 </div></section>
 {cta_band()}
 '''
-page("/about/", "About Synergy Concepts Hub | Kampala, Uganda",
-     "Synergy Concepts Hub is a technology and business creative company in Kampala, Uganda, and the company behind Synergy Multimedia Academy.",
-     about_body, "/about/")
+ABOUT_LD = json_ld(
+    breadcrumb_ld(("Home", "/"), ("About", "/about/")),
+    {
+        "@type": "AboutPage",
+        "@id": f"{SITE}/about/#webpage",
+        "name": "About Synergy Concepts Hub",
+        "url": f"{SITE}/about/",
+        "mainEntity": ORG_ENTITY,
+    },
+)
+page("/about/", "About Synergy Concepts Hub | Technology & Creative, Uganda",
+     "Synergy Concepts Hub is a Kampala-based technology and creative company operating Synergy Capture Films, Synergy Creative Hub and Synergy Multimedia Academy.",
+     about_body, "/about/", schema=ABOUT_LD)
 
 # ---------- CONTACT ----------
 contact_body = f'''
 <section class="page-head"><div class="wrap"><p class="eyebrow">Contact</p>
-<h1>Start a project.</h1>
-<p class="lede">Tell us what you need. A short description is enough. We reply within 24 hours.</p></div></section>
+<h1>Contact Synergy Concepts Hub to start a project.</h1>
+<p class="lede">Tell us what you need across business software, websites, photography, graphic design or social media content. A short description is enough and we reply within 24 hours.</p></div></section>
 {contact_block("").replace('<section class="sec  ', '<section class="sec ')}
 '''
 # the contact page reuses the block without its own heading
 contact_body = contact_body.replace(sec_head("", "Contact", "Start a project.", "Tell us what you need. A short description is enough. We reply within 24 hours."), "")
-page("/contact/", "Contact Synergy Concepts Hub | Start a Project",
-     "Contact Synergy Concepts Hub in Kampala, Uganda about business systems, websites, automation, design or content production.",
-     contact_body, "/contact/")
+CONTACT_LD = json_ld(
+    breadcrumb_ld(("Home", "/"), ("Contact", "/contact/")),
+    {
+        "@type": "ContactPage",
+        "@id": f"{SITE}/contact/#webpage",
+        "name": "Contact Synergy Concepts Hub",
+        "url": f"{SITE}/contact/",
+        "mainEntity": ORG_REF,
+    },
+)
+page("/contact/", "Contact Synergy Concepts Hub | Start a Project in Kampala",
+     "Contact Synergy Concepts Hub in Kampala, Uganda by form, phone (+256 706 739 311), WhatsApp or email to start a technology or creative project.",
+     contact_body, "/contact/", schema=CONTACT_LD)
 
 # ---------- 404 (top-level 404.html so Cloudflare Pages returns a real 404, not the homepage) ----------
 not_found_body = '''
@@ -794,15 +1105,26 @@ page("/404", "Page not found | Synergy Concepts Hub",
 # ---------- sitemap, robots, redirects ----------
 urls = ["/", "/technology/", "/creative/", "/creative/photography/", "/creative/design/",
         "/creative/social-media-content/", "/products/", "/work/"] + CASE_URLS + ["/about/", "/contact/"]
-with open(os.path.join(ROOT, "sitemap.xml"), "w", encoding="utf8") as f:
-    f.write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n')
-    for u in urls:
-        f.write(f"  <url><loc>{SITE}{u}</loc><lastmod>2026-10-11</lastmod></url>\n")
-    f.write("</urlset>\n")
-with open(os.path.join(ROOT, "robots.txt"), "w") as f:
-    f.write("User-agent: *\nDisallow: /\n" if PREVIEW else f"User-agent: *\nAllow: /\n\nSitemap: {SITE}/sitemap.xml\n")
-with open(os.path.join(ROOT, "_redirects"), "w") as f:
-    f.write("/social-media-management.html /creative/social-media-content/ 301\n/social-media-management /creative/social-media-content/ 301\n")
+_smap_lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+for u in urls:
+    _lmod = PAGE_LASTMOD.get(u) or SOURCE_LASTMOD
+    _smap_lines.append(f"  <url><loc>{SITE}{u}</loc><lastmod>{_lmod}</lastmod></url>")
+_smap_lines.append("</urlset>\n")
+_smap_out = "\n".join(_smap_lines)
+_smap_path = os.path.join(ROOT, "sitemap.xml")
+if not (os.path.exists(_smap_path) and open(_smap_path, encoding="utf8").read() == _smap_out):
+    with open(_smap_path, "w", encoding="utf8", newline="\n") as f:
+        f.write(_smap_out)
+_robots_out = "User-agent: *\nDisallow: /\n" if PREVIEW else f"User-agent: *\nAllow: /\n\nSitemap: {SITE}/sitemap.xml\n"
+_robots_path = os.path.join(ROOT, "robots.txt")
+if not (os.path.exists(_robots_path) and open(_robots_path, encoding="utf8").read() == _robots_out):
+    with open(_robots_path, "w", encoding="utf8", newline="\n") as f:
+        f.write(_robots_out)
+_redir_out = "/social-media-management.html /creative/social-media-content/ 301\n/social-media-management /creative/social-media-content/ 301\n"
+_redir_path = os.path.join(ROOT, "_redirects")
+if not (os.path.exists(_redir_path) and open(_redir_path, encoding="utf8").read() == _redir_out):
+    with open(_redir_path, "w", encoding="utf8", newline="\n") as f:
+        f.write(_redir_out)
 if PREVIEW:
     # The preview is a self-contained copy: shared assets plus the pending images build_images.py put here.
     shutil.copytree(os.path.join(SRC, "assets"), os.path.join(ROOT, "assets"), dirs_exist_ok=True)

@@ -88,12 +88,12 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); letter-spacing: -.015em; line-heigh
 .site-header .wrap { display: flex; align-items: center; justify-content: space-between; height: var(--head); gap: 24px; }
 .brand { display: flex; align-items: center; gap: 12px; white-space: nowrap; text-decoration: none; font: 600 1rem var(--f-display); letter-spacing: -.01em; }
 .brand img { width: 30px; height: 30px; }
-.nav { display: flex; align-items: center; gap: clamp(20px, 3vw, 36px); }
+.nav { display: flex; align-items: center; gap: clamp(14px, 1.6vw, 22px); }
 .nav a { text-decoration: none; font-size: .9375rem; color: #C9CFDA; padding: 6px 0; border-bottom: 1px solid transparent; transition: color .15s, border-color .15s; }
 .nav a:hover, .nav a[aria-current="page"] { color: #fff; border-color: var(--orange); }
 .nav .btn { color: #111; border: 0; padding: .7em 1.2em; font-size: .875rem; }
 .nav .btn:hover { color: #111; }
-.nav-actions { display: flex; align-items: center; gap: clamp(20px, 3vw, 36px); margin-left: auto; }
+.nav-actions { display: flex; align-items: center; gap: clamp(14px, 1.6vw, 22px); margin-left: auto; }
 .nav-portal { text-decoration: none; font-size: .9375rem; font-weight: 500; color: #fff; padding: 6px 0; border-bottom: 1px solid transparent; transition: color .15s, border-color .15s; }
 .nav-portal:hover { border-color: var(--orange); }
 .menu-btn { display: none; background: none; border: 1px solid var(--line-dark); color: #fff; padding: 9px 14px; font-size: .875rem; cursor: pointer; }

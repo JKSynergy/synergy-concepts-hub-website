@@ -235,17 +235,17 @@ export default function MonitoringManager({
           </p>
         ) : (
         <div className="ux-tablewrap">
-          <table className="ux-table">
+          <table className="ux-table ux-table--stack ux-table--cards">
             <thead><tr><th>System</th><th>Client</th><th>Health</th><th>Infrastructure</th><th>Attention</th><th>Last evidence</th></tr></thead>
             <tbody>
               {systemHealth.map((row) => (
                 <tr key={row.systemId}>
                   <td><Link href={`/admin/systems/${row.systemId}`}>{row.systemName}</Link></td>
-                  <td>{row.clientName}</td>
-                  <td><StatusMark tone={systemHealthTone(row.health.overallStatus)}>{row.health.overallStatus}</StatusMark></td>
-                  <td>{row.infrastructureSummary}</td>
-                  <td>{row.health.attentionItems.length ? row.health.attentionItems.join(" · ") : "—"}</td>
-                  <td>{fmt(row.health.lastEvidenceAt)}</td>
+                  <td data-label="Client">{row.clientName}</td>
+                  <td data-label="Health"><StatusMark tone={systemHealthTone(row.health.overallStatus)}>{row.health.overallStatus}</StatusMark></td>
+                  <td data-label="Infrastructure">{row.infrastructureSummary}</td>
+                  <td data-label="Attention">{row.health.attentionItems.length ? row.health.attentionItems.join(" · ") : "—"}</td>
+                  <td data-label="Last evidence">{fmt(row.health.lastEvidenceAt)}</td>
                 </tr>
               ))}
             </tbody>
@@ -290,7 +290,7 @@ export default function MonitoringManager({
           </p>
         ) : (
           <div className="ux-tablewrap">
-            <table className="ux-table">
+            <table className="ux-table ux-table--stack ux-table--cards">
               <thead>
                 <tr>
                   <th>Provider</th><th>Account</th><th>Cadence</th><th>Enabled</th><th>Last run</th>
@@ -303,11 +303,11 @@ export default function MonitoringManager({
                   return (
                     <tr key={s.schedule_id} data-schedule={s.schedule_id}>
                       <td>{s.provider_name}</td>
-                      <td>
+                      <td data-label="Account">
                         {s.account_name}
                         {s.client_company ? <><br /><span className="ux-muted">{s.client_company}</span></> : null}
                       </td>
-                      <td>
+                      <td data-label="Cadence">
                         {isAdmin ? (
                           <select
                             className="ux-input"
@@ -333,18 +333,18 @@ export default function MonitoringManager({
                           s.frequency.replaceAll("_", " ")
                         )}
                       </td>
-                      <td>{s.enabled ? "Yes" : "No"}</td>
-                      <td>{fmt(s.last_run_at)}</td>
-                      <td>
+                      <td data-label="Enabled">{s.enabled ? "Yes" : "No"}</td>
+                      <td data-label="Last run">{fmt(s.last_run_at)}</td>
+                      <td data-label="Status">
                         <StatusMark tone={health.tone}>{health.label}</StatusMark>
                         {s.last_error_category ? (
                           <><br /><span className="ux-muted">{s.last_error_category}</span></>
                         ) : null}
                       </td>
-                      <td>{s.enabled ? fmt(s.next_run_at) : "—"}</td>
-                      <td>{s.consecutive_failures}</td>
+                      <td data-label="Next run">{s.enabled ? fmt(s.next_run_at) : "—"}</td>
+                      <td data-label="Failures">{s.consecutive_failures}</td>
                       {isAdmin && (
-                        <td>
+                        <td data-label="Actions">
                           <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap" }}>
                             <button
                               className="ux-button ux-button-secondary"
@@ -401,7 +401,7 @@ export default function MonitoringManager({
           <p className="ux-muted" style={{ padding: "1rem" }}>No open monitoring signals.</p>
         ) : (
           <div className="ux-tablewrap">
-            <table className="ux-table">
+            <table className="ux-table ux-table--stack ux-table--cards">
               <thead>
                 <tr>
                   <th>Severity</th><th>Signal</th><th>Provider</th><th>System / resource</th>
@@ -412,18 +412,18 @@ export default function MonitoringManager({
                 {sortedSignals.map((g) => (
                   <tr key={g.id} data-signal={g.id}>
                     <td><StatusMark tone={sevTone(g.severity)}>{g.severity}</StatusMark></td>
-                    <td>
+                    <td data-label="Signal">
                       {g.title}
                       <br /><span className="ux-muted">{g.summary}</span>
                     </td>
-                    <td>{g.provider_name}<br /><span className="ux-muted">{g.account_name}</span></td>
-                    <td>
+                    <td data-label="Provider">{g.provider_name}<br /><span className="ux-muted">{g.account_name}</span></td>
+                    <td data-label="System / resource">
                       {g.system_name ?? g.client_company ?? "—"}
                       <br /><span className="ux-muted">{g.resource_name ?? g.external_name ?? "Provider account"}</span>
                     </td>
-                    <td>{fmt(g.first_observed_at)}</td>
-                    <td>{fmt(g.last_observed_at)}{g.occurrence_count > 1 ? <><br /><span className="ux-muted">{g.occurrence_count} observations</span></> : null}</td>
-                    <td><StatusMark tone={g.status === "acknowledged" ? "info" : "warning"}>{g.status}</StatusMark></td>
+                    <td data-label="First observed">{fmt(g.first_observed_at)}</td>
+                    <td data-label="Last observed">{fmt(g.last_observed_at)}{g.occurrence_count > 1 ? <><br /><span className="ux-muted">{g.occurrence_count} observations</span></> : null}</td>
+                    <td data-label="Status"><StatusMark tone={g.status === "acknowledged" ? "info" : "warning"}>{g.status}</StatusMark></td>
                   </tr>
                 ))}
               </tbody>
@@ -446,7 +446,7 @@ export default function MonitoringManager({
           <p className="ux-muted" style={{ padding: "1rem" }}>No monitoring runs yet.</p>
         ) : (
           <div className="ux-tablewrap">
-            <table className="ux-table">
+            <table className="ux-table ux-table--stack ux-table--cards">
               <thead>
                 <tr>
                   <th>Started</th><th>Completed</th><th>Provider</th><th>Account</th><th>Trigger</th>
@@ -457,18 +457,18 @@ export default function MonitoringManager({
                 {runs.map((r) => (
                   <tr key={r.id} data-run={r.id}>
                     <td>{fmt(r.started_at)}</td>
-                    <td>{fmt(r.completed_at)}</td>
-                    <td>{r.provider_name}</td>
-                    <td>{r.account_name}</td>
-                    <td>{r.trigger_source}</td>
-                    <td>
+                    <td data-label="Completed">{fmt(r.completed_at)}</td>
+                    <td data-label="Provider">{r.provider_name}</td>
+                    <td data-label="Account">{r.account_name}</td>
+                    <td data-label="Trigger">{r.trigger_source}</td>
+                    <td data-label="Status">
                       <StatusMark tone={runTone(r.status)}>{r.status}</StatusMark>
                       {r.is_baseline ? <><br /><span className="ux-muted">Baseline established</span></> : null}
                     </td>
-                    <td>{r.discovered_count ?? "—"}</td>
-                    <td>{r.changes_detected}</td>
-                    <td>{r.signals_created} created · {r.signals_updated} updated</td>
-                    <td><span className="ux-muted">{r.error_category ?? "—"}</span></td>
+                    <td data-label="Observed">{r.discovered_count ?? "—"}</td>
+                    <td data-label="Changes">{r.changes_detected}</td>
+                    <td data-label="Signals">{r.signals_created} created · {r.signals_updated} updated</td>
+                    <td data-label="Error"><span className="ux-muted">{r.error_category ?? "—"}</span></td>
                   </tr>
                 ))}
               </tbody>

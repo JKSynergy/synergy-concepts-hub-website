@@ -180,7 +180,7 @@ export default function EventsManager({ configs, events, accounts, isAdmin }: Pr
           </p>
         ) : (
           <div className="ux-tablewrap">
-            <table className="ux-table">
+            <table className="ux-table ux-table--stack ux-table--cards">
               <thead>
                 <tr>
                   <th>Provider</th><th>Account</th><th>Authentication</th><th>Status</th>
@@ -191,20 +191,20 @@ export default function EventsManager({ configs, events, accounts, isAdmin }: Pr
                 {configs.map((c) => (
                   <tr key={c.config_id} data-config={c.config_id}>
                     <td>{c.provider_name}</td>
-                    <td>
+                    <td data-label="Account">
                       {c.account_name}
                       {c.client_company ? <><br /><span className="ux-muted">{c.client_company}</span></> : null}
                     </td>
-                    <td>{AUTH_LABELS[c.auth_type] ?? c.auth_type}</td>
-                    <td>
+                    <td data-label="Authentication">{AUTH_LABELS[c.auth_type] ?? c.auth_type}</td>
+                    <td data-label="Status">
                       <StatusMark tone={c.enabled ? "success" : "neutral"}>
                         {c.enabled ? "enabled" : "disabled"}
                       </StatusMark>
                     </td>
-                    <td>{fmt(c.last_event_at ?? c.last_received_at)}</td>
-                    <td>{c.events_received}</td>
+                    <td data-label="Last event">{fmt(c.last_event_at ?? c.last_received_at)}</td>
+                    <td data-label="Events">{c.events_received}</td>
                     {isAdmin && (
-                      <td>
+                      <td data-label="Actions">
                         <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap" }}>
                           <button
                             className="ux-button ux-button-secondary"
@@ -272,7 +272,7 @@ export default function EventsManager({ configs, events, accounts, isAdmin }: Pr
           <p className="ux-muted" style={{ padding: "1rem" }}>No provider events received. Events will appear here when configured providers send them.</p>
         ) : (
           <div className="ux-tablewrap">
-            <table className="ux-table">
+            <table className="ux-table ux-table--stack ux-table--cards">
               <thead>
                 <tr>
                   <th>Received</th><th>Provider</th><th>Event</th><th>Normalized</th>
@@ -283,33 +283,33 @@ export default function EventsManager({ configs, events, accounts, isAdmin }: Pr
                 {events.map((e) => (
                   <tr key={e.id} data-event={e.id}>
                     <td>{fmt(e.received_at)}</td>
-                    <td>
+                    <td data-label="Provider">
                       {e.provider_name}
                       <br /><span className="ux-muted">{e.account_name}</span>
                     </td>
-                    <td>
+                    <td data-label="Event">
                       {e.event_type}
                       {e.duplicate_count > 0 && (
                         <><br /><span className="ux-muted">+{e.duplicate_count} duplicates</span></>
                       )}
                     </td>
-                    <td><StatusMark tone={normTone(e.normalized_type)}>{e.normalized_type}</StatusMark></td>
-                    <td>
+                    <td data-label="Normalized"><StatusMark tone={normTone(e.normalized_type)}>{e.normalized_type}</StatusMark></td>
+                    <td data-label="Resource">
                       {e.resource_name ?? e.external_name ?? e.external_resource_id ?? (
                         <span className="ux-muted">unmatched</span>
                       )}
                     </td>
-                    <td>
+                    <td data-label="Client / system">
                       {e.client_company ?? "—"}
                       {e.system_name ? <><br /><span className="ux-muted">{e.system_name}</span></> : null}
                     </td>
-                    <td>
+                    <td data-label="Status">
                       <StatusMark tone={statusTone(e.status)}>{e.status}</StatusMark>
                       {e.processing_error ? (
                         <><br /><span className="ux-muted">{e.processing_error}</span></>
                       ) : null}
                     </td>
-                    <td>
+                    <td data-label="Reconciliation">
                       {e.monitoring_run_id ? (
                         <span className="ux-muted">run triggered</span>
                       ) : (

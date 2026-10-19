@@ -1182,7 +1182,7 @@ export default function ProviderCostsManager({
           <span>Service Margin — per agreement, per currency (derived from recurring charges minus allocated provider costs)</span>
         </div>
         <div style={{ overflowX: "auto" }}>
-          <table className="ux-table" id="service-margin-table" style={{ width: "100%", fontSize: "0.8125rem" }}>
+          <table className="ux-table ux-table--stack ux-table--cards" id="service-margin-table" style={{ width: "100%", fontSize: "0.8125rem" }}>
             <thead>
               <tr>
                 <th style={{ textAlign: "left", padding: "0.625rem 1rem" }}>Client</th>
@@ -1211,18 +1211,18 @@ export default function ProviderCostsManager({
                     data-margin-state={m.margin_state}
                   >
                     <td style={{ padding: "0.625rem 1rem" }}>{m.client_company || m.client_email}</td>
-                    <td style={{ padding: "0.625rem 1rem" }}>{m.agreement_name}</td>
-                    <td style={{ padding: "0.625rem 1rem" }}>{m.currency}</td>
-                    <td className="margin-revenue" style={{ padding: "0.625rem 1rem", textAlign: "right" }}>
+                    <td data-label="Agreement" style={{ padding: "0.625rem 1rem" }}>{m.agreement_name}</td>
+                    <td data-label="Currency" style={{ padding: "0.625rem 1rem" }}>{m.currency}</td>
+                    <td data-label="Revenue" className="margin-revenue" style={{ padding: "0.625rem 1rem", textAlign: "right" }}>
                       {formatMoney(m.service_revenue, m.currency)}
                     </td>
-                    <td className="margin-cost" style={{ padding: "0.625rem 1rem", textAlign: "right" }}>
+                    <td data-label="Allocated Cost" className="margin-cost" style={{ padding: "0.625rem 1rem", textAlign: "right" }}>
                       {formatMoney(m.allocated_cost, m.currency)}
                     </td>
-                    <td className="margin-amount" style={{ padding: "0.625rem 1rem", textAlign: "right" }}>
+                    <td data-label="Margin" className="margin-amount" style={{ padding: "0.625rem 1rem", textAlign: "right" }}>
                       {m.margin_state === "computed" ? formatMoney(m.margin_amount, m.currency) : "unavailable"}
                     </td>
-                    <td className="margin-pct" style={{ padding: "0.625rem 1rem", textAlign: "right" }}>
+                    <td data-label="Margin %" className="margin-pct" style={{ padding: "0.625rem 1rem", textAlign: "right" }}>
                       {m.margin_pct === null ? "—" : `${m.margin_pct}%`}
                     </td>
                   </tr>

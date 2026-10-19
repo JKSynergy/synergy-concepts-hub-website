@@ -145,7 +145,7 @@ export default function AutomationManager({ rules, runs, isAdmin }: Props) {
           <p className="ux-muted" style={{ padding: "1rem" }}>No automation rules visible.</p>
         ) : (
           <div className="ux-tablewrap">
-            <table className="ux-table">
+            <table className="ux-table ux-table--stack ux-table--cards">
               <thead>
                 <tr>
                   <th>Rule</th><th>Risk class</th><th>Trigger</th><th>Threshold</th>
@@ -160,7 +160,7 @@ export default function AutomationManager({ rules, runs, isAdmin }: Props) {
                       <br />
                       <span className="ux-muted">{r.description}</span>
                     </td>
-                    <td>
+                    <td data-label="Risk class">
                       <StatusMark tone={r.risk_class === "approval_required" ? "warning" : "success"}>
                         {RISK_LABELS[r.risk_class] ?? r.risk_class}
                       </StatusMark>
@@ -168,22 +168,22 @@ export default function AutomationManager({ rules, runs, isAdmin }: Props) {
                         <><br /><span className="ux-muted"><ShieldCheck size={11} style={{ verticalAlign: "-1px" }} /> creates proposal only</span></>
                       )}
                     </td>
-                    <td>{TRIGGER_LABELS[r.scope] ?? r.scope}</td>
-                    <td>{r.threshold}</td>
-                    <td>{fmtCooldown(r.cooldown_seconds)}</td>
-                    <td>
+                    <td data-label="Trigger">{TRIGGER_LABELS[r.scope] ?? r.scope}</td>
+                    <td data-label="Threshold">{r.threshold}</td>
+                    <td data-label="Cooldown">{fmtCooldown(r.cooldown_seconds)}</td>
+                    <td data-label="Status">
                       <StatusMark tone={r.enabled ? "success" : "neutral"}>
                         {r.enabled ? "enabled" : "disabled"}
                       </StatusMark>
                     </td>
-                    <td>
+                    <td data-label="Last action">
                       {fmt(r.last_action_at)}
                       {r.last_decision && (
                         <><br /><span className="ux-muted">last: {r.last_decision}</span></>
                       )}
                     </td>
                     {isAdmin && (
-                      <td>
+                      <td data-label="Actions">
                         <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap" }}>
                           <button
                             className="ux-button ux-button-secondary"
@@ -227,7 +227,7 @@ export default function AutomationManager({ rules, runs, isAdmin }: Props) {
           </p>
         ) : (
           <div className="ux-tablewrap">
-            <table className="ux-table">
+            <table className="ux-table ux-table--stack ux-table--cards">
               <thead>
                 <tr>
                   <th>Evaluated</th><th>Rule</th><th>Scope</th><th>Trigger</th>
@@ -238,23 +238,23 @@ export default function AutomationManager({ rules, runs, isAdmin }: Props) {
                 {runs.map((r) => (
                   <tr key={r.id} data-run={r.id}>
                     <td>{fmt(r.evaluated_at)}</td>
-                    <td>{r.rule_name}</td>
-                    <td>
+                    <td data-label="Rule">{r.rule_name}</td>
+                    <td data-label="Scope">
                       {r.account_name ?? r.scope_key}
                       {r.account_name && r.scope_key !== `acct:${r.provider_account_id}` && (
                         <><br /><span className="ux-muted">{r.scope_key}</span></>
                       )}
                     </td>
-                    <td>{r.trigger_source}</td>
-                    <td><StatusMark tone={decisionTone(r.decision)}>{r.decision}</StatusMark></td>
-                    <td>
+                    <td data-label="Trigger">{r.trigger_source}</td>
+                    <td data-label="Decision"><StatusMark tone={decisionTone(r.decision)}>{r.decision}</StatusMark></td>
+                    <td data-label="Created">
                       {[
                         r.action_item_id ? "signal" : null,
                         r.task_id ? "task" : null,
                         r.proposal_id ? "proposal" : null,
                       ].filter(Boolean).join(" + ") || "—"}
                     </td>
-                    <td><span className="ux-muted">{r.detail ?? "—"}</span></td>
+                    <td data-label="Detail"><span className="ux-muted">{r.detail ?? "—"}</span></td>
                   </tr>
                 ))}
               </tbody>

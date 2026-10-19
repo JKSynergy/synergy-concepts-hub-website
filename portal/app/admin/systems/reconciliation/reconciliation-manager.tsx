@@ -209,7 +209,7 @@ export default function ReconciliationManager({
           <p className="ux-muted" style={{ padding: "1rem" }}>No reconciliation findings yet.</p>
         ) : (
           <div className="ux-tablewrap">
-            <table className="ux-table">
+            <table className="ux-table ux-table--stack ux-table--cards">
               <thead>
                 <tr>
                   <th>Provider</th><th>Account</th><th>External resource</th><th>SCH resource</th>
@@ -220,26 +220,26 @@ export default function ReconciliationManager({
                 {actionable.map((i) => (
                   <tr key={i.id} style={{ cursor: "pointer" }} onClick={() => setDetailFor(i)}>
                     <td>{i.provider_name}</td>
-                    <td>{i.account_name}</td>
-                    <td>
+                    <td data-label="Account">{i.account_name}</td>
+                    <td data-label="External resource">
                       {i.external_name ?? "—"}
                       {i.external_resource_id ? <><br /><code>{i.external_resource_id}</code></> : null}
                     </td>
-                    <td>
+                    <td data-label="SCH resource">
                       {i.sch_resource_name ?? "—"}
                       {i.system_name ? <><br /><span className="ux-muted">{i.system_name} · {i.client_company ?? i.client_email}</span></> : null}
                     </td>
-                    <td>
+                    <td data-label="Change">
                       <StatusMark tone={changeTone(i.change_type)}>{CHANGE_LABELS[i.change_type] ?? i.change_type}</StatusMark>
                       {i.change_summary ? <><br /><span className="ux-muted">{i.change_summary}</span></> : null}
                     </td>
-                    <td>{fmt(i.created_at)}</td>
-                    <td>
+                    <td data-label="Detected">{fmt(i.created_at)}</td>
+                    <td data-label="Status">
                       <StatusMark tone={statusTone(i.review_status)}>{i.review_status.replaceAll("_", " ")}</StatusMark>
                       {i.basis_stale && i.review_status !== "stale" ? <><br /><span className="ux-muted">stale basis</span></> : null}
                     </td>
                     {isAdmin && (
-                      <td onClick={(e) => e.stopPropagation()}>
+                      <td data-label="Actions" onClick={(e) => e.stopPropagation()}>
                         <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap" }}>
                           {i.review_status === "pending_review" && (
                             <>
@@ -299,7 +299,7 @@ export default function ReconciliationManager({
         <div className="ux-card">
           <div className="ux-card-header"><h2>Reconciliation runs</h2></div>
           <div className="ux-tablewrap">
-            <table className="ux-table">
+            <table className="ux-table ux-table--stack ux-table--cards">
               <thead>
                 <tr><th>Started</th><th>Status</th><th>Examined</th><th>Changes</th><th>Errors</th><th>Detail</th></tr>
               </thead>
@@ -307,11 +307,11 @@ export default function ReconciliationManager({
                 {runs.map((r) => (
                   <tr key={r.id}>
                     <td>{fmt(r.started_at)}</td>
-                    <td><StatusMark tone={r.status === "completed" ? "success" : r.status === "failed" ? "danger" : "info"}>{r.status}</StatusMark></td>
-                    <td>{r.resources_examined}</td>
-                    <td>{r.changes_detected}</td>
-                    <td>{r.error_count}</td>
-                    <td className="ux-muted">{r.error_summary ?? "—"}</td>
+                    <td data-label="Status"><StatusMark tone={r.status === "completed" ? "success" : r.status === "failed" ? "danger" : "info"}>{r.status}</StatusMark></td>
+                    <td data-label="Examined">{r.resources_examined}</td>
+                    <td data-label="Changes">{r.changes_detected}</td>
+                    <td data-label="Errors">{r.error_count}</td>
+                    <td data-label="Detail" className="ux-muted">{r.error_summary ?? "—"}</td>
                   </tr>
                 ))}
               </tbody>

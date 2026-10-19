@@ -350,7 +350,7 @@ export default function ProvidersManager({
             <p className="ux-muted" style={{ padding: "1rem" }}>No linked provider resources.</p>
           ) : (
             <div className="ux-tablewrap">
-              <table className="ux-table">
+              <table className="ux-table ux-table--stack ux-table--cards">
                 <thead>
                   <tr><th>Provider</th><th>Account</th><th>Type</th><th>Name</th><th>Status</th><th>Region</th><th>System</th><th>Client</th></tr>
                 </thead>
@@ -358,13 +358,13 @@ export default function ProvidersManager({
                   {staffLinked.map((r) => (
                     <tr key={r.id}>
                       <td>{r.provider_name}</td>
-                      <td>{r.provider_account_name}</td>
-                      <td>{r.resource_type}</td>
-                      <td>{r.name}</td>
-                      <td>{r.status ?? "—"}</td>
-                      <td>{r.region ?? "—"}</td>
-                      <td>{r.system_name ?? "—"}</td>
-                      <td>{r.client_company ?? r.client_email ?? "—"}</td>
+                      <td data-label="Account">{r.provider_account_name}</td>
+                      <td data-label="Type">{r.resource_type}</td>
+                      <td data-label="Name">{r.name}</td>
+                      <td data-label="Status">{r.status ?? "—"}</td>
+                      <td data-label="Region">{r.region ?? "—"}</td>
+                      <td data-label="System">{r.system_name ?? "—"}</td>
+                      <td data-label="Client">{r.client_company ?? r.client_email ?? "—"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -404,7 +404,7 @@ export default function ProvidersManager({
           <p className="ux-muted" style={{ padding: "1rem" }}>No provider accounts connected. Connect a provider account to begin discovery.</p>
         ) : (
           <div className="ux-tablewrap">
-            <table className="ux-table">
+            <table className="ux-table ux-table--stack ux-table--cards">
               <thead>
                 <tr>
                   <th>Provider</th><th>Account</th><th>Ownership</th><th>Connection</th>
@@ -420,23 +420,23 @@ export default function ProvidersManager({
                     style={{ cursor: "pointer", background: a.id === selectedAccountId ? "var(--ux-surface-alt, rgba(255,255,255,0.04))" : undefined }}
                   >
                     <td>{a.provider_name}{a.adapter_key ? "" : " (manual)"}</td>
-                    <td>
+                    <td data-label="Account">
                       {a.account_name}
                       {a.adapter_key === "railway" && a.railway_workspace_id ? (
                         <span className="ux-muted"> · {a.railway_workspace_id}</span>
                       ) : null}
                     </td>
-                    <td>{a.ownership}{a.client_company ? ` · ${a.client_company}` : ""}</td>
-                    <td>
+                    <td data-label="Ownership">{a.ownership}{a.client_company ? ` · ${a.client_company}` : ""}</td>
+                    <td data-label="Connection">
                       <StatusMark tone={connTone(a.connection_status)}>{a.connection_status}</StatusMark>
                       {a.connection_error ? <span className="ux-muted"> {a.connection_error}</span> : null}
                     </td>
-                    <td>{a.credential_configured ? "Credentials configured" : "Not configured"}</td>
-                    <td>{fmt(a.last_discovery_at)}</td>
-                    <td>{a.discovered_count}</td>
-                    <td>{a.linked_count}</td>
+                    <td data-label="Credentials">{a.credential_configured ? "Credentials configured" : "Not configured"}</td>
+                    <td data-label="Last discovery">{fmt(a.last_discovery_at)}</td>
+                    <td data-label="Discovered">{a.discovered_count}</td>
+                    <td data-label="Linked">{a.linked_count}</td>
                     {canManage && (
-                      <td>
+                      <td data-label="Actions">
                         <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap" }}>
                           <button
                             className="ux-button ux-button-secondary"
@@ -506,7 +506,7 @@ export default function ProvidersManager({
             <p className="ux-muted">Read-only evidence from existing SCH systems, resources, and explicit provider links.</p>
           </div>
           <div className="ux-tablewrap">
-            <table className="ux-table">
+            <table className="ux-table ux-table--stack ux-table--cards">
               <thead>
                 <tr><th>System / client</th><th>Railway</th><th>Vercel</th><th>Other infrastructure</th><th>Findings</th><th>Assessment</th></tr>
               </thead>
@@ -524,11 +524,11 @@ export default function ProvidersManager({
                   return (
                     <tr key={`${system.client}:${system.systemName}`}>
                       <td><strong>{system.systemName}</strong><br /><span className="ux-muted">{system.client}</span></td>
-                      <td>{names(system.railway)}</td>
-                      <td>{names(system.vercel)}</td>
-                      <td>{names(system.other)}</td>
-                      <td>{findings.length ? findings.join(" · ") : "No gaps indicated by linked evidence"}</td>
-                      <td><StatusMark tone={assessmentTone(system.assessment)}>{system.assessment}</StatusMark></td>
+                      <td data-label="Railway">{names(system.railway)}</td>
+                      <td data-label="Vercel">{names(system.vercel)}</td>
+                      <td data-label="Other infrastructure">{names(system.other)}</td>
+                      <td data-label="Findings">{findings.length ? findings.join(" · ") : "No gaps indicated by linked evidence"}</td>
+                      <td data-label="Assessment"><StatusMark tone={assessmentTone(system.assessment)}>{system.assessment}</StatusMark></td>
                     </tr>
                   );
                 })}
@@ -714,7 +714,7 @@ export default function ProvidersManager({
             <>
               <div className="ux-card-header" style={{ marginTop: "1rem" }}><h3>Discovery runs</h3></div>
               <div className="ux-tablewrap">
-                <table className="ux-table">
+                <table className="ux-table ux-table--stack ux-table--cards">
                   <thead>
                     <tr><th>Started</th><th>Status</th><th>Found</th><th>New</th><th>Linked</th><th>Errors</th><th>Detail</th></tr>
                   </thead>
@@ -722,12 +722,12 @@ export default function ProvidersManager({
                     {accountRuns.map((r) => (
                       <tr key={r.id}>
                         <td>{fmt(r.started_at)}</td>
-                        <td><StatusMark tone={runTone(r.status)}>{r.status}</StatusMark></td>
-                        <td>{r.discovered_count}</td>
-                        <td>{r.new_count}</td>
-                        <td>{r.linked_count}</td>
-                        <td>{r.error_count}</td>
-                        <td className="ux-muted">{r.error_summary ?? "—"}</td>
+                        <td data-label="Status"><StatusMark tone={runTone(r.status)}>{r.status}</StatusMark></td>
+                        <td data-label="Found">{r.discovered_count}</td>
+                        <td data-label="New">{r.new_count}</td>
+                        <td data-label="Linked">{r.linked_count}</td>
+                        <td data-label="Errors">{r.error_count}</td>
+                        <td data-label="Detail" className="ux-muted">{r.error_summary ?? "—"}</td>
                       </tr>
                     ))}
                   </tbody>

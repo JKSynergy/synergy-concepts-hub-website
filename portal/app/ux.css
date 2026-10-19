@@ -755,3 +755,33 @@ html[data-theme="dark"] .ux .text-amber-600 { color: var(--ux-warning); }
   .ux .ux-page.ops-page { padding: 24px 16px 56px; }
   .ux .ops-page .ux-ops-sec { padding: 16px; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   PHONES — portal-wide fixes (Oct 2026 mobile audit)
+   ═══════════════════════════════════════════════════════════════ */
+/* Long names, emails and URLs wrap instead of pushing the layout wider */
+.ux-row-main, .ux-item > :first-child, .ux-cell-main, .ux-cell-sub { min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 767px) {
+  /* form controls never grow past the screen (selects size to their longest option) */
+  .ux select, .ux input, .ux textarea { max-width: 100%; }
+  .ux .ux-page div:has(select.ux-select) { min-width: 0; max-width: 100%; }
+  .ux-table--stack td { min-width: 0; overflow-wrap: anywhere; }
+
+  /* Card tables: wide data tables (Systems pages) become one card per row */
+  .ux-card > .ux-tablewrap:has(.ux-table--cards) { overflow-x: visible; padding: 0; }
+  .ux-table--cards tr { padding: 14px 16px; }
+  .ux-table--cards td { padding: 3px 0 !important; text-align: left !important; }
+  .ux-tablewrap:has(> .ux-table--cards), div:has(> .ux-table--cards) { overflow-x: visible !important; }
+  .ux-table--cards td:first-child { padding-bottom: 6px; font-weight: 600; color: var(--ux-strong); }
+  .ux-table--cards td:first-child .ux-muted { font-weight: 400; }
+  .ux-table--cards td[data-label]::before { display: block; margin: 6px 0 1px; font-size: 10.5px; }
+  .ux-table--cards td[data-label="Actions"] { padding-top: 10px; }
+  .ux-table--cards td[data-label="Actions"]::before { display: none; }
+  .ux-table--cards td:empty { display: none; }
+
+  /* Comfortable tap targets for text-style actions */
+  .ux .ux-textbtn, .ux .ux-rowactions > a, .ux .ux-rowactions > button { min-height: 36px; display: inline-flex; align-items: center; }
+  .ux .ux-rowactions { flex-wrap: wrap; column-gap: 18px; row-gap: 0; }
+  .ux .ux-row > .ux-textbtn { justify-self: end; }
+  .ux .ux-btn, .ux .ux-button, .ux .ux-button-secondary { min-height: 40px; }
+}

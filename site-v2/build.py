@@ -7,7 +7,7 @@ Run:  python build.py             Output: HTML files next to this script (the pu
                                   relative), or serve it with `python preview.py`.
 Edit copy in this file; edit the look in assets/css/sch.css.
 Portfolio items come from _review/portfolio.json. After editing it, run build_images.py first."""
-import os, sys, html, json, shutil, datetime, subprocess
+import os, sys, html, json, shutil, datetime, subprocess, hashlib
 
 SRC = os.path.dirname(os.path.abspath(__file__))
 PREVIEW = "--preview" in sys.argv
@@ -135,6 +135,13 @@ FOOTER = f'''<footer class="site-footer"><div class="wrap">
 
 import re as _re
 
+# Cache-busting: the CSS/JS links carry a short hash of the file, so browsers fetch a new copy
+# the moment it changes instead of reusing a cached one for hours.
+def _asset_version(rel):
+    with open(os.path.join(SRC, rel), "rb") as f:
+        return hashlib.sha256(f.read().replace(b"\r\n", b"\n")).hexdigest()[:10]
+ASSET_V = {"css": _asset_version("assets/css/sch.css"), "js": _asset_version("assets/js/sch.js")}
+
 def _relativize(out, path):
     """Review preview only: rewrite root-relative URLs (/assets/..., /work/) as relative ones, so the
     preview also works when its HTML files are opened straight from disk (file://). The public build
@@ -252,7 +259,7 @@ def page(path, title, desc, body, current="", schema="", out_file=None, og_img=N
 <link rel="icon" type="image/png" href="{IMG}logo-mark-light.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/sch.css">
+<link rel="stylesheet" href="/assets/css/sch.css?v={ASSET_V["css"]}">
 {schema}
 </head>
 <body>
@@ -261,7 +268,7 @@ def page(path, title, desc, body, current="", schema="", out_file=None, og_img=N
 {body}
 </main>
 {FOOTER}
-<script src="/assets/js/sch.js" defer></script>
+<script src="/assets/js/sch.js?v={ASSET_V["js"]}" defer></script>
 </body>
 </html>
 '''

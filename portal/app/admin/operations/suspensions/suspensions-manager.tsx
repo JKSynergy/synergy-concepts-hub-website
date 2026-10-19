@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { RAISE_CASE_EVENT } from "./raise-case-button";
 import { useRouter } from "next/navigation";
 import { Dialog } from "@/components/ux/dialog";
 import { revealOpsDetail } from "@/components/ux/ops-mobile";
@@ -257,6 +258,17 @@ export default function SuspensionsManager({
 
   // Modals
   const [createModalOpen, setCreateModalOpen] = useState(false);
+
+  // The page header's "Raise case" button opens the same dialog.
+  useEffect(() => {
+    if (isFinance) return;
+    const open = () => {
+      setErrorMessage(null);
+      setCreateModalOpen(true);
+    };
+    window.addEventListener(RAISE_CASE_EVENT, open);
+    return () => window.removeEventListener(RAISE_CASE_EVENT, open);
+  }, [isFinance]);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [addActionModalOpen, setAddActionModalOpen] = useState(false);

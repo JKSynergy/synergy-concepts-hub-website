@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { isAdmin as checkIsAdmin, isClient } from "@/lib/security/roles";
+import { writeAuditLog } from "@/lib/audit";
 
 export type ActionResult<T = unknown> = { ok: boolean; data?: T; error?: string };
 
@@ -29,6 +30,13 @@ type SuspensionReason = (typeof REASON_VOCABULARY)[number];
 
 function isValidReason(value: string): value is SuspensionReason {
   return REASON_VOCABULARY.includes(value as SuspensionReason);
+}
+
+/** Suspend and resume change service availability, so each needs a written reason for the audit log. */
+const MIN_NOTE_LENGTH = 5;
+function requiredNote(note?: string | null): string | null {
+  const clean = note?.trim() ?? "";
+  return clean.length >= MIN_NOTE_LENGTH ? clean : null;
 }
 
 export async function suspendApplication(
@@ -51,15 +59,29 @@ export async function suspendApplication(
     return { ok: false, error: "Invalid suspension reason" };
   }
 
+  const cleanNote = requiredNote(note);
+  if (!cleanNote) {
+    return { ok: false, error: `Explain why this service is being suspended (at least ${MIN_NOTE_LENGTH} characters). It is recorded in the audit log.` };
+  }
+
   const admin = createAdminClient();
   const { error } = await admin.rpc("suspend_application_system", {
     p_system_id: systemId,
     p_reason: reason,
-    p_note: note?.trim() || null,
+    p_note: cleanNote,
     p_actor: user.id,
   });
 
   if (error) {
+    // Successful suspensions are audited by the database trigger; failed attempts are recorded here.
+    await writeAuditLog(admin, {
+      actorId: user.id,
+      actorRole: profile?.role ?? null,
+      action: "SERVICE_SUSPEND_FAILED",
+      table: "systems",
+      recordId: systemId,
+      details: { reason, note: cleanNote, error: error.message },
+    });
     return { ok: false, error: error.message };
   }
 
@@ -84,14 +106,28 @@ export async function resumeApplication(
     return { ok: false, error: "Permission denied: Only administrators may resume application access" };
   }
 
+  const cleanNote = requiredNote(note);
+  if (!cleanNote) {
+    return { ok: false, error: `Explain why this service is being resumed (at least ${MIN_NOTE_LENGTH} characters). It is recorded in the audit log.` };
+  }
+
   const admin = createAdminClient();
   const { error } = await admin.rpc("resume_application_system", {
     p_system_id: systemId,
-    p_note: note?.trim() || null,
+    p_note: cleanNote,
     p_actor: user.id,
   });
 
   if (error) {
+    // Successful resumes are audited by the database trigger; failed attempts are recorded here.
+    await writeAuditLog(admin, {
+      actorId: user.id,
+      actorRole: profile?.role ?? null,
+      action: "SERVICE_RESUME_FAILED",
+      table: "systems",
+      recordId: systemId,
+      details: { note: cleanNote, error: error.message },
+    });
     return { ok: false, error: error.message };
   }
 

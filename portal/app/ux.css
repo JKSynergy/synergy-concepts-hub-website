@@ -36,6 +36,8 @@
   --ux-side-w: 232px;
   --ux-f-display: "Sora", "Inter", system-ui, sans-serif;
   --ux-f-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ux-f-mono: "JetBrains Mono", "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
+  --ux-dot: rgba(11, 15, 25, .09);       /* Operations canvas grid */
 
   /* legacy var aliases for Phase-3 manager screens written against
      --card/--border/--surface before the ux system existed */
@@ -387,6 +389,9 @@ textarea.ux-input { min-height: 84px; resize: vertical; }
 
 .ux-loading { padding: 48px 40px; color: var(--ux-muted); font-size: 14px; }
 .ux-select { appearance: auto; }
+/* Native selects follow the theme instead of the browser default grey control */
+.ux select.ux-select { background-color: var(--ux-paper); color: var(--ux-ink); border: 1px solid var(--ux-line-strong); border-radius: 2px; }
+.ux select.ux-select:focus { outline: none; border-color: var(--ux-strong); box-shadow: 0 0 0 1px var(--ux-strong); }
 .ux-filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 .ux-filters .ux-input { width: auto; min-width: 150px; }
 .ux-progress-cell { display: flex; align-items: center; gap: 10px; min-width: 120px; }
@@ -693,6 +698,7 @@ html[data-theme="dark"] .ux {
   --ux-warning-bg: rgba(240, 160, 75, .10);  --ux-warning-line: rgba(240, 160, 75, .35);
   --ux-info-bg: rgba(122, 180, 245, .10);    --ux-info-line: rgba(122, 180, 245, .35);
   --accent-muted: rgba(255, 255, 255, .08);
+  --ux-dot: rgba(255, 255, 255, .065);
 }
 html[data-theme="dark"] .ux-side { border-right: 1px solid var(--ux-line); }
 html[data-theme="dark"] .ux-dialog { box-shadow: 0 12px 40px rgba(0, 0, 0, .5); }
@@ -702,3 +708,50 @@ html[data-theme="dark"] .ux .border-emerald-200 { border-color: var(--ux-success
 html[data-theme="dark"] .ux .text-emerald-800,
 html[data-theme="dark"] .ux .text-emerald-600 { color: var(--ux-success); }
 html[data-theme="dark"] .ux .text-amber-600 { color: var(--ux-warning); }
+
+/* ═══════════════════════════════════════════════════════════════
+   OPERATIONS CANVAS
+   Every /admin/operations screen (.ops-page): full-width work area on a
+   dot grid, sticky section tabs, content in sharp panels (2px corners
+   at most). Pure styling; no component changes needed on other pages.
+   ═══════════════════════════════════════════════════════════════ */
+.ux-main:has(.ops-page) {
+  background-color: var(--ux-stone);
+  background-image: radial-gradient(var(--ux-dot) 1px, transparent 1.3px);
+  background-size: 22px 22px;
+  background-position: -1px -1px;
+}
+.ux-main:has(.ops-page) .ux-tabs {
+  position: sticky; top: 0; z-index: 20;
+  background: color-mix(in srgb, var(--ux-paper) 86%, transparent);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+}
+.ux-main:has(.ops-page) .ux-tabs a { font-family: var(--ux-f-mono); font-size: 12.5px; letter-spacing: -.01em; }
+/* Side margins scale with the screen: up to ~3in (288px) on wide displays, never under 32px */
+.ux .ux-page.ops-page { max-width: none; padding: 32px clamp(32px, 16%, 288px) 72px; }
+.ux .ops-page .ux-head { margin-bottom: 28px; }
+
+/* Overview sections become panels on the canvas */
+.ux .ops-page .ux-ops-sec {
+  margin-bottom: 14px; padding: 20px 22px;
+  background: var(--ux-paper); border: 1px solid var(--ux-line); border-radius: 2px;
+}
+.ux .ops-page .ux-ops-sec--first { padding-top: 20px; }
+.ux .ops-page .ux-ops-sec-title { font-family: var(--ux-f-mono); font-weight: 500; font-size: 11px; color: var(--ux-muted); }
+
+/* Cards, notices and dialogs: sharp */
+.ux .ops-page .ux-card, .ux .ops-page .ux-notice, .ux .ops-page .ux-alert,
+.ux .ops-page .ux-input, .ux .ops-page .ux-select, .ux .ops-page .ux-btn, .ux .ops-page .ux-button,
+.ux .ops-page .ux-dialog { border-radius: 2px; }
+/* manager screens style their panels inline (4px); square them off to match */
+.ux .ops-page [style*="border-radius: 4px"], .ux .ops-page [style*="border-radius: 6px"],
+.ux .ops-page [style*="border-radius: 8px"], .ux .ops-page [style*="border-radius: 0.5rem"],
+.ux .ops-page [style*="border-radius: 0.375rem"], .ux .ops-page [style*="border-radius: 0.25rem"] { border-radius: 2px !important; }
+.ux .ops-page .ops-list-scroll { scrollbar-width: thin; }
+
+/* The tabs scroll with the page on phones, where the app bar is already sticky */
+@media (max-width: 1023px) {
+  .ux-main:has(.ops-page) .ux-tabs { position: static; -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--ux-paper); }
+  .ux .ux-page.ops-page { padding: 24px 16px 56px; }
+  .ux .ops-page .ux-ops-sec { padding: 16px; }
+}

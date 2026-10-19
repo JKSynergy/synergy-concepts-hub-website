@@ -4,7 +4,18 @@ import { Activity, ShieldCheck } from "lucide-react";
 import "./hosting.css";
 import { isInternal, isAdmin as checkIsAdmin, isOperationalStaff, isFinance } from "@/lib/security/roles";
 import SuspensionsManager from "./suspensions-manager";
-import ApplicationSuspensionSection from "./application-suspension-section";
+import ApplicationSuspensionSection, { type ServiceActivity } from "./application-suspension-section";
+import { RaiseCaseButton } from "./raise-case-button";
+
+// Audit actions shown in the service activity log (admin-only under RLS).
+const SERVICE_ACTIONS = [
+  "SERVICE_SUSPENDED",
+  "SERVICE_RESUMED",
+  "SERVICE_SUSPEND_FAILED",
+  "SERVICE_RESUME_FAILED",
+  "SERVICE_TOKEN_ROTATED",
+  "SERVICE_TOKEN_ROTATE_FAILED",
+];
 
 export const metadata = { title: "Suspensions" };
 
@@ -91,6 +102,15 @@ export default async function SuspensionsPage() {
     .in("role", ["staff", "admin"])
     .order("full_name");
 
+  // Recent service actions: who did what, why, and whether it worked.
+  const { data: activityData } = await supabase
+    .from("audit_logs")
+    .select("id, action, record_id, created_at, actor_id, details, new_data")
+    .eq("table_name", "systems")
+    .in("action", SERVICE_ACTIONS)
+    .order("created_at", { ascending: false })
+    .limit(15);
+
   const { data: agreementResourcesData } = await supabase
     .from("agreement_resources")
     .select("agreement_id, resource_id");
@@ -130,6 +150,28 @@ export default async function SuspensionsPage() {
     status: r.status,
   }));
 
+  const staffName = new Map((staffData ?? []).map((s) => [s.id as string, (s.full_name || s.email) as string]));
+  const systemName = new Map(systems.map((s) => [s.id, s.name]));
+  const str = (v: unknown) => (typeof v === "string" && v.trim() ? v : null);
+  const activity: ServiceActivity[] = (activityData ?? []).map((a) => {
+    const details = (a.details ?? {}) as Record<string, unknown>;
+    const newData = (a.new_data ?? {}) as Record<string, unknown>;
+    // Trigger-written rows run as the service role, so the actor is carried in details.actor.
+    const actorId = (a.actor_id as string | null) ?? str(details.actor);
+    return {
+      id: a.id,
+      action: a.action,
+      systemId: a.record_id,
+      systemName: (a.record_id && systemName.get(a.record_id)) || "Unknown system",
+      at: a.created_at,
+      actor: actorId ? staffName.get(actorId) ?? "Unknown user" : null,
+      reason: str(details.reason) ?? (a.action === "SERVICE_SUSPENDED" ? str(newData.suspension_reason) : null),
+      note: str(details.note) ?? (a.action === "SERVICE_SUSPENDED" || a.action === "SERVICE_RESUMED" ? str(newData.suspension_note) : null),
+      error: str(details.error),
+    };
+  });
+  const actorLabel = staffName.get(user.id) ?? user.email ?? "you";
+
   const staffOptions = (staffData ?? []).map((s) => ({
     id: s.id,
     label: `${s.full_name || s.email} (${s.role})`,
@@ -156,7 +198,7 @@ export default async function SuspensionsPage() {
 
   return (
     <div className="ux-page ux-page--wide ops-page hx">
-      <header className="hx-head">
+      <header className="hx-head hx-top">
         <div>
           <div className="hx-crumb">
             <span>operations</span>
@@ -164,11 +206,12 @@ export default async function SuspensionsPage() {
             <span>suspensions</span>
           </div>
           <h1>Suspensions</h1>
-          <p>Controlled suspension and restoration of SCH-managed services.</p>
+          <p>Application-layer control of SCH-managed services. Hosting and provider infrastructure are never touched.</p>
         </div>
         <div className="hx-head-meta">
           <span className="hx-chip"><ShieldCheck size={12} /> {isAdmin ? "role: admin" : isFinanceUser ? "role: finance" : "role: staff"}</span>
-          <span className="hx-chip"><Activity size={12} /> env: {process.env.VERCEL_ENV ?? process.env.NODE_ENV}</span>
+          <span className="hx-chip hx-env"><Activity size={12} /> {process.env.VERCEL_ENV ?? process.env.NODE_ENV}</span>
+          {!isFinanceUser && <RaiseCaseButton />}
         </div>
       </header>
 
@@ -177,6 +220,8 @@ export default async function SuspensionsPage() {
         systemsUnavailable={Boolean(systemsError)}
         clients={clients}
         isAdmin={isAdmin}
+        activity={activity}
+        actorLabel={actorLabel}
       />
       <SuspensionsManager
         currentUserId={user.id}

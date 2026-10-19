@@ -27,6 +27,37 @@
     });
   }
 
+  /* Header dropdown (Creative): the caret toggles it; Escape or a click elsewhere closes it.
+     Hover and keyboard focus open it through CSS, so it also works without this script. */
+  var drops = document.querySelectorAll('.nav-drop');
+  var closeDrops = function (except) {
+    drops.forEach(function (d) {
+      if (d === except) return;
+      d.classList.remove('open');
+      var c = d.querySelector('.nav-caret');
+      if (c) c.setAttribute('aria-expanded', 'false');
+    });
+  };
+  drops.forEach(function (d) {
+    var caret = d.querySelector('.nav-caret');
+    if (!caret) return;
+    caret.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var open = d.classList.toggle('open');
+      caret.setAttribute('aria-expanded', open ? 'true' : 'false');
+      closeDrops(d);
+    });
+  });
+  if (drops.length) {
+    document.addEventListener('click', function (e) { if (!e.target.closest('.nav-drop')) closeDrops(); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      var openDrop = document.querySelector('.nav-drop.open');
+      closeDrops();
+      if (openDrop) openDrop.querySelector('.nav-caret').focus();
+    });
+  }
+
   /* Work filter */
   var filters = document.querySelector('.filters');
   if (filters) {

@@ -58,15 +58,17 @@ def items(category=None, group=None):
     return [it for it in ITEMS if (category is None or it["category"] == category)
             and (group is None or it["group"] == group)]
 
+# Five top-level links; Creative opens a small menu of its sub-pages. Academy lives in the footer.
 NAV = [
-    ("Technology", "/technology/"),
-    ("Creative", "/creative/"),
-    ("Photography", "/creative/photography/"),
-    ("Design", "/creative/design/"),
-    ("Social", "/creative/social-media-content/"),
-    ("Products", "/products/"),
-    ("Work", "/work/"),
-    ("About", "/about/"),
+    ("Technology", "/technology/", None),
+    ("Creative", "/creative/", [
+        ("Photography & Video", "/creative/photography/"),
+        ("Graphic Design & Branding", "/creative/design/"),
+        ("Social Media Content", "/creative/social-media-content/"),
+    ]),
+    ("Products", "/products/", None),
+    ("Work", "/work/", None),
+    ("About", "/about/", None),
 ]
 # Pages that highlight a nav item other than their own URL
 NAV_PARENT = {}
@@ -75,19 +77,31 @@ def esc(s): return html.escape(s, quote=True)
 
 def header(current):
     links = ""
-    for label, href in NAV:
-        cur = ' aria-current="page"' if current == href else ""
-        links += f'<a href="{href}"{cur}>{label}</a>'
-    links += f'<a href="{SMA}" target="_blank" rel="noopener">Academy&nbsp;&#8599;</a>'
+    for label, href, sub in NAV:
+        if not sub:
+            cur = ' aria-current="page"' if current == href else ""
+            links += f'<li><a href="{href}"{cur}>{label}</a></li>'
+            continue
+        # parent is highlighted on its own page and on every sub-page
+        in_section = current == href or any(current == h for _, h in sub)
+        cur = ' aria-current="page"' if current == href else (' aria-current="true"' if in_section else "")
+        items = ""
+        for l, h in sub:
+            sub_cur = ' aria-current="page"' if current == h else ""
+            items += f'<li><a href="{h}"{sub_cur}>{esc(l)}</a></li>'
+        links += (f'<li class="nav-drop"><a href="{href}"{cur}>{label}</a>'
+                  f'<button class="nav-caret" type="button" aria-expanded="false" aria-controls="nav-sub-{label.lower()}" '
+                  f'aria-label="{label} pages"><span aria-hidden="true">&#9662;</span></button>'
+                  f'<ul class="nav-sub" id="nav-sub-{label.lower()}">{items}</ul></li>')
     actions = (
         f'<a class="nav-portal" href="{PORTAL}">Portal&nbsp;&#8594;</a>'
         '<a class="btn" href="/contact/">Start a Project</a>'
     )
     return f'''<a class="skip" href="#main">Skip to content</a>
-<header class="site-header"><div class="wrap">
+<header class="site-header"><div class="hdr">
 <a class="brand" href="/" aria-label="Synergy Concepts Hub, home"><img src="{IMG}logo-mark-light.png" alt="" width="30" height="30"><span>Synergy Concepts Hub</span></a>
 <button class="menu-btn" aria-expanded="false" aria-controls="nav">Menu</button>
-<nav class="nav" id="nav" aria-label="Main">{links}<div class="nav-actions">{actions}</div></nav>
+<nav class="nav" id="nav" aria-label="Main"><ul class="nav-links">{links}</ul><div class="nav-actions">{actions}</div></nav>
 </div></header>'''
 
 FOOTER = f'''<footer class="site-footer"><div class="wrap">

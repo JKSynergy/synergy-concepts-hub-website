@@ -112,7 +112,10 @@ const FREQUENCIES = [
 ] as const;
 
 function fmt(ts: string | null): string {
-  return ts ? new Date(ts).toLocaleString() : "—";
+  if (!ts) return "—";
+  const d = new Date(ts);
+  // Deterministic UTC text (same on server and client), matching Operations and Systems.
+  return Number.isNaN(d.getTime()) ? "—" : `${d.toISOString().slice(0, 16).replace("T", " ")} UTC`;
 }
 
 function runTone(s: string): Tone {
@@ -310,7 +313,7 @@ export default function MonitoringManager({
                       <td data-label="Cadence">
                         {isAdmin ? (
                           <select
-                            className="ux-input"
+                            className="ux-input sy-cadence"
                             data-action="change-frequency"
                             value={s.frequency}
                             disabled={busy}
@@ -342,7 +345,7 @@ export default function MonitoringManager({
                         ) : null}
                       </td>
                       <td data-label="Next run">{s.enabled ? fmt(s.next_run_at) : "—"}</td>
-                      <td data-label="Failures">{s.consecutive_failures}</td>
+                      <td data-label="Failures" className={s.consecutive_failures > 0 ? "sy-fail" : undefined}>{s.consecutive_failures}</td>
                       {isAdmin && (
                         <td data-label="Actions">
                           <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap" }}>

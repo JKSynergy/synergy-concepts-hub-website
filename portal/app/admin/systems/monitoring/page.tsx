@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/ux/primitives";
+import "../systems.css";
 import { isInternal, isAdmin as checkIsAdmin, isFinance, isStaff } from "@/lib/security/roles";
 import { loadSystemHealthRows } from "@/lib/providers/system-health-server";
 import MonitoringManager from "./monitoring-manager";
@@ -74,7 +75,7 @@ export default async function ProviderMonitoringPage() {
     : { data: [], error: null };
 
   return (
-    <div className="ux-page ux-page--wide">
+    <div className="ux-page ux-page--wide ops-page">
       <PageHeader
         title="Provider Monitoring"
         description="Scheduled, read-only observation: discover → reconcile → classify → surface. Automation never mutates provider infrastructure — changes are surfaced for human review."

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Search, Server } from "lucide-react";
+import { CopyButton } from "./[id]/system-identity";
 import { NavLink as Link } from "@/components/nav-link";
 import { Dialog } from "@/components/ux/dialog";
 import { StatusMark, type Tone } from "@/components/ux/primitives";
@@ -86,12 +88,6 @@ const SYSTEM_STATUS_TONE: Record<string, Tone> = {
   retired: "neutral",
 };
 
-const HEALTH_STATUS_TONE: Record<SystemHealthStatus, Tone> = {
-  HEALTHY: "success",
-  ATTENTION: "warning",
-  UNKNOWN: "neutral",
-};
-
 const RESOURCE_STATUS_TONE: Record<string, Tone> = {
   provisioning: "info",
   active: "success",
@@ -100,6 +96,12 @@ const RESOURCE_STATUS_TONE: Record<string, Tone> = {
   suspended: "danger",
   retired: "neutral",
 };
+
+/** Deterministic UTC text: identical on server and client (no hydration mismatch). */
+function fmtUtc(ts: string): string {
+  const d = new Date(ts);
+  return Number.isNaN(d.getTime()) ? "—" : `${d.toISOString().slice(0, 16).replace("T", " ")} UTC`;
+}
 
 /** "in_build" -> "In build" — display only, enum values are unchanged. */
 function labelize(s: string | null | undefined): string {
@@ -121,7 +123,7 @@ export default function SystemsManager({
   clients: ClientOption[];
   providerAccounts: ProviderAccountOption[];
   projects: ProjectOption[];
-  systemHealth: { system_id: string; status: SystemHealthStatus }[];
+  systemHealth: { system_id: string; status: SystemHealthStatus; lastEvidenceAt: string | null }[];
   isAdmin: boolean;
   isStaff: boolean;
 }) {
@@ -143,7 +145,6 @@ export default function SystemsManager({
 
   // Separate attached resources vs standalone resources
   const standaloneResources = resources.filter((r) => !r.system_id);
-  const healthBySystem = new Map(systemHealth.map((item) => [item.system_id, item.status]));
   const attachedResourcesBySystem = new Map<string, ResourceItem[]>();
   for (const r of resources) {
     if (r.system_id) {
@@ -234,268 +235,298 @@ export default function SystemsManager({
     setLinkingProject(null);
   }
 
-  return (
-    <div className="ux-systems-manager">
-      {/* Top Action Bar */}
-      {isAdmin && (
-        <div className="ux-actions" style={{ marginBottom: "1.5rem", display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-          <button
-            type="button"
-            className="ux-btn ux-btn--primary"
-            onClick={() => setShowNewSystem(true)}
-            id="btn-create-system"
-          >
-            + New System
-          </button>
-          <button
-            type="button"
-            className="ux-btn"
-            onClick={() => setShowNewResource(true)}
-            id="btn-create-resource"
-          >
-            + New Technical Resource
-          </button>
+  // ── Registry view state (filters) and derived figures ──
+  const [query, setQuery] = useState("");
+  const [healthFilter, setHealthFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [providerFilter, setProviderFilter] = useState("all");
+
+  const healthInfo = new Map(systemHealth.map((item) => [item.system_id, item]));
+  const activeSystems = systems.filter((s) => s.status !== "retired");
+  const retiredSystems = systems.filter((s) => s.status === "retired");
+  const providersOf = (systemId: string) =>
+    [...new Set((attachedResourcesBySystem.get(systemId) || []).map((r) => r.provider_account?.providers?.name).filter(Boolean) as string[])];
+  const providerNames = [...new Set(activeSystems.flatMap((s) => providersOf(s.id)))].sort();
+  const healthCount = { HEALTHY: 0, ATTENTION: 0, UNKNOWN: 0 } as Record<SystemHealthStatus, number>;
+  for (const s of activeSystems) healthCount[healthInfo.get(s.id)?.status ?? "UNKNOWN"]++;
+  const lifecycleCount: Record<string, number> = {};
+  for (const s of activeSystems) lifecycleCount[s.status] = (lifecycleCount[s.status] ?? 0) + 1;
+  const latestEvidence = systemHealth.map((h) => h.lastEvidenceAt).filter(Boolean).sort().pop() ?? null;
+  const share = (n: number) => (activeSystems.length ? `${(n / activeSystems.length) * 100}%` : "0%");
+  const HEALTH_RANK: Record<SystemHealthStatus, number> = { ATTENTION: 0, UNKNOWN: 1, HEALTHY: 2 };
+  const q = query.trim().toLowerCase();
+  const visibleSystems = activeSystems
+    .filter((s) => {
+      const client = `${s.client?.company_name ?? ""} ${s.client?.full_name ?? ""} ${s.client?.email ?? ""}`;
+      if (q && !`${s.name} ${client} ${s.primary_url ?? ""}`.toLowerCase().includes(q)) return false;
+      if (healthFilter !== "all" && (healthInfo.get(s.id)?.status ?? "UNKNOWN") !== healthFilter) return false;
+      if (statusFilter !== "all" && s.status !== statusFilter) return false;
+      if (providerFilter !== "all" && !providersOf(s.id).includes(providerFilter)) return false;
+      return true;
+    })
+    // problems first (attention, then unknown), then A-Z
+    .sort((a, b) =>
+      (isAdmin ? HEALTH_RANK[healthInfo.get(a.id)?.status ?? "UNKNOWN"] - HEALTH_RANK[healthInfo.get(b.id)?.status ?? "UNKNOWN"] : 0)
+      || a.name.localeCompare(b.name));
+
+  function renderSystemCard(sys: SystemItem) {
+    const clientLabel = sys.client?.company_name || sys.client?.full_name || sys.client?.email || "Unknown Client";
+    const attached = attachedResourcesBySystem.get(sys.id) || [];
+    const info = healthInfo.get(sys.id);
+    const health = info?.status;
+    const isRetired = sys.status === "retired";
+    const providers = providersOf(sys.id);
+    const tone = health === "HEALTHY" ? "ok" : health === "ATTENTION" ? "warn" : "idle";
+    return (
+      <li key={sys.id} id={`system-card-${sys.id}`} className={`sy-card is-${tone}${isRetired ? " is-retired" : ""}`}>
+        <div className="sy-card-head">
+          <span className={`sy-icon is-${tone}`} aria-hidden="true"><Server size={16} /></span>
+          <div className="sy-card-title">
+            <Link href={`/admin/systems/${sys.id}`} className="sy-name">{sys.name}</Link>
+            <span className="sy-client">{clientLabel}</span>
+          </div>
+          <StatusMark tone={SYSTEM_STATUS_TONE[sys.status] || "neutral"}>{labelize(sys.status)}</StatusMark>
         </div>
-      )}
+
+        {sys.primary_url ? (
+          <div className="sy-endpoint">
+            <a href={sys.primary_url} title={sys.primary_url}>{sys.primary_url.replace(/^https?:\/\//, "")}</a>
+            <CopyButton value={sys.primary_url} />
+          </div>
+        ) : (
+          <div className="sy-endpoint is-empty">No production URL recorded</div>
+        )}
+
+        <div className="sy-chips">
+          <span className="sy-chip">{labelize(sys.system_type)}</span>
+          {providers.map((p) => <span key={p} className="sy-chip is-provider">{p}</span>)}
+          {sys.origin_project && <span className="sy-chip">Project: {sys.origin_project.title}</span>}
+        </div>
+
+        <div className="sy-health">
+          {health ? (
+            <>
+              <span className={`sy-dot is-${tone}`} />
+              <b>{health === "HEALTHY" ? "Healthy" : health === "ATTENTION" ? "Needs attention" : "Unknown"}</b>
+              <span className="sy-meta">
+                {info?.lastEvidenceAt ? `evidence ${fmtUtc(info.lastEvidenceAt)}` : attached.length === 0 ? "no linked infrastructure" : "no provider evidence yet"}
+              </span>
+            </>
+          ) : (
+            <span className="sy-meta">Health is visible to administrators</span>
+          )}
+        </div>
+
+        <details className="sy-resources">
+          <summary>{attached.length === 0 ? "No linked resources" : `${attached.length} linked resource${attached.length === 1 ? "" : "s"}`}</summary>
+          {attached.length > 0 && (
+            <ul>
+              {attached.map((r) => (
+                <li key={r.id}>
+                  <div className="sy-res-main">
+                    <b>{r.name}</b>
+                    <span className="sy-meta">
+                      {labelize(r.resource_type)}
+                      {r.provider_account?.account_name ? ` · ${r.provider_account.account_name}` : ""}
+                    </span>
+                    {r.external_reference && <code className="sy-ref">{r.external_reference}</code>}
+                  </div>
+                  <div className="sy-res-side">
+                    <StatusMark tone={RESOURCE_STATUS_TONE[r.status] || "neutral"}>{labelize(r.status)}</StatusMark>
+                    {isStaff && (
+                      <button type="button" className="ux-btn ux-btn--small" onClick={() => setEditingNotes({ type: "resource", id: r.id, name: r.name, notes: r.operational_notes || "" })}>
+                        Notes
+                      </button>
+                    )}
+                    {isAdmin && r.status !== "retired" && (
+                      <button type="button" className="ux-btn ux-btn--small ux-btn--outline-danger" onClick={() => setConfirmingRetire({ type: "resource", id: r.id, name: r.name })}>
+                        Retire
+                      </button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </details>
+
+        <div className="sy-card-foot">
+          <Link href={`/admin/systems/${sys.id}`} className="sy-open">Open system →</Link>
+          <div className="sy-card-actions">
+            {isStaff && (
+              <button type="button" className="ux-btn ux-btn--small" onClick={() => setEditingNotes({ type: "system", id: sys.id, name: sys.name, notes: sys.operational_notes || "" })}>
+                Notes
+              </button>
+            )}
+            {isAdmin && (
+              <>
+                <button type="button" className="ux-btn ux-btn--small" onClick={() => setLinkingProject({ systemId: sys.id, systemName: sys.name })}>
+                  Link project
+                </button>
+                {!isRetired && (
+                  <button type="button" className="ux-btn ux-btn--small ux-btn--outline-danger" onClick={() => setConfirmingRetire({ type: "system", id: sys.id, name: sys.name })}>
+                    Retire
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </li>
+    );
+  }
+
+  return (
+    <div className="ux-systems-manager sy">
+      {/* ── Fleet summary + actions ── */}
+      <div className="sy-top">
+        <div className="sy-summary">
+          {isAdmin && (
+            <div className="sy-sum-block">
+              <h2 className="sy-label">Fleet health</h2>
+              <p className="sy-big"><b>{healthCount.HEALTHY}</b> of {activeSystems.length} healthy</p>
+              <div className="sy-segbar" role="img" aria-label={`${healthCount.HEALTHY} healthy, ${healthCount.ATTENTION} need attention, ${healthCount.UNKNOWN} unknown`}>
+                <span style={{ width: share(healthCount.HEALTHY), background: "var(--sy-ok)" }} />
+                <span style={{ width: share(healthCount.ATTENTION), background: "var(--sy-warn)" }} />
+                <span style={{ width: share(healthCount.UNKNOWN), background: "var(--sy-idle)" }} />
+              </div>
+              <p className="sy-sub">
+                <span><i className="sy-dot is-ok" />{healthCount.HEALTHY} healthy</span>
+                <span><i className="sy-dot is-warn" />{healthCount.ATTENTION} attention</span>
+                <span><i className="sy-dot is-idle" />{healthCount.UNKNOWN} unknown</span>
+              </p>
+            </div>
+          )}
+          <div className="sy-sum-block">
+            <h2 className="sy-label">Lifecycle</h2>
+            <p className="sy-big"><b>{lifecycleCount.live ?? 0}</b> live</p>
+            <p className="sy-sub">
+              {Object.entries(lifecycleCount).filter(([k]) => k !== "live").map(([k, n]) => (
+                <span key={k}>{n} {labelize(k).toLowerCase()}</span>
+              ))}
+              {retiredSystems.length > 0 && <span>{retiredSystems.length} retired</span>}
+            </p>
+          </div>
+          {isAdmin && (
+            <div className="sy-sum-block">
+              <h2 className="sy-label">Latest provider evidence</h2>
+              <p className="sy-big sy-mono">{latestEvidence ? fmtUtc(latestEvidence) : "none yet"}</p>
+              <p className="sy-sub"><Link href="/admin/systems/monitoring">Monitoring →</Link></p>
+            </div>
+          )}
+        </div>
+        {isAdmin && (
+          <div className="sy-actions">
+            <button type="button" className="ux-btn ux-btn--primary" onClick={() => setShowNewSystem(true)} id="btn-create-system">
+              + New System
+            </button>
+            <button type="button" className="ux-btn" onClick={() => setShowNewResource(true)} id="btn-create-resource">
+              + New Technical Resource
+            </button>
+          </div>
+        )}
+      </div>
 
       {errorMsg && (
-        <div className="ux-alert ux-alert--danger" style={{ marginBottom: "1rem", padding: "0.75rem 1rem", borderRadius: "6px", backgroundColor: "rgba(220, 38, 38, 0.1)", color: "var(--ux-danger)" }}>
+        <div className="ux-alert ux-alert--danger" style={{ marginBottom: "1rem" }}>
           {errorMsg}
         </div>
       )}
 
-      {/* Systems Catalog */}
-      <div style={{ marginBottom: "2.5rem" }}>
-        <h2 style={{ fontSize: "1.25rem", fontWeight: 600, marginBottom: "1rem" }}>
-          Client Digital Systems ({systems.length})
-        </h2>
-
-        {systems.length === 0 ? (
-          <div className="ux-empty" style={{ padding: "2rem", border: "1px dashed var(--border)", borderRadius: 0, textAlign: "center" }}>
-            <p className="ux-muted">No systems yet. Add a system to begin tracking a client's digital infrastructure.</p>
-          </div>
-        ) : (
-          <div style={{ display: "grid", gap: "1rem" }}>
-            {systems.map((sys) => {
-              const clientLabel = sys.client?.company_name || sys.client?.full_name || sys.client?.email || "Unknown Client";
-              const attached = attachedResourcesBySystem.get(sys.id) || [];
-              const health = healthBySystem.get(sys.id);
-              const isRetired = sys.status === "retired";
-
-              return (
-                <div
-                  key={sys.id}
-                  className="ux-card"
-                  id={`system-card-${sys.id}`}
-                  style={{
-                    padding: "1.25rem",
-                    border: "1px solid var(--border)",
-                    borderRadius: "8px",
-                    backgroundColor: isRetired ? "var(--bg-muted, rgba(255,255,255,0.02))" : "var(--card-bg, rgba(255,255,255,0.04))",
-                    opacity: isRetired ? 0.75 : 1,
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap", marginBottom: "0.5rem" }}>
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-                        <h3 style={{ fontSize: "1.1rem", fontWeight: 600, margin: 0 }}><Link href={`/admin/systems/${sys.id}`}>{sys.name}</Link></h3>
-                        <StatusMark tone={SYSTEM_STATUS_TONE[sys.status] || "neutral"}>{labelize(sys.status)}</StatusMark>
-                        {health && <StatusMark tone={HEALTH_STATUS_TONE[health]}>{health}</StatusMark>}
-                        <span className="ux-badge">{labelize(sys.system_type)}</span>
-                      </div>
-                      <p className="ux-muted" style={{ margin: "0.25rem 0 0", fontSize: "0.875rem" }}>
-                        Client: <b>{clientLabel}</b>
-                        {sys.primary_url && (
-                          <> · <span style={{ textDecoration: "underline" }}>{sys.primary_url}</span></>
-                        )}
-                      </p>
-                    </div>
-
-                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-                      {isStaff && (
-                        <button
-                          type="button"
-                          className="ux-btn ux-btn--small"
-                          onClick={() => setEditingNotes({ type: "system", id: sys.id, name: sys.name, notes: sys.operational_notes || "" })}
-                        >
-                          Notes
-                        </button>
-                      )}
-                      {isAdmin && (
-                        <>
-                          <button
-                            type="button"
-                            className="ux-btn ux-btn--small"
-                            onClick={() => setLinkingProject({ systemId: sys.id, systemName: sys.name })}
-                          >
-                            Link Project
-                          </button>
-                          {!isRetired && (
-                            <button
-                              type="button"
-                              className="ux-btn ux-btn--small ux-btn--outline-danger"
-                              onClick={() => setConfirmingRetire({ type: "system", id: sys.id, name: sys.name })}
-                            >
-                              Retire
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  {sys.description && (
-                    <p style={{ fontSize: "0.875rem", margin: "0.5rem 0 0.75rem", color: "var(--fg-muted)" }}>
-                      {sys.description}
-                    </p>
-                  )}
-
-                  {sys.operational_notes && (
-                    <div style={{ fontSize: "0.8rem", padding: "0.5rem 0.75rem", backgroundColor: "var(--bg-muted)", borderLeft: "2px solid var(--border)", marginBottom: "0.75rem" }}>
-                      <b>Operational notes:</b> {sys.operational_notes}
-                    </div>
-                  )}
-
-                  {/* Attached Resources */}
-                  <div style={{ marginTop: "0.75rem", borderTop: "1px solid var(--border)", paddingTop: "0.75rem" }}>
-                    <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--fg-muted)", marginBottom: "0.5rem" }}>
-                      Attached Infrastructure Resources ({attached.length})
-                    </div>
-                    {attached.length === 0 ? (
-                      <p className="ux-muted" style={{ fontSize: "0.8rem", margin: 0 }}>No attached technical resources.</p>
-                    ) : (
-                      <div style={{ display: "grid", gap: "0.4rem" }}>
-                        {attached.map((r) => (
-                          <div
-                            key={r.id}
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              fontSize: "0.85rem",
-                              padding: "0.4rem 0.6rem",
-                              backgroundColor: "rgba(255,255,255,0.02)",
-                              borderRadius: "4px",
-                            }}
-                          >
-                            <div>
-                              <b>{r.name}</b> · <span className="ux-muted">{labelize(r.resource_type)}</span>
-                              {r.provider_account?.account_name && (
-                                <span className="ux-muted"> ({r.provider_account.account_name})</span>
-                              )}
-                              {r.external_reference && (
-                                <code style={{ marginLeft: "0.5rem", fontSize: "0.75rem" }}>{r.external_reference}</code>
-                              )}
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                              <StatusMark tone={RESOURCE_STATUS_TONE[r.status] || "neutral"}>{labelize(r.status)}</StatusMark>
-                              {isStaff && (
-                                <button
-                                  type="button"
-                                  className="ux-btn ux-btn--small"
-                                  style={{ padding: "0.1rem 0.4rem", fontSize: "0.75rem" }}
-                                  onClick={() => setEditingNotes({ type: "resource", id: r.id, name: r.name, notes: r.operational_notes || "" })}
-                                >
-                                  Notes
-                                </button>
-                              )}
-                              {isAdmin && r.status !== "retired" && (
-                                <button
-                                  type="button"
-                                  className="ux-btn ux-btn--small ux-btn--outline-danger"
-                                  style={{ padding: "0.1rem 0.4rem", fontSize: "0.75rem" }}
-                                  onClick={() => setConfirmingRetire({ type: "resource", id: r.id, name: r.name })}
-                                >
-                                  Retire
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+      {/* ── Filters ── */}
+      <div className="sy-filters">
+        <label className="sy-search">
+          <Search size={14} aria-hidden="true" />
+          <input
+            type="search"
+            className="ux-input"
+            placeholder="Search systems, clients or URLs"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label="Search systems"
+          />
+        </label>
+        {isAdmin && (
+          <select className="ux-select" value={healthFilter} onChange={(e) => setHealthFilter(e.target.value)} aria-label="Filter by health">
+            <option value="all">All health</option>
+            <option value="HEALTHY">Healthy</option>
+            <option value="ATTENTION">Needs attention</option>
+            <option value="UNKNOWN">Unknown</option>
+          </select>
         )}
+        <select className="ux-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="Filter by lifecycle">
+          <option value="all">All lifecycle states</option>
+          {Object.keys(SYSTEM_STATUS_TONE).filter((s) => s !== "retired").map((s) => (
+            <option key={s} value={s}>{labelize(s)}</option>
+          ))}
+        </select>
+        {providerNames.length > 0 && (
+          <select className="ux-select" value={providerFilter} onChange={(e) => setProviderFilter(e.target.value)} aria-label="Filter by provider">
+            <option value="all">All providers</option>
+            {providerNames.map((p) => <option key={p} value={p}>{p}</option>)}
+          </select>
+        )}
+        <span className="sy-count">{visibleSystems.length} of {activeSystems.length} systems</span>
       </div>
 
-      {/* Standalone Resources Section */}
-      <div>
-        <h2 style={{ fontSize: "1.25rem", fontWeight: 600, marginBottom: "1rem" }}>
-          Standalone / Independent Resources ({standaloneResources.length})
-        </h2>
-        <p className="ux-muted" style={{ fontSize: "0.875rem", marginBottom: "1rem" }}>
-          Infrastructure components operating independently of a System (e.g. standalone domains, DNS zones, isolated databases).
-        </p>
+      {/* ── Systems ── */}
+      {systems.length === 0 ? (
+        <div className="sy-panel sy-empty">
+          <p className="ux-muted">No systems yet. Add a system to begin tracking a client&apos;s digital infrastructure.</p>
+        </div>
+      ) : visibleSystems.length === 0 ? (
+        <div className="sy-panel sy-empty"><p className="ux-muted">No systems match these filters.</p></div>
+      ) : (
+        <ul className="sy-grid">
+          {visibleSystems.map((sys) => renderSystemCard(sys))}
+        </ul>
+      )}
 
-        {standaloneResources.length === 0 ? (
-          <div className="ux-empty" style={{ padding: "1.5rem", border: "1px dashed var(--border)", borderRadius: 0, textAlign: "center" }}>
-            <p className="ux-muted">No standalone resources recorded.</p>
-          </div>
-        ) : (
-          <div style={{ display: "grid", gap: "0.75rem" }}>
-            {standaloneResources.map((r) => (
-              <div
-                key={r.id}
-                className="ux-card"
-                id={`standalone-resource-${r.id}`}
-                style={{
-                  padding: "0.9rem 1.25rem",
-                  border: "1px solid var(--border)",
-                  borderRadius: "6px",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  gap: "0.75rem",
-                }}
-              >
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                    <b style={{ fontSize: "0.95rem" }}>{r.name}</b>
-                    <span className="ux-badge">{labelize(r.resource_type)}</span>
-                    <span className="ux-muted" style={{ fontSize: "0.75rem" }}>({labelize(r.ownership)})</span>
-                  </div>
-                  <div className="ux-muted" style={{ fontSize: "0.8rem", marginTop: "0.25rem" }}>
-                    Provider Account: {r.provider_account?.account_name || "Unspecified"}
-                    {r.external_reference && <> · <code>{r.external_reference}</code></>}
-                  </div>
-                  {r.operational_notes && (
-                    <div style={{ fontSize: "0.75rem", marginTop: "0.4rem", color: "var(--fg-muted)" }}>
-                      Notes: {r.operational_notes}
-                    </div>
-                  )}
-                </div>
+      {retiredSystems.length > 0 && (
+        <details className="sy-retired">
+          <summary>Retired systems ({retiredSystems.length})</summary>
+          <ul className="sy-grid">{retiredSystems.map((sys) => renderSystemCard(sys))}</ul>
+        </details>
+      )}
 
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                  <StatusMark tone={RESOURCE_STATUS_TONE[r.status] || "neutral"}>{labelize(r.status)}</StatusMark>
-                  {isStaff && (
-                    <button
-                      type="button"
-                      className="ux-btn ux-btn--small"
-                      onClick={() => setEditingNotes({ type: "resource", id: r.id, name: r.name, notes: r.operational_notes || "" })}
-                    >
-                      Notes
-                    </button>
-                  )}
-                  {isAdmin && r.status !== "retired" && (
-                    <button
-                      type="button"
-                      className="ux-btn ux-btn--small ux-btn--outline-danger"
-                      onClick={() => setConfirmingRetire({ type: "resource", id: r.id, name: r.name })}
-                    >
-                      Retire
-                    </button>
-                  )}
-                </div>
+      {/* ── Standalone resources ── */}
+      <div className="sy-sechead">
+        <h2 className="sy-label">Standalone resources ({standaloneResources.length})</h2>
+        <span>Domains, DNS zones and databases not tied to one system</span>
+      </div>
+      {standaloneResources.length === 0 ? (
+        <div className="sy-panel sy-empty"><p className="ux-muted">No standalone resources recorded.</p></div>
+      ) : (
+        <ul className="sy-panel sy-reslist">
+          {standaloneResources.map((r) => (
+            <li key={r.id} id={`standalone-resource-${r.id}`}>
+              <div className="sy-res-main">
+                <b>{r.name}</b>
+                <span className="sy-chip">{labelize(r.resource_type)}</span>
+                <span className="sy-meta">
+                  {r.provider_account?.providers?.name ? `${r.provider_account.providers.name} · ` : ""}
+                  {r.provider_account?.account_name || "No provider account"} · {labelize(r.ownership)}
+                </span>
+                {r.external_reference && <code className="sy-ref">{r.external_reference}</code>}
+                {r.operational_notes && <span className="sy-note">{r.operational_notes}</span>}
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+              <div className="sy-res-side">
+                <StatusMark tone={RESOURCE_STATUS_TONE[r.status] || "neutral"}>{labelize(r.status)}</StatusMark>
+                {isStaff && (
+                  <button type="button" className="ux-btn ux-btn--small" onClick={() => setEditingNotes({ type: "resource", id: r.id, name: r.name, notes: r.operational_notes || "" })}>
+                    Notes
+                  </button>
+                )}
+                {isAdmin && r.status !== "retired" && (
+                  <button type="button" className="ux-btn ux-btn--small ux-btn--outline-danger" onClick={() => setConfirmingRetire({ type: "resource", id: r.id, name: r.name })}>
+                    Retire
+                  </button>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
 
       {/* New System Dialog (Admin only) */}
       {showNewSystem && (

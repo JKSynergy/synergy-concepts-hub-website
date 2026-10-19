@@ -102,7 +102,10 @@ function statusTone(s: string): Tone {
 }
 
 function fmt(ts: string | null): string {
-  return ts ? new Date(ts).toLocaleString() : "—";
+  if (!ts) return "—";
+  const d = new Date(ts);
+  // Deterministic UTC text (same on server and client), matching Operations and Systems.
+  return Number.isNaN(d.getTime()) ? "—" : `${d.toISOString().slice(0, 16).replace("T", " ")} UTC`;
 }
 
 function snapshotField(s: Record<string, unknown> | null, key: string): string {

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/ux/primitives";
+import "../systems.css";
 import { isInternal, isAdmin as checkIsAdmin, isFinance, isStaff } from "@/lib/security/roles";
 import ReconciliationManager from "./reconciliation-manager";
 
@@ -55,7 +56,7 @@ export default async function ReconciliationPage() {
     : { data: [], error: null };
 
   return (
-    <div className="ux-page ux-page--wide">
+    <div className="ux-page ux-page--wide ops-page">
       <PageHeader
         title="Reconciliation"
         description="Changes detected between SCH inventory and provider state. Differences are proposals — nothing changes until an administrator approves and applies."

@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/ux/primitives";
 import { isInternal, isAdmin as checkIsAdmin, isOperationalStaff } from "@/lib/security/roles";
 import { loadSystemHealthRows } from "@/lib/providers/system-health-server";
 import SystemsManager from "./systems-manager";
+import "./systems.css";
 
 export const metadata = { title: "Systems & Infrastructure" };
 
@@ -111,10 +112,11 @@ export default async function SystemsPage() {
   });
 
   return (
-    <div className="ux-page ux-page--wide">
+    <div className="ux-page ux-page--wide ops-page">
       <PageHeader
-        title="Systems & Technical Hierarchy"
-        description="Operational registry of high-level client digital systems and supporting technical resources. Operational facts only; credentials and secrets are excluded."
+        eyebrow="Platform"
+        title="Systems"
+        description="Every client system Synergy hosts or maintains, with its health, endpoint and linked infrastructure. Credentials and secrets are never stored here."
       />
 
       <SystemsManager
@@ -123,7 +125,7 @@ export default async function SystemsPage() {
         clients={clientOptions}
         providerAccounts={paOptions}
         projects={projectOptions}
-        systemHealth={healthRows.map((row) => ({ system_id: row.systemId, status: row.health.overallStatus }))}
+        systemHealth={healthRows.map((row) => ({ system_id: row.systemId, status: row.health.overallStatus, lastEvidenceAt: row.health.lastEvidenceAt }))}
         isAdmin={isAdmin}
         isStaff={isStaff}
       />

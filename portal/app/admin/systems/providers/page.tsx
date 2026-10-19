@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/ux/primitives";
+import "../systems.css";
 import { isInternal, isAdmin as checkIsAdmin, isFinance, isStaff } from "@/lib/security/roles";
 import ProvidersManager from "./providers-manager";
 
@@ -35,7 +36,7 @@ export default async function ProvidersPage() {
       .select("*")
       .order("linked_at", { ascending: false });
     return (
-      <div className="ux-page ux-page--wide">
+      <div className="ux-page ux-page--wide ops-page">
         <PageHeader
           title="Linked Provider Resources"
           description="Operational view of infrastructure resources discovered and linked to SCH systems. Connection management is administrator-only."
@@ -108,7 +109,7 @@ export default async function ProvidersPage() {
     });
 
   return (
-    <div className="ux-page ux-page--wide">
+    <div className="ux-page ux-page--wide ops-page">
       <PageHeader
         title="Provider Connections & Discovery"
         description="Connect provider accounts, test access, and run read-only discovery. Discovered resources are linked to SCH systems only after explicit review."

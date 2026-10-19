@@ -8,6 +8,8 @@ import { assessSystemHealth, type SystemHealthStatus } from "@/lib/providers/sys
 import SystemNotes from "./system-notes";
 import SystemEdit from "./system-edit";
 import SystemIntegration from "./system-integration";
+import { CopyButton } from "./system-identity";
+import "../systems.css";
 
 const SYSTEM_TONE: Record<string, Tone> = {
   planned: "neutral",
@@ -37,6 +39,12 @@ const RESOURCE_TONE: Record<string, Tone> = {
 
 function label(value: string | null | undefined): string {
   return value ? value.replace(/_/g, " ").replace(/^\w/, (character) => character.toUpperCase()) : "—";
+}
+
+/** Deterministic UTC text, matching the rest of the Systems and Operations pages. */
+function utc(ts: string): string {
+  const d = new Date(ts);
+  return Number.isNaN(d.getTime()) ? "—" : `${d.toISOString().slice(0, 16).replace("T", " ")} UTC`;
 }
 
 function deploymentDetail(metadata: Record<string, unknown> | null, environment: "production" | "preview") {
@@ -126,140 +134,169 @@ export default async function SystemDetailPage({ params }: { params: Promise<{ i
     label: c.company_name ? `${c.company_name} (${c.email})` : (c.full_name || c.email),
   }));
 
+  const healthLabel = health.overallStatus === "HEALTHY" ? "Healthy" : health.overallStatus === "ATTENTION" ? "Needs attention" : "Unknown";
+  const healthDot = health.overallStatus === "HEALTHY" ? "is-ok" : health.overallStatus === "ATTENTION" ? "is-warn" : "";
+  const firstItems = health.attentionItems.slice(0, 3);
+  const moreItems = health.attentionItems.slice(3);
+
   return (
-    <div className="ux-page ux-page--wide">
+    <div className="ux-page ux-page--wide ops-page sy-detail">
       <Link href="/admin/systems" className="ux-back">← Systems</Link>
 
-      <header style={{ padding: "1.75rem 0", borderBottom: "1px solid var(--border)" }}>
-        <h1 style={{ margin: 0, fontSize: "2rem", lineHeight: 1.15 }}>{system.name}</h1>
-        <p style={{ margin: "0.4rem 0 0", fontSize: "1rem" }}>
+      <header className="sy-panel sy-detail-head">
+        <h1>{system.name}</h1>
+        <p className="sy-detail-client">
           <Link href={`/admin/clients/${system.client_id}`}>{clientName}</Link>
         </p>
-        <div className="ux-muted" style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap", marginTop: "0.65rem", fontSize: "0.875rem" }}>
-          <span>{label(system.system_type)}</span>
+        <div className="sy-detail-meta">
+          <span className="sy-chip">{label(system.system_type)}</span>
           <StatusMark tone={SYSTEM_TONE[system.status] ?? "neutral"}>{label(system.status)}</StatusMark>
+          <span className="sy-meta"><i className={`sy-dot ${healthDot}`} /> {healthLabel}</span>
           {canEditSystem && <SystemEdit system={system} clients={clientOptions} />}
         </div>
         {system.primary_url && (
-          <div style={{ marginTop: "1.25rem", paddingTop: "1rem", borderTop: "1px solid var(--border)" }}>
-            <div className="ux-muted" style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.06em" }}>Production endpoint</div>
-            <a href={system.primary_url} style={{ display: "inline-block", marginTop: "0.25rem", fontWeight: 600 }}>{system.primary_url}</a>
+          <div className="sy-detail-endpoint">
+            <div className="sy-label">Production endpoint</div>
+            <div className="sy-endpoint">
+              <a href={system.primary_url}>{system.primary_url}</a>
+              <CopyButton value={system.primary_url} />
+            </div>
           </div>
         )}
-        {system.description && <p style={{ maxWidth: "70ch", margin: "1.25rem 0 0", lineHeight: 1.6 }}>{system.description}</p>}
+        {system.description && <p className="sy-detail-desc">{system.description}</p>}
       </header>
 
-      <section style={{ padding: "1.5rem 0", borderBottom: "1px solid var(--border)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-          <h2 style={{ margin: 0, fontSize: "1.2rem" }}>Service Status</h2>
-          <StatusMark tone={SYSTEM_TONE[system.status] ?? "neutral"}>{label(system.status)}</StatusMark>
-        </div>
-        <p style={{ margin: "0.65rem 0 0", maxWidth: "75ch" }}>
-          Commercial application access status. This is independent of infrastructure health.
-        </p>
-        {system.status === "suspended" && (
-          <div className="ux-muted" style={{ marginTop: "0.75rem", fontSize: "0.825rem" }}>
-            <div>Suspended at: {system.suspended_at ? new Date(system.suspended_at).toLocaleString() : "—"}</div>
-            <div>Reason: {system.suspension_reason ? label(system.suspension_reason) : "—"}</div>
-            {system.suspension_note && <div>Note: {system.suspension_note}</div>}
-          </div>
-        )}
-      </section>
-
-      <SystemIntegration
-        systemId={system.id}
-        status={system.status}
-        tokenConfigured={Boolean(system.status_token_last_rotated_at)}
-        isAdmin={canEditSystem}
-      />
-
-      <section style={{ padding: "1.5rem 0", borderBottom: "1px solid var(--border)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-          <h2 style={{ margin: 0, fontSize: "1.2rem" }}>System Health</h2>
-          <StatusMark tone={HEALTH_TONE[health.overallStatus]}>{health.overallStatus}</StatusMark>
-        </div>
-        <p style={{ margin: "0.65rem 0 0", maxWidth: "75ch" }}>{health.explanation}</p>
-        {health.attentionItems.length > 0 && (
-          <ul style={{ margin: "0.75rem 0 0", paddingLeft: "1.25rem" }}>
-            {health.attentionItems.map((item) => <li key={item}>{item}</li>)}
-          </ul>
-        )}
-        <div className="ux-muted" style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginTop: "0.75rem", fontSize: "0.825rem" }}>
-          <span>Infrastructure: {health.infrastructureStatus}</span>
-          <span>Deployments: {health.deploymentStatus}</span>
-          <span>Provider evidence: {health.providerEvidenceStatus}</span>
-        </div>
-      </section>
-
-      <section style={{ padding: "1.5rem 0", borderBottom: "1px solid var(--border)" }}>
-        <h2 style={{ margin: "0 0 1rem", fontSize: "1.2rem" }}>Infrastructure</h2>
-        {infrastructure.length === 0 ? (
-          <p className="ux-muted">No infrastructure resources are explicitly linked to this system.</p>
-        ) : (
-          [...grouped.entries()].map(([provider, providerResources]) => (
-            <div key={provider} style={{ padding: "1rem 0", borderTop: "1px solid var(--border)" }}>
-              <h3 style={{ margin: "0 0 0.75rem", fontSize: "1rem" }}>{provider}</h3>
-              {providerResources.map((resource) => {
-                const production = deploymentDetail(resource.metadata, "production");
-                const preview = deploymentDetail(resource.metadata, "preview");
-                const status = resource.discovered_status ?? resource.status;
-                return (
-                  <div key={resource.id} style={{ padding: "1rem 0", borderTop: "1px solid color-mix(in srgb, var(--border) 65%, transparent)" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap" }}>
-                      <div>
-                        <strong style={{ fontSize: "1rem" }}>{resource.discovered_name ?? resource.name}</strong>
-                        {resource.provider_key === "railway" && resource.railway_project_name ? (
-                          <div className="ux-muted" style={{ marginTop: "0.2rem", fontSize: "0.85rem" }}>
-                            Project: {resource.railway_project_name}
-                            {resource.railway_environment_name ? ` · Environment: ${resource.railway_environment_name}` : ""}
-                            {resource.railway_service_name ? ` · Service: ${resource.railway_service_name}` : ""}
-                          </div>
-                        ) : (
-                          <div className="ux-muted" style={{ marginTop: "0.2rem", fontSize: "0.85rem" }}>{label(resource.resource_type)}</div>
-                        )}
-                      </div>
-                      <StatusMark tone={RESOURCE_TONE[status] ?? "neutral"}>{label(status)}</StatusMark>
-                    </div>
-                    {resource.production_domain && (
-                      <div style={{ marginTop: "0.75rem" }}>
-                        <span className="ux-muted" style={{ marginRight: "0.5rem", fontSize: "0.8rem" }}>Production</span>
-                        <a href={resource.production_domain.startsWith("http") ? resource.production_domain : `https://${resource.production_domain}`}>{resource.production_domain}</a>
-                      </div>
-                    )}
-                    <details style={{ marginTop: "0.75rem", fontSize: "0.825rem" }}>
-                      <summary className="ux-muted" style={{ cursor: "pointer", width: "fit-content" }}>Technical details</summary>
-                      <dl style={{ display: "grid", gridTemplateColumns: "minmax(9rem, auto) 1fr", gap: "0.35rem 1rem", margin: "0.65rem 0 0", paddingLeft: "0.75rem", borderLeft: "1px solid var(--border)" }}>
-                        <dt className="ux-muted">Provider account</dt><dd style={{ margin: 0 }}>{resource.provider_account}</dd>
-                        {resource.external_id && <><dt className="ux-muted">External provider ID</dt><dd style={{ margin: 0 }}><code>{resource.external_id}</code></dd></>}
-                        {resource.deployment_status && <><dt className="ux-muted">Latest deployment</dt><dd style={{ margin: 0 }}>{resource.deployment_status}{resource.deployment_created_at ? ` · ${new Date(resource.deployment_created_at).toLocaleString()}` : ""}</dd></>}
-                        {production && <><dt className="ux-muted">Production environment</dt><dd style={{ margin: 0 }}>{String(production.status ?? "Known")}</dd></>}
-                        {preview && <><dt className="ux-muted">Preview environment</dt><dd style={{ margin: 0 }}>{String(preview.status ?? "Known")}</dd></>}
-                        {resource.last_discovered_at && <><dt className="ux-muted">Last discovered</dt><dd style={{ margin: 0 }}>{new Date(resource.last_discovered_at).toLocaleString()}</dd></>}
-                      </dl>
-                    </details>
-                  </div>
-                );
-              })}
+      <div className="sy-cols">
+        <div className="sy-col">
+          <section>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+              <h2 style={{ margin: 0 }}>System Health</h2>
+              <StatusMark tone={HEALTH_TONE[health.overallStatus]}>{health.overallStatus}</StatusMark>
             </div>
-          ))
-        )}
-      </section>
+            <div className="sy-health-big"><i className={`sy-dot ${healthDot}`} /><b>{healthLabel}</b></div>
+            <p style={{ margin: "0.25rem 0 0", maxWidth: "75ch" }}>{health.explanation}</p>
+            {firstItems.length > 0 && (
+              <ul className="sy-attn">
+                {firstItems.map((item) => <li key={item}>{item}</li>)}
+              </ul>
+            )}
+            {moreItems.length > 0 && (
+              <details className="sy-attn-more">
+                <summary>Show {moreItems.length} more</summary>
+                <ul className="sy-attn">{moreItems.map((item) => <li key={item}>{item}</li>)}</ul>
+              </details>
+            )}
+            <div className="sy-substatus">
+              <span className="sy-chip">Infrastructure: {health.infrastructureStatus}</span>
+              <span className="sy-chip">Deployments: {health.deploymentStatus}</span>
+              <span className="sy-chip">Provider evidence: {health.providerEvidenceStatus}</span>
+              {health.lastEvidenceAt && <span className="sy-chip">Last evidence: {utc(health.lastEvidenceAt)}</span>}
+            </div>
+          </section>
 
-      <section style={{ padding: "1.5rem 0", borderBottom: "1px solid var(--border)" }}>
-        <h2 style={{ margin: "0 0 1rem", fontSize: "1.2rem" }}>Client and project relationship</h2>
-        <p><strong>Client:</strong> <Link href={`/admin/clients/${system.client_id}`}>{clientName}</Link></p>
-        {(projects ?? []).length > 0 ? (
-          <ul style={{ marginBottom: 0 }}>
-            {(projects ?? []).map((project) => <li key={project.id}><Link href={`/admin/projects/${project.id}`}>{project.title}</Link> · {label(project.status)}</li>)}
-          </ul>
-        ) : (
-          <p className="ux-muted">No SCH Project is currently linked to this system.</p>
-        )}
-      </section>
+          <SystemIntegration
+            systemId={system.id}
+            status={system.status}
+            tokenConfigured={Boolean(system.status_token_last_rotated_at)}
+            isAdmin={canEditSystem}
+          />
 
-      <section style={{ padding: "1.5rem 0" }}>
-        <SystemNotes systemId={system.id} systemName={system.name} notes={system.operational_notes} canEdit={canEditNotes} />
-      </section>
+          <section>
+            <h2 style={{ margin: "0 0 1rem" }}>Infrastructure</h2>
+            {infrastructure.length === 0 ? (
+              <div className="sy-link-cta">
+                <p>No infrastructure is linked to this system yet, so its health cannot be checked.</p>
+                <Link href="/admin/systems/providers" className="ux-btn">Link infrastructure →</Link>
+              </div>
+            ) : (
+              [...grouped.entries()].map(([provider, providerResources]) => (
+                <div key={provider} style={{ padding: "1rem 0", borderTop: "1px solid var(--border)" }}>
+                  <h3 style={{ margin: "0 0 0.75rem", fontSize: "1rem" }}>{provider}</h3>
+                  {providerResources.map((resource) => {
+                    const production = deploymentDetail(resource.metadata, "production");
+                    const preview = deploymentDetail(resource.metadata, "preview");
+                    const status = resource.discovered_status ?? resource.status;
+                    return (
+                      <div key={resource.id} style={{ padding: "1rem 0", borderTop: "1px solid color-mix(in srgb, var(--border) 65%, transparent)" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap" }}>
+                          <div>
+                            <strong style={{ fontSize: "1rem" }}>{resource.discovered_name ?? resource.name}</strong>
+                            {resource.provider_key === "railway" && resource.railway_project_name ? (
+                              <div className="ux-muted" style={{ marginTop: "0.2rem", fontSize: "0.85rem" }}>
+                                Project: {resource.railway_project_name}
+                                {resource.railway_environment_name ? ` · Environment: ${resource.railway_environment_name}` : ""}
+                                {resource.railway_service_name ? ` · Service: ${resource.railway_service_name}` : ""}
+                              </div>
+                            ) : (
+                              <div className="ux-muted" style={{ marginTop: "0.2rem", fontSize: "0.85rem" }}>{label(resource.resource_type)}</div>
+                            )}
+                          </div>
+                          <StatusMark tone={RESOURCE_TONE[status] ?? "neutral"}>{label(status)}</StatusMark>
+                        </div>
+                        {resource.production_domain && (
+                          <div style={{ marginTop: "0.75rem" }}>
+                            <span className="ux-muted" style={{ marginRight: "0.5rem", fontSize: "0.8rem" }}>Production</span>
+                            <a href={resource.production_domain.startsWith("http") ? resource.production_domain : `https://${resource.production_domain}`}>{resource.production_domain}</a>
+                          </div>
+                        )}
+                        <details style={{ marginTop: "0.75rem", fontSize: "0.825rem" }}>
+                          <summary className="ux-muted" style={{ cursor: "pointer", width: "fit-content" }}>Technical details</summary>
+                          <dl style={{ display: "grid", gridTemplateColumns: "minmax(9rem, auto) 1fr", gap: "0.35rem 1rem", margin: "0.65rem 0 0", paddingLeft: "0.75rem", borderLeft: "1px solid var(--border)" }}>
+                            <dt className="ux-muted">Provider account</dt><dd style={{ margin: 0 }}>{resource.provider_account}</dd>
+                            {resource.external_id && <><dt className="ux-muted">External provider ID</dt><dd style={{ margin: 0 }}><code>{resource.external_id}</code></dd></>}
+                            {resource.deployment_status && <><dt className="ux-muted">Latest deployment</dt><dd style={{ margin: 0 }}>{resource.deployment_status}{resource.deployment_created_at ? ` · ${utc(resource.deployment_created_at)}` : ""}</dd></>}
+                            {production && <><dt className="ux-muted">Production environment</dt><dd style={{ margin: 0 }}>{String(production.status ?? "Known")}</dd></>}
+                            {preview && <><dt className="ux-muted">Preview environment</dt><dd style={{ margin: 0 }}>{String(preview.status ?? "Known")}</dd></>}
+                            {resource.last_discovered_at && <><dt className="ux-muted">Last discovered</dt><dd style={{ margin: 0 }}>{utc(resource.last_discovered_at)}</dd></>}
+                          </dl>
+                        </details>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))
+            )}
+          </section>
+        </div>
+
+        <div className="sy-col">
+          <section>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+              <h2 style={{ margin: 0 }}>Service Status</h2>
+              <StatusMark tone={SYSTEM_TONE[system.status] ?? "neutral"}>{label(system.status)}</StatusMark>
+            </div>
+            <p style={{ margin: "0.65rem 0 0" }} className="ux-muted">
+              Commercial application access status. This is independent of infrastructure health.
+            </p>
+            {system.status === "suspended" && (
+              <div className="ux-muted" style={{ marginTop: "0.75rem", fontSize: "0.825rem" }}>
+                <div>Suspended at: {system.suspended_at ? utc(system.suspended_at) : "—"}</div>
+                <div>Reason: {system.suspension_reason ? label(system.suspension_reason) : "—"}</div>
+                {system.suspension_note && <div>Note: {system.suspension_note}</div>}
+              </div>
+            )}
+            <p style={{ margin: "0.75rem 0 0", fontSize: "0.85rem" }}>
+              <Link href="/admin/operations/suspensions">Manage in Suspensions →</Link>
+            </p>
+          </section>
+
+          <section>
+            <h2 style={{ margin: "0 0 1rem" }}>Client and project relationship</h2>
+            <p><strong>Client:</strong> <Link href={`/admin/clients/${system.client_id}`}>{clientName}</Link></p>
+            {(projects ?? []).length > 0 ? (
+              <ul style={{ marginBottom: 0 }}>
+                {(projects ?? []).map((project) => <li key={project.id}><Link href={`/admin/projects/${project.id}`}>{project.title}</Link> · {label(project.status)}</li>)}
+              </ul>
+            ) : (
+              <p className="ux-muted">No SCH Project is currently linked to this system.</p>
+            )}
+          </section>
+
+          <section>
+            <SystemNotes systemId={system.id} systemName={system.name} notes={system.operational_notes} canEdit={canEditNotes} />
+          </section>
+        </div>
+      </div>
     </div>
   );
 }

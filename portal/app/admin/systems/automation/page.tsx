@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/ux/primitives";
+import "../systems.css";
 import { isInternal, isAdmin as checkIsAdmin, isFinance, isStaff } from "@/lib/security/roles";
 import AutomationManager from "./automation-manager";
 
@@ -42,7 +43,7 @@ export default async function AutomationPage() {
     : { data: [] };
 
   return (
-    <div className="ux-page ux-page--wide">
+    <div className="ux-page ux-page--wide ops-page">
       <PageHeader
         title="Automation"
         description="Deterministic operational rules evaluated inside the existing monitoring pipeline. Internal-safe actions create signals and tasks; provider-side actions become operation proposals that still require administrator approval — automation never mutates provider infrastructure."

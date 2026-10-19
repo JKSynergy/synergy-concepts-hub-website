@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { KeyRound, Copy, Check } from "lucide-react";
 import { StatusMark, type Tone } from "@/components/ux/primitives";
+import { Dialog } from "@/components/ux/dialog";
 import { generateSystemStatusToken } from "@/lib/actions/system-status";
 import SystemIdentity from "./system-identity";
 
@@ -26,6 +27,9 @@ export default function SystemIntegration({ systemId, status, tokenConfigured, i
   const [error, setError] = useState<string | null>(null);
   const [generatedToken, setGeneratedToken] = useState<string | null>(null);
   const [envCopied, setEnvCopied] = useState(false);
+  // Rotating a live token breaks the app's status checks until its environment is updated: confirm first.
+  const [confirmRotate, setConfirmRotate] = useState(false);
+  const [acknowledged, setAcknowledged] = useState(false);
 
   const statusEndpoint = `https://portal.synergyconceptshub.com/api/systems/${systemId}/status`;
   const envText = [
@@ -111,11 +115,44 @@ export default function SystemIntegration({ systemId, status, tokenConfigured, i
             </p>
           )}
           {isAdmin && (
-            <button type="button" className="ux-button ux-button-secondary" onClick={onGenerateToken} disabled={busy}>
+            <button
+              type="button"
+              className="ux-button ux-button-secondary"
+              onClick={() => (tokenConfigured ? (setAcknowledged(false), setConfirmRotate(true)) : onGenerateToken())}
+              disabled={busy}
+            >
               <KeyRound size={14} /> {busy ? "Generating…" : tokenConfigured ? "Rotate Token" : "Generate Token"}
             </button>
           )}
         </div>
+      )}
+      {confirmRotate && (
+        <Dialog onClose={() => !busy && setConfirmRotate(false)} labelledBy="rotate-token-title" maxWidth={520}>
+          <div style={{ display: "grid", gap: "1rem" }}>
+            <h2 id="rotate-token-title" style={{ margin: 0 }}><KeyRound size={18} style={{ verticalAlign: "-3px" }} /> Rotate the status token?</h2>
+            <ul style={{ margin: 0, paddingLeft: "1.1rem", display: "grid", gap: "0.3rem", fontSize: "0.9rem" }}>
+              <li>The current token stops working immediately.</li>
+              <li>The app&apos;s status checks fail until its server environment is updated with the new token.</li>
+              <li>The new token is shown once. Have the app&apos;s environment settings open before you continue.</li>
+            </ul>
+            <label style={{ display: "flex", gap: "0.6rem", alignItems: "flex-start", fontSize: "0.9rem", cursor: "pointer" }}>
+              <input type="checkbox" checked={acknowledged} onChange={(e) => setAcknowledged(e.target.checked)} style={{ marginTop: "0.2rem" }} />
+              <span>I can update the app&apos;s environment now.</span>
+            </label>
+            <p className="ux-muted" style={{ margin: 0, fontSize: "0.8rem" }}>Recorded in the audit log with your name. The token itself is never logged.</p>
+            <div className="ops-dialog-actions" style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+              <button type="button" className="ux-button ux-button-secondary" onClick={() => setConfirmRotate(false)} disabled={busy}>Cancel</button>
+              <button
+                type="button"
+                className="ux-button"
+                disabled={!acknowledged || busy}
+                onClick={async () => { await onGenerateToken(); setConfirmRotate(false); }}
+              >
+                {busy ? "Rotating…" : "Rotate token"}
+              </button>
+            </div>
+          </div>
+        </Dialog>
       )}
     </section>
   );

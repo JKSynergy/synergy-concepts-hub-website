@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/ux/primitives";
+import "../systems.css";
 import { isInternal, isAdmin as checkIsAdmin, isFinance } from "@/lib/security/roles";
 import EventsManager from "./events-manager";
 
@@ -49,7 +50,7 @@ export default async function ProviderEventsPage() {
     : { data: [] };
 
   return (
-    <div className="ux-page ux-page--wide">
+    <div className="ux-page ux-page--wide ops-page">
       <PageHeader
         title="Provider Events"
         description="Authenticated provider webhooks are validated, deduplicated and recorded as evidence. Events feed the existing reconciliation and Action Center pipeline — they never mutate provider infrastructure."

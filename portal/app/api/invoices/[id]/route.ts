@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { fromMinor, outstandingMinor, PAYABLE_STATUSES } from "@/lib/finance/payments";
+import {
+  fromMinor,
+  onlinePaymentAvailability,
+  onlinePaymentCurrencies,
+  outstandingMinor,
+  PAYABLE_STATUSES,
+} from "@/lib/finance/payments";
 import { isUuid } from "@/lib/security/access";
 import { checkApplicationAccess } from "@/lib/actions/application-suspension";
 
@@ -48,6 +54,8 @@ export async function GET(
   const outstanding = fromMinor(outstandingMinor(invoice.total, settled));
   const payable =
     (PAYABLE_STATUSES as readonly string[]).includes(invoice.status) && outstanding > 0;
+  // Online payment only in the invoice's own currency, when Paystack is set up for it.
+  const online = onlinePaymentAvailability(invoice.currency, onlinePaymentCurrencies(process.env.PAYSTACK_CURRENCY));
 
   return NextResponse.json({
     invoice,
@@ -56,5 +64,10 @@ export async function GET(
     receipts: receipts ?? [],
     outstanding,
     payable,
+    onlinePayment: payable
+      ? online.available
+        ? { available: true }
+        : { available: false, reason: online.reason }
+      : { available: false },
   });
 }

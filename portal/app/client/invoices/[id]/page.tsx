@@ -20,6 +20,7 @@ export default function ClientInvoiceDetailPage() {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [outstanding, setOutstanding] = useState(0);
   const [payable, setPayable] = useState(false);
+  const [online, setOnline] = useState<{ available: boolean; reason?: string }>({ available: false });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [paying, setPaying] = useState(false);
@@ -37,6 +38,7 @@ export default function ClientInvoiceDetailPage() {
         setReceipts(data.receipts ?? []);
         setOutstanding(Number(data.outstanding ?? 0));
         setPayable(Boolean(data.payable));
+        setOnline(data.onlinePayment ?? { available: false });
       } catch (e) {
         setError((e as Error).message);
       } finally {
@@ -99,13 +101,19 @@ export default function ClientInvoiceDetailPage() {
       <PageHeader
         eyebrow="Invoice"
         title={invoice.invoice_number}
-        description={payable ? "Pay securely online with Paystack (cards and mobile money)." : undefined}
+        description={
+          payable
+            ? online.available
+              ? "Pay securely online with Paystack (cards and mobile money)."
+              : online.reason ?? "Please pay by bank transfer or mobile money using the details on the invoice."
+            : undefined
+        }
         actions={
           <>
             <a href={`/api/invoices/${invoice.id}/pdf`} className="ux-btn ux-btn--secondary">
               Download PDF
             </a>
-            {payable && (
+            {payable && online.available && (
               <button type="button" onClick={handlePaystack} disabled={paying} className="ux-btn ux-btn--primary">
                 {paying ? "Redirecting…" : `Pay ${money(outstanding, invoice?.currency)}`}
               </button>

@@ -332,7 +332,20 @@ export async function billAgreementPeriod(
 
   const invoiceId = data as string;
   let emailed = false;
-  if (send) emailed = await emailInvoice(ctx.supabase, invoiceId);
+  if (send) {
+    const outcome = await emailInvoice(ctx.supabase, invoiceId);
+    emailed = outcome === "sent";
+    if (outcome !== "sent") {
+      await writeAuditLog(createAdminClient(), {
+        actorId: ctx.user.id,
+        actorRole: ctx.role,
+        action: outcome === "skipped" ? "INVOICE_EMAIL_SKIPPED" : "INVOICE_EMAIL_FAILED",
+        table: "invoices",
+        recordId: invoiceId,
+        details: { reason: outcome },
+      });
+    }
+  }
 
   refresh();
   const { data: ch } = await ctx.supabase.from("recurring_charges").select("agreement_id").eq("id", chargeId).single();
@@ -341,25 +354,25 @@ export async function billAgreementPeriod(
   return { ok: true, data: { invoiceId, emailed } };
 }
 
-/** Tell the client a new invoice is in their portal (no-op without email configured). */
+/** Tell the client a new invoice is in their portal. Returns what actually happened. */
 async function emailInvoice(
   supabase: Awaited<ReturnType<typeof createClient>>,
   invoiceId: string,
-): Promise<boolean> {
+): Promise<"sent" | "skipped" | "failed" | "no_address"> {
   const { data: inv } = await supabase
     .from("invoices")
     .select("invoice_number, total, currency, due_date, client:profiles!client_id(email, company_name, full_name)")
     .eq("id", invoiceId)
     .single();
   const client = Array.isArray(inv?.client) ? inv?.client[0] : inv?.client;
-  if (!inv || !client?.email) return false;
+  if (!inv || !client?.email) return "no_address";
   const amount = `${inv.currency} ${Number(inv.total).toLocaleString("en-US", {
     minimumFractionDigits: inv.currency === "USD" ? 2 : 0,
     maximumFractionDigits: inv.currency === "USD" ? 2 : 0,
   })}`;
   const link = `${getPortalBaseUrl()}/client/invoices/${invoiceId}`;
   const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
-  await sendEmail({
+  const outcome = await sendEmail({
     to: client.email,
     subject: `Invoice ${inv.invoice_number} from Synergy Concepts Hub`,
     html: `<p>Hello ${esc(client.company_name || client.full_name || "")},</p>
@@ -367,5 +380,5 @@ async function emailInvoice(
 <p><a href="${link}">View and download it in your portal</a></p>
 <p>Thank you,<br>Synergy Concepts Hub</p>`,
   });
-  return true;
+  return outcome.status;
 }

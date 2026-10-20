@@ -8,14 +8,18 @@ interface SendArgs {
   html: string;
 }
 
-export async function sendEmail({ to, subject, html }: SendArgs): Promise<void> {
+/** What happened to an email: sent, skipped (no email configured) or failed. */
+export type EmailOutcome = { status: "sent" } | { status: "skipped" } | { status: "failed"; error: string };
+
+export async function sendEmail({ to, subject, html }: SendArgs): Promise<EmailOutcome> {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.EMAIL_FROM ?? "SCH Portal <synergyconceptshub@gmail.com>";
 
   if (!apiKey) {
-    // Email not configured — skip silently in dev / free tier.
-    console.log(`[email skipped] to=${to} subject="${subject}"`);
-    return;
+    // Email not configured — skipped (dev / free tier). Callers are told, so
+    // they never claim a client was notified.
+    console.log(`[email skipped] subject="${subject}"`);
+    return { status: "skipped" };
   }
 
   try {
@@ -29,10 +33,14 @@ export async function sendEmail({ to, subject, html }: SendArgs): Promise<void> 
     });
 
     if (!res.ok) {
-      console.error("[email error]", await res.text());
+      const detail = `HTTP ${res.status}`;
+      console.error("[email error]", detail);
+      return { status: "failed", error: detail };
     }
+    return { status: "sent" };
   } catch (err) {
-    console.error("[email error]", err);
+    console.error("[email error]", err instanceof Error ? err.message : "unknown");
+    return { status: "failed", error: "network" };
   }
 }
 

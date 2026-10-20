@@ -31,9 +31,50 @@ export function outstandingMinor(
 // ── Which invoices can be paid online ────────────────────────────────────────
 export const PAYABLE_STATUSES = ["sent", "overdue", "partially paid"] as const;
 
+/**
+ * Currencies the Paystack integration is configured to charge in, from
+ * PAYSTACK_CURRENCY ("UGX", or a comma-separated list such as "UGX,USD").
+ * Nothing configured = no currency is known to be safe = online payment off.
+ */
+export function onlinePaymentCurrencies(configured: string | null | undefined): string[] {
+  return [...new Set(
+    String(configured ?? "")
+      .split(",")
+      .map((c) => c.trim().toUpperCase())
+      .filter((c) => /^[A-Z]{3}$/.test(c)),
+  )];
+}
+
+/** An invoice's currency (legacy rows without one were issued in UGX). */
+export function invoiceCurrency(currency: string | null | undefined): string {
+  const c = String(currency ?? "").trim().toUpperCase();
+  return /^[A-Z]{3}$/.test(c) ? c : "UGX";
+}
+
+/**
+ * Whether this invoice may be paid online. A payment must settle in the
+ * invoice's own currency, so online payment is offered only when Paystack is
+ * configured for exactly that currency; otherwise the client pays by the
+ * manual methods printed on the invoice.
+ */
+export function onlinePaymentAvailability(
+  currency: string | null | undefined,
+  allowed: string[],
+): { available: true; currency: string } | { available: false; currency: string; reason: string } {
+  const cur = invoiceCurrency(currency);
+  if (allowed.includes(cur)) return { available: true, currency: cur };
+  return {
+    available: false,
+    currency: cur,
+    reason: `Online payment is not available for ${cur} invoices. Please pay by bank transfer or mobile money using the details on the invoice.`,
+  };
+}
+
 export type PaymentIntentInput = {
-  invoice: { client_id: string; status: string; total: number | string } | null;
+  invoice: { client_id: string; status: string; total: number | string; currency?: string | null } | null;
   userId: string;
+  /** currencies Paystack is configured to charge in (see onlinePaymentCurrencies) */
+  allowedCurrencies: string[];
   /** amounts of payments with paid_at set (pending attempts do not count) */
   settledAmounts: Array<number | string>;
   /** amount supplied by the browser; optional, and only ever narrows the balance */
@@ -41,11 +82,11 @@ export type PaymentIntentInput = {
 };
 
 export type PaymentIntentResult =
-  | { ok: true; amountMinor: number }
+  | { ok: true; amountMinor: number; currency: string }
   | { ok: false; status: number; error: string };
 
 export function validatePaymentIntent(input: PaymentIntentInput): PaymentIntentResult {
-  const { invoice, userId, settledAmounts, requestedAmount } = input;
+  const { invoice, userId, settledAmounts, requestedAmount, allowedCurrencies } = input;
 
   if (!invoice || invoice.client_id !== userId) {
     return { ok: false, status: 404, error: "Not found" };
@@ -65,8 +106,16 @@ export function validatePaymentIntent(input: PaymentIntentInput): PaymentIntentR
     return { ok: false, status: 409, error: "This invoice has no outstanding balance." };
   }
 
+  // The charge is always made in the invoice's own currency, never one the
+  // browser names, and only when Paystack is configured for that currency.
+  const online = onlinePaymentAvailability(invoice.currency, allowedCurrencies);
+  if (!online.available) {
+    return { ok: false, status: 409, error: online.reason };
+  }
+  const currency = online.currency;
+
   if (requestedAmount === undefined || requestedAmount === null || requestedAmount === "") {
-    return { ok: true, amountMinor: outstanding };
+    return { ok: true, amountMinor: outstanding, currency };
   }
 
   const n = typeof requestedAmount === "string" ? Number(requestedAmount) : requestedAmount;
@@ -83,7 +132,7 @@ export function validatePaymentIntent(input: PaymentIntentInput): PaymentIntentR
   if (requested > outstanding) {
     return { ok: false, status: 400, error: "Payment amount exceeds the outstanding balance." };
   }
-  return { ok: true, amountMinor: requested };
+  return { ok: true, amountMinor: requested, currency };
 }
 
 // ── Paystack webhook ─────────────────────────────────────────────────────────
@@ -106,6 +155,8 @@ export type PendingPayment = {
   invoice_id: string;
   amount: number | string;
   paid_at: string | null;
+  /** the currency of the invoice this payment is for (payments are in it) */
+  invoice_currency: string | null;
 };
 
 export type SettleResult =
@@ -132,8 +183,11 @@ export type WebhookInput = {
   rawBody: Buffer | string;
   signature: string | null;
   secret: string | undefined;
-  /** when set, the event currency must match (e.g. "UGX") */
-  expectedCurrency?: string | undefined;
+  /**
+   * Currencies Paystack is configured for. The event's currency must ALWAYS
+   * equal the invoice's currency; when this list is given it must also be in it.
+   */
+  allowedCurrencies?: string[] | undefined;
   now?: () => Date;
 };
 
@@ -215,15 +269,20 @@ export async function processPaystackWebhook(
       });
       return { status: 200, body: { received: true, settled: false } };
     }
+    // The money must arrive in the invoice's own currency: a USD invoice is never
+    // settled by the same number of UGX (or the reverse). A missing currency on
+    // the event is a mismatch, not a pass.
+    const expectedCurrency = invoiceCurrency(payment.invoice_currency);
+    const receivedCurrency = String(data.currency ?? "").trim().toUpperCase();
     if (
-      input.expectedCurrency &&
-      String(data.currency ?? "").toUpperCase() !== input.expectedCurrency.toUpperCase()
+      receivedCurrency !== expectedCurrency ||
+      (input.allowedCurrencies && !input.allowedCurrencies.includes(receivedCurrency))
     ) {
       await store.flagForReview({
         reason: "currency_mismatch",
         reference,
         paymentId: payment.id,
-        details: { expected: input.expectedCurrency, received: data.currency },
+        details: { expected: expectedCurrency, received: data.currency ?? null },
       });
       return { status: 200, body: { received: true, settled: false } };
     }

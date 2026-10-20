@@ -17,11 +17,19 @@ export function createPaystackStore(admin: SupabaseClient): WebhookStore {
     async findPaymentByReference(reference): Promise<PendingPayment | null> {
       const { data, error } = await admin
         .from("payments")
-        .select("id, invoice_id, amount, paid_at")
+        .select("id, invoice_id, amount, paid_at, invoice:invoices(currency)")
         .eq("paystack_reference", reference)
         .maybeSingle();
       if (error) throw new Error(error.message);
-      return data ?? null;
+      if (!data) return null;
+      const inv = Array.isArray(data.invoice) ? data.invoice[0] : data.invoice;
+      return {
+        id: data.id,
+        invoice_id: data.invoice_id,
+        amount: data.amount,
+        paid_at: data.paid_at,
+        invoice_currency: (inv as { currency?: string | null } | null)?.currency ?? null,
+      };
     },
 
     async settlePayment(paymentId, paidAtIso): Promise<SettleResult> {

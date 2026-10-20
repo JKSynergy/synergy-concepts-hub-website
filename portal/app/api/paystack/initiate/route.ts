@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { fromMinor, validatePaymentIntent } from "@/lib/finance/payments";
+import { fromMinor, onlinePaymentCurrencies, validatePaymentIntent } from "@/lib/finance/payments";
 import { isUuid } from "@/lib/security/access";
 import { getPortalBaseUrl } from "@/lib/portal-url";
 import { checkApplicationAccess } from "@/lib/actions/application-suspension";
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
   // Both reads use the caller's own session, so row-level security also applies:
   // a client only ever sees their own non-draft invoices and settled payments.
   const [{ data: invoice }, { data: settled }] = await Promise.all([
-    supabase.from("invoices").select("client_id, status, total").eq("id", invoiceId).maybeSingle(),
+    supabase.from("invoices").select("client_id, status, total, currency").eq("id", invoiceId).maybeSingle(),
     supabase.from("payments").select("amount").eq("invoice_id", invoiceId).not("paid_at", "is", null),
   ]);
 
@@ -51,6 +51,7 @@ export async function POST(req: NextRequest) {
     userId: user.id,
     settledAmounts: (settled ?? []).map((p) => p.amount),
     requestedAmount: body.amount,
+    allowedCurrencies: onlinePaymentCurrencies(process.env.PAYSTACK_CURRENCY),
   });
   if (!intent.ok) {
     return NextResponse.json({ error: intent.error }, { status: intent.status });
@@ -93,7 +94,8 @@ export async function POST(req: NextRequest) {
       email: customerEmail,
       amount: intent.amountMinor, // minor units, computed on the server
       reference,
-      ...(process.env.PAYSTACK_CURRENCY ? { currency: process.env.PAYSTACK_CURRENCY } : {}),
+      // Always the invoice's own currency (validated above), never the browser's.
+      currency: intent.currency,
       callback_url: `${getPortalBaseUrl()}/client/invoices/${invoiceId}`,
       metadata: { invoice_id: invoiceId, user_id: user.id },
     }),

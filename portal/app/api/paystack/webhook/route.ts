@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createPaystackStore } from "@/lib/finance/paystack-store";
-import { processPaystackWebhook } from "@/lib/finance/payments";
+import { onlinePaymentCurrencies, processPaystackWebhook } from "@/lib/finance/payments";
 
 // Paystack calls this endpoint server-to-server. It is not covered by the
 // session middleware (the matcher excludes /api), so authenticity rests on the
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
         rawBody,
         signature: req.headers.get("x-paystack-signature"),
         secret: process.env.PAYSTACK_SECRET_KEY,
-        expectedCurrency: process.env.PAYSTACK_CURRENCY || undefined,
+        allowedCurrencies: onlinePaymentCurrencies(process.env.PAYSTACK_CURRENCY),
       },
       createPaystackStore(createAdminClient())
     );

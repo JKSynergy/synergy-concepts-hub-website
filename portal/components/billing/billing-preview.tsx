@@ -27,7 +27,7 @@ export function BillingPreviewDialog({ target, onClose }: { target: PreviewTarge
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busy, setBusy] = useState<"draft" | "send" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ invoiceId: string; sent: boolean } | null>(null);
+  const [done, setDone] = useState<{ invoiceId: string; sent: boolean; emailed: boolean } | null>(null);
 
   useEffect(() => {
     let revoked = false;
@@ -62,7 +62,7 @@ export function BillingPreviewDialog({ target, onClose }: { target: PreviewTarge
       setError(res.error ?? "Could not create the invoice");
       return;
     }
-    setDone({ invoiceId: res.data.invoiceId, sent: send });
+    setDone({ invoiceId: res.data.invoiceId, sent: send, emailed: res.data.emailed });
     router.refresh();
   }
 
@@ -105,7 +105,9 @@ export function BillingPreviewDialog({ target, onClose }: { target: PreviewTarge
             <span>
               <b>{done.sent ? "Invoice sent." : "Draft saved."}</b>{" "}
               {done.sent
-                ? `${target.clientName} can now see it in their portal and has been notified.`
+                ? done.emailed
+                  ? `${target.clientName} can now see it in their portal and was emailed.`
+                  : `${target.clientName} can see it in their portal, but no email was sent; let them know directly.`
                 : "Review or edit it before sending."}
             </span>
             <span className="bl-row-actions">

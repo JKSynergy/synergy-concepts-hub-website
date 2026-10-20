@@ -30,6 +30,8 @@ const csp = [
   "base-uri 'self'",
   "form-action 'self'",
   "object-src 'none'",
+  // The invoice preview is shown from a blob: URL in a frame.
+  "frame-src 'self' blob:",
 ].join("; ");
 
 const securityHeaders = [
@@ -85,6 +87,11 @@ const nextConfig: NextConfig & { outputFileTracingIncludes?: Record<string, stri
   outputFileTracingIncludes: {
     "/api/invoices/[id]/pdf": [
       "./node_modules/pdfkit/js/standard-fonts/**/*",
+    ],
+    "/api/agreements/[id]/preview": [
+      "./node_modules/pdfkit/js/standard-fonts/**/*",
+      "./public/images/logo-with-black.png",
+      "./public/images/SCH E-Signature small.png",
     ],
   },
 };

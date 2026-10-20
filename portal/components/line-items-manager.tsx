@@ -1,10 +1,12 @@
 "use client";
 
+import { money } from "@/components/ux/primitives";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { addLineItem, deleteLineItem } from "@/lib/actions/invoices";
 import { useFeedback } from "@/components/ux/feedback";
-import { ugx } from "@/components/ux/primitives";
+
 
 type LineItem = {
   id: string;
@@ -21,6 +23,7 @@ export function LineItemsManager({
   storedSubtotal = 0,
   storedTaxAmount = 0,
   storedTotal = 0,
+  currency = "UGX",
 }: {
   invoiceId: string;
   initialItems: LineItem[];
@@ -28,8 +31,10 @@ export function LineItemsManager({
   storedSubtotal?: number;
   storedTaxAmount?: number;
   storedTotal?: number;
+  currency?: string;
 }) {
   const router = useRouter();
+  const fmt = (n: number) => money(n, currency);
   const { toast, confirm: askConfirm } = useFeedback();
   const [desc, setDesc] = useState("");
   const [qty, setQty] = useState(1);
@@ -115,8 +120,8 @@ export function LineItemsManager({
               <tr key={item.id}>
                 <td>{item.description}</td>
                 <td className="ux-num" data-label="Qty">{Number(item.quantity).toLocaleString()}</td>
-                <td className="ux-num" data-label="Unit price">{ugx(Number(item.unit_price))}</td>
-                <td className="ux-num" data-label="Amount">{ugx(Number(item.amount) || 0)}</td>
+                <td className="ux-num" data-label="Unit price">{fmt(Number(item.unit_price))}</td>
+                <td className="ux-num" data-label="Amount">{fmt(Number(item.amount) || 0)}</td>
                 <td>
                   <div className="ux-rowactions">
                     <button type="button" onClick={() => handleDelete(item)} className="ux-textbtn ux-textbtn--danger">
@@ -171,7 +176,7 @@ export function LineItemsManager({
                 />
               </td>
               <td className="ux-num" data-label="Amount">
-                {previewAmount > 0 ? ugx(previewAmount) : <span className="ux-muted">—</span>}
+                {previewAmount > 0 ? fmt(previewAmount) : <span className="ux-muted">—</span>}
               </td>
               <td>
                 <div className="ux-rowactions">
@@ -189,17 +194,17 @@ export function LineItemsManager({
       <div className="ux-fin-totals">
         <div>
           <span>Subtotal</span>
-          <span>{ugx(previewSubtotal)}</span>
+          <span>{fmt(previewSubtotal)}</span>
         </div>
         {displayTaxRate > 0 && (
           <div>
             <span>Tax ({displayTaxRate}%)</span>
-            <span>{ugx(taxAmount)}</span>
+            <span>{fmt(taxAmount)}</span>
           </div>
         )}
         <div>
           <span>Total</span>
-          <span>{ugx(total)}</span>
+          <span>{fmt(total)}</span>
         </div>
         {previewAmount > 0 && <small>Includes the row being typed, not yet added</small>}
       </div>

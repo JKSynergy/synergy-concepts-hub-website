@@ -7,6 +7,7 @@
 
 import type { DocPaymentMethod, DocSignature } from "./invoice-doc";
 import type { ServiceGroup, ServiceInvoice, ServiceMetric, SupportEntry } from "./service-invoice-template";
+import { measure, parseTargets, splitList } from "../billing/response-targets";
 
 export type SvcInvoiceRecord = {
   invoice_number: string;
@@ -144,7 +145,13 @@ export function buildServiceInvoice(input: {
   invoice: SvcInvoiceRecord;
   lines: SvcLineRecord[];
   client: { name: string; lines: string[] };
-  agreement?: { name: string; contract_reference?: string | null; billing_cycle?: string | null } | null;
+  agreement?: {
+    name: string;
+    contract_reference?: string | null;
+    billing_cycle?: string | null;
+    response_targets?: unknown;
+    scope_excluded?: string | null;
+  } | null;
   /** Requests billed on this invoice, or covered requests in the period. */
   requests?: SvcRequestRecord[];
   /** Only for agreement invoices (service record). */
@@ -160,10 +167,16 @@ export function buildServiceInvoice(input: {
     (a, b) => (a.position ?? 0) - (b.position ?? 0) || String(a.created_at ?? "").localeCompare(String(b.created_at ?? "")),
   );
 
-  // Consecutive lines with the same section form a group.
+  // Consecutive lines with the same section form a group. Discount lines
+  // (negative amounts) are printed with the totals, not as a group.
   const fallbackGroup = agreement?.name ?? "Services";
   const groups: ServiceGroup[] = [];
+  const adjustments: { label: string; amount: number }[] = [];
   for (const l of sorted) {
+    if (Number(l.amount) < 0) {
+      adjustments.push({ label: l.description, amount: Number(l.amount) });
+      continue;
+    }
     const name = l.section?.trim() || fallbackGroup;
     let g = groups[groups.length - 1];
     if (!g || g.name !== name) {
@@ -187,9 +200,11 @@ export function buildServiceInvoice(input: {
 
   const requests = (input.requests ?? []).filter((r) => r.status !== "cancelled");
 
-  // ── Service record: only for agreement invoices, only real counts ──
+  // ── Service record: only for agreement invoices, only real counts, and only
+  // once the period has ended (an invoice issued in advance has nothing to report).
   let metrics: ServiceMetric[] | undefined;
-  if (agreement) {
+  const periodOver = !periodEnd || inv.issue_date >= periodEnd;
+  if (agreement && periodOver) {
     metrics = [];
     const byPri = (p: string) => requests.filter((r) => r.priority === p).length;
     const split = ["critical", "high", "normal", "change"]
@@ -213,6 +228,23 @@ export function buildServiceInvoice(input: {
     }
     const resolved = requests.filter((r) => r.resolved_at).length;
     if (requests.length) metrics.push({ label: "Resolved", value: `${resolved} / ${requests.length}` });
+
+    // Agreed response targets (business hours): only requests that have been
+    // responded to and whose priority carries a time target are counted.
+    const targets = parseTargets(agreement.response_targets);
+    if (targets.length) {
+      const judged = requests
+        .filter((r) => r.first_response_at)
+        .map((r) => measure(targets, r))
+        .filter((o): o is NonNullable<typeof o> => !!o && o.met !== null);
+      if (judged.length) {
+        metrics.push({
+          label: "Response targets met",
+          value: `${judged.filter((o) => o.met).length} / ${judged.length}`,
+          note: "business hours, Mon–Fri",
+        });
+      }
+    }
 
     if (input.incidents) {
       const critical = input.incidents.filter((i) => i.severity === "critical").length;
@@ -261,7 +293,7 @@ export function buildServiceInvoice(input: {
     }
   }
 
-  const support: SupportEntry[] = requests
+  const support: SupportEntry[] = (agreement && !periodOver ? [] : requests)
     .slice()
     .sort((a, b) => a.requested_at.localeCompare(b.requested_at))
     .map((r) => ({
@@ -301,7 +333,13 @@ export function buildServiceInvoice(input: {
     client: input.client,
     groups,
     taxRate: Number(inv.tax_rate) || 0,
-    totals: { subtotal: Number(inv.subtotal), tax: Number(inv.tax_amount), total: Number(inv.total) },
+    adjustments: adjustments.length ? adjustments : undefined,
+    // The database subtotal is net of discounts; print the gross above them.
+    totals: {
+      subtotal: Number(inv.subtotal) - adjustments.reduce((a, x) => a + x.amount, 0),
+      tax: Number(inv.tax_amount),
+      total: Number(inv.total),
+    },
     metrics: metrics && metrics.length ? metrics : undefined,
     metricsTitle: jobTitle,
     metricsTag: jobTitle ? null : undefined,
@@ -312,7 +350,9 @@ export function buildServiceInvoice(input: {
         : undefined,
     support: support.length ? support : undefined,
     notCovered: agreement
-      ? ["New features, integrations, new reports and other work outside the agreement are quoted separately before work begins."]
+      ? splitList(agreement.scope_excluded).length
+        ? splitList(agreement.scope_excluded)
+        : ["New features, integrations, new reports and other work outside the agreement are quoted separately before work begins."]
       : undefined,
     paymentTerms: [
       dueText,

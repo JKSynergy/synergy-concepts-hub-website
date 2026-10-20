@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { NavLink as Link } from "@/components/nav-link";
-import { EmptyState, INVOICE_TONE, PageHeader, StatusMark, ugx } from "@/components/ux/primitives";
+import { EmptyState, INVOICE_TONE, PageHeader, StatusMark, money } from "@/components/ux/primitives";
 
 const fmt = (d: string) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
@@ -15,7 +15,7 @@ export default async function ClientInvoicesPage() {
 
   const { data: invoices } = await supabase
     .from("invoices")
-    .select("id, invoice_number, status, total, due_date, issue_date")
+    .select("id, invoice_number, status, total, currency, due_date, issue_date")
     .eq("client_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -49,7 +49,7 @@ export default async function ClientInvoicesPage() {
                   <td data-label="Status">
                     <StatusMark tone={INVOICE_TONE[inv.status] ?? "neutral"}>{inv.status}</StatusMark>
                   </td>
-                  <td className="ux-num" data-label="Total">{ugx(Number(inv.total))}</td>
+                  <td className="ux-num" data-label="Total">{money(Number(inv.total), inv.currency)}</td>
                   <td data-label="Action">
                     <div className="ux-rowactions">
                       <Link href={`/client/invoices/${inv.id}`} className="ux-textbtn">View</Link>

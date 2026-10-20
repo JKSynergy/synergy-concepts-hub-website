@@ -17,18 +17,20 @@ function build() {
   const cacheRoot = join(ROOT, "node_modules", ".cache");
   mkdirSync(cacheRoot, { recursive: true });
   const dir = mkdtempSync(join(cacheRoot, "svcpdf-"));
-  for (const [name, ext] of [
+  for (const [name, ext, folder = "pdf"] of [
     ["invoice-doc", "ts"],
     ["service-invoice-doc", "ts"],
     ["service-invoice-template", "tsx"],
+    ["response-targets", "ts", "billing"],
   ]) {
-    const source = readFileSync(join(ROOT, "lib", "pdf", `${name}.${ext}`), "utf8");
+    const source = readFileSync(join(ROOT, "lib", folder, `${name}.${ext}`), "utf8");
     const out = ts
       .transpileModule(source, {
         fileName: `${name}.${ext}`,
         compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 },
       })
-      .outputText.replace(/from "\.\/([\w-]+)"/g, 'from "./$1.js"');
+      .outputText.replace(/from "\.\/([\w-]+)"/g, 'from "./$1.js"')
+      .replace(/from "\.\.\/billing\/([\w-]+)"/g, 'from "./$1.js"');
     writeFileSync(join(dir, `${name}.js`), out);
   }
   return dir;
@@ -194,4 +196,72 @@ test("per-job invoice in USD: cents kept, job report instead of a service record
   assert.ok(/1\.5\s+hours/.test(t), "quantity and unit are printed together");
   assert.ok(!/SERVICE RECORD/i.test(t), "per-job invoices have no service record");
   assert.ok(!/not billed separately/i.test(t), "a job report is not a covered-service panel");
+});
+
+test("annual agreement invoice: discount printed with the totals, targets met, agreement exclusions", async () => {
+  const svc = buildServiceInvoice({
+    invoice: {
+      invoice_number: "SCH-2026-0050",
+      status: "sent",
+      issue_date: "2027-09-30", // invoiced at the end of the year (in arrears)
+      due_date: "2027-10-14",
+      currency: "UGX",
+      subtotal: 10300000,
+      tax_rate: 0,
+      tax_amount: 0,
+      total: 10300000,
+      service_period_start: "2026-10-01",
+      service_period_end: "2027-09-30",
+    },
+    lines: [
+      line(0, "Maintenance", "Managed maintenance & support", 12, "months", 750000, { period_start: "2026-10-01", period_end: "2027-09-30" }),
+      line(1, "Hosting", "Managed hosting & database", 12, "months", 250000, { period_start: "2026-10-01", period_end: "2027-09-30" }),
+      line(2, null, "Annual commitment discount", 1, null, -1700000, { period_start: "2026-10-01", period_end: "2027-09-30" }),
+    ],
+    client: { name: "Elgon Bottling Company Limited", lines: [] },
+    agreement: {
+      name: "Managed System Care",
+      contract_reference: "EBC-MSC-2026",
+      billing_cycle: "annual",
+      response_targets: [{ priority: "high", target: "Within 4 business hours", hours: 4 }],
+      scope_excluded: "New modules\nHardware and local networks",
+    },
+    requests: [
+      // Wed 14 Oct 09:00 EAT → responded 11:00 EAT: 2 business hours, met.
+      { reference: "SR-2026-0015", summary: "Stock sync", priority: "high", billing: "covered", status: "resolved", requested_at: "2026-10-14T06:00:00Z", first_response_at: "2026-10-14T08:00:00Z", resolved_at: "2026-10-14T10:00:00Z" },
+      // Fri 16:00 EAT → Mon 12:00 EAT: 1 + 4 = 5 business hours, missed.
+      { reference: "SR-2026-0016", summary: "Report slow", priority: "high", billing: "covered", status: "resolved", requested_at: "2026-10-16T13:00:00Z", first_response_at: "2026-10-19T09:00:00Z", resolved_at: "2026-10-19T12:00:00Z" },
+    ],
+    incidents: [],
+    backups: [],
+    paymentMethods: DEFAULT_PAYMENT_METHODS,
+  });
+  assert.equal(svc.groups.length, 2, "the discount is not a group");
+  assert.deepEqual(svc.adjustments, [{ label: "Annual commitment discount", amount: -1700000 }]);
+  assert.equal(svc.totals.subtotal, 12000000, "subtotal printed before the discount");
+  assert.equal(svc.totals.total, 10300000);
+  const met = svc.metrics.find((m) => m.label === "Response targets met");
+  assert.equal(met.value, "1 / 2");
+  assert.deepEqual(svc.notCovered, ["New modules", "Hardware and local networks"]);
+
+  const t = text(await renderToBuffer(ServiceInvoicePDF({ inv: svc })));
+  for (const s of ["12,000,000", "Annual commitment discount", "-1,700,000", "UGX 10,300,000", "Hardware and local networks"]) {
+    assert.ok(t.includes(s), `PDF is missing "${s}"`);
+  }
+});
+
+test("an invoice issued in advance prints no service record for the period ahead", () => {
+  const svc = buildServiceInvoice({
+    invoice: { invoice_number: "SCH-2026-0051", status: "sent", issue_date: "2026-10-01", due_date: "2026-10-15", currency: "UGX",
+      subtotal: 1000000, tax_rate: 0, tax_amount: 0, total: 1000000, service_period_start: "2026-10-01", service_period_end: "2026-10-31" },
+    lines: [line(0, null, "Managed System Care", 1, "month", 1000000)],
+    client: { name: "Elgon", lines: [] },
+    agreement: { name: "Managed System Care" },
+    requests: [],
+    incidents: [],
+    backups: [],
+    paymentMethods: DEFAULT_PAYMENT_METHODS,
+  });
+  assert.equal(svc.metrics, undefined);
+  assert.equal(svc.support, undefined);
 });

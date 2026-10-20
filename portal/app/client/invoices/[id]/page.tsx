@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { NavLink as Link } from "@/components/nav-link";
 import { useFeedback } from "@/components/ux/feedback";
-import { INVOICE_TONE, PageHeader, Section, StatusMark, ugx } from "@/components/ux/primitives";
+import { INVOICE_TONE, PageHeader, Section, StatusMark, money } from "@/components/ux/primitives";
 import {
   type Invoice,
   type InvoiceLineItem,
@@ -107,7 +107,7 @@ export default function ClientInvoiceDetailPage() {
             </a>
             {payable && (
               <button type="button" onClick={handlePaystack} disabled={paying} className="ux-btn ux-btn--primary">
-                {paying ? "Redirecting…" : `Pay ${ugx(outstanding)}`}
+                {paying ? "Redirecting…" : `Pay ${money(outstanding, invoice?.currency)}`}
               </button>
             )}
           </>
@@ -129,11 +129,11 @@ export default function ClientInvoiceDetailPage() {
         </div>
         <div className="ux-figure">
           <span>Total</span>
-          <b>{ugx(Number(invoice.total))}</b>
+          <b>{money(Number(invoice.total), invoice?.currency)}</b>
         </div>
         <div className="ux-figure">
           <span>{payable ? "Balance due" : "Paid"}</span>
-          <b>{ugx(payable ? outstanding : paidTotal)}</b>
+          <b>{money(payable ? outstanding : paidTotal, invoice?.currency)}</b>
         </div>
       </div>
 
@@ -153,25 +153,25 @@ export default function ClientInvoiceDetailPage() {
                 <tr key={item.id}>
                   <td data-label="Description">{item.description}</td>
                   <td className="ux-num" data-label="Qty">{Number(item.quantity).toLocaleString()}</td>
-                  <td className="ux-num" data-label="Unit price">{ugx(Number(item.unit_price))}</td>
-                  <td className="ux-num" data-label="Amount">{ugx(Number(item.amount))}</td>
+                  <td className="ux-num" data-label="Unit price">{money(Number(item.unit_price), invoice?.currency)}</td>
+                  <td className="ux-num" data-label="Amount">{money(Number(item.amount), invoice?.currency)}</td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
               <tr>
                 <td colSpan={3} className="ux-num">Subtotal</td>
-                <td className="ux-num" data-label="Subtotal">{ugx(Number(invoice.subtotal))}</td>
+                <td className="ux-num" data-label="Subtotal">{money(Number(invoice.subtotal), invoice?.currency)}</td>
               </tr>
               {invoice.tax_rate > 0 && (
                 <tr>
                   <td colSpan={3} className="ux-num">Tax ({invoice.tax_rate}%)</td>
-                  <td className="ux-num" data-label="Tax">{ugx(Number(invoice.tax_amount))}</td>
+                  <td className="ux-num" data-label="Tax">{money(Number(invoice.tax_amount), invoice?.currency)}</td>
                 </tr>
               )}
               <tr>
                 <td colSpan={3} className="ux-num"><b>Total</b></td>
-                <td className="ux-num" data-label="Total"><b>{ugx(Number(invoice.total))}</b></td>
+                <td className="ux-num" data-label="Total"><b>{money(Number(invoice.total), invoice?.currency)}</b></td>
               </tr>
             </tfoot>
           </table>
@@ -204,7 +204,7 @@ export default function ClientInvoiceDetailPage() {
                           </a>
                         )}
                       </td>
-                      <td className="ux-num" data-label="Amount">{ugx(Number(p.amount))}</td>
+                      <td className="ux-num" data-label="Amount">{money(Number(p.amount), invoice?.currency)}</td>
                     </tr>
                   );
                 })}

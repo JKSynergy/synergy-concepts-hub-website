@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { EmptyState, StatusMark, INVOICE_TONE, ugx } from "@/components/ux/primitives";
+import { EmptyState, StatusMark, INVOICE_TONE, money } from "@/components/ux/primitives";
 import { InvoiceActions } from "@/components/invoice-actions";
 import { fmtDate } from "./fin-utils";
 
 export type InvoiceRow = {
+  currency: string;
   id: string;
   invoice_number: string | null;
   status: string;
@@ -117,10 +118,10 @@ export default function InvoicesTable({ rows, canDeleteDrafts = false }: { rows:
                     {r.pastDue && r.due_date && <span className="ux-cell-sub ux-late">Past due</span>}
                   </td>
                   <td className="ux-num" data-label="Total">
-                    {ugx(r.total)}
+                    {money(r.total, r.currency)}
                   </td>
                   <td className="ux-num" data-label="Balance">
-                    {r.balance === null ? <span className="ux-muted">—</span> : ugx(r.balance)}
+                    {r.balance === null ? <span className="ux-muted">—</span> : money(r.balance, r.currency)}
                   </td>
                   <td>
                     <InvoiceActions

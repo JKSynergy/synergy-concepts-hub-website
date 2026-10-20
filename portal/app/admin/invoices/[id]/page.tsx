@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { PageHeader, Section, StatusMark, EmptyState, INVOICE_TONE, ugx } from "@/components/ux/primitives";
+import { PageHeader, Section, StatusMark, EmptyState, INVOICE_TONE, money } from "@/components/ux/primitives";
 import { InvoiceActions } from "@/components/invoice-actions";
 import { LineItemsManager } from "@/components/line-items-manager";
 import { RecordPaymentButton, StatusActions } from "./invoice-controls";
@@ -120,21 +120,21 @@ export default async function InvoiceDetailPage({
         <div className="ux-figures">
           <div className="ux-figure">
             <span>Total</span>
-            <b>{ugx(total)}</b>
+            <b>{money(total, invoice.currency)}</b>
             <small className="ux-cell-sub">
               {Number(invoice.tax_rate) > 0 ? `Includes ${Number(invoice.tax_rate)}% tax` : "No tax"}
             </small>
           </div>
           <div className="ux-figure">
             <span>Paid</span>
-            <b>{ugx(paid)}</b>
+            <b>{money(paid, invoice.currency)}</b>
             <small className="ux-cell-sub">
               {payList.length} recorded payment{payList.length === 1 ? "" : "s"}
             </small>
           </div>
           <div className="ux-figure">
             <span>Balance</span>
-            <b>{balance === null ? "—" : ugx(balance)}</b>
+            <b>{balance === null ? "—" : money(balance, invoice.currency)}</b>
             <small className="ux-cell-sub">
               {cancelled
                 ? "Invoice cancelled"
@@ -180,6 +180,7 @@ export default async function InvoiceDetailPage({
           storedSubtotal={Number(invoice.subtotal)}
           storedTaxAmount={Number(invoice.tax_amount)}
           storedTotal={Number(invoice.total)}
+          currency={invoice.currency ?? "UGX"}
         />
       </Section>
 
@@ -206,7 +207,7 @@ export default async function InvoiceDetailPage({
                       <td>{fmtDate(p.paid_at)}</td>
                       <td data-label="Method">{methodLabel(p.method)}</td>
                       <td data-label="Reference" className="ux-muted">{p.reference ?? p.paystack_reference ?? "—"}</td>
-                      <td className="ux-num" data-label="Amount">{ugx(Number(p.amount))}</td>
+                      <td className="ux-num" data-label="Amount">{money(Number(p.amount), invoice.currency)}</td>
                       <td data-label="Receipt">
                         {receipt ? (
                           <a href={`/api/receipts/${receipt.id}/pdf`} className="ux-link">

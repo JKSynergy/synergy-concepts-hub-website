@@ -73,3 +73,13 @@ export const INVOICE_TONE: Record<string, Tone> = {
 export function ugx(n: number): string {
   return `UGX ${Math.round(n).toLocaleString("en-US")}`;
 }
+
+/** An amount in its own currency: whole shillings for UGX, cents for USD. */
+export function money(n: number, currency?: string | null): string {
+  const cur = currency || "UGX";
+  const cents = cur !== "UGX";
+  return `${cur} ${Number(n).toLocaleString("en-US", {
+    minimumFractionDigits: cents ? 2 : 0,
+    maximumFractionDigits: cents ? 2 : 0,
+  })}`;
+}

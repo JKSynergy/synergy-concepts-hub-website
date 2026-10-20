@@ -14,6 +14,8 @@ import {
   type EditorItem,
 } from "@/components/billing/breakdown-editor";
 import { savePackage, setPackageArchived } from "@/lib/actions/service-billing";
+import { DEFAULT_TARGETS, TargetsEditor, withAllPriorities } from "@/components/billing/targets-editor";
+import type { ResponseTarget } from "@/lib/billing/response-targets";
 
 export type PackageRow = {
   id: string;
@@ -26,6 +28,10 @@ export type PackageRow = {
   updated_at: string;
   usedBy: number;
   items: (BreakdownRow & { position: number })[];
+  scope_included: string | null;
+  scope_excluded: string | null;
+  response_targets: ResponseTarget[];
+  annual_discount: number;
 };
 
 const KIND_LABEL: Record<string, string> = { recurring: "Monthly package", per_request: "Quote template" };
@@ -45,6 +51,10 @@ type Draft = {
   billingCycle: string;
   description: string;
   items: EditorItem[];
+  scopeIncluded: string;
+  scopeExcluded: string;
+  targets: ResponseTarget[];
+  annualDiscount: string;
 };
 
 const emptyDraft = (kind: string): Draft => ({
@@ -53,6 +63,10 @@ const emptyDraft = (kind: string): Draft => ({
   currency: "UGX",
   billingCycle: "monthly",
   description: "",
+  scopeIncluded: "",
+  scopeExcluded: "",
+  targets: DEFAULT_TARGETS,
+  annualDiscount: "0",
   items:
     kind === "per_request"
       ? [
@@ -60,6 +74,13 @@ const emptyDraft = (kind: string): Draft => ({
           { ...blankItem(), description: "Technical work", unit: "hours" },
         ]
       : [blankItem("Maintenance & support"), blankItem("Hosting & infrastructure")],
+});
+
+const templateFields = (p: PackageRow) => ({
+  scopeIncluded: p.scope_included ?? "",
+  scopeExcluded: p.scope_excluded ?? "",
+  targets: p.response_targets.length ? withAllPriorities(p.response_targets) : DEFAULT_TARGETS,
+  annualDiscount: String(p.annual_discount ?? 0),
 });
 
 export default function PackagesManager({ packages }: { packages: PackageRow[] }) {
@@ -91,6 +112,7 @@ export default function PackagesManager({ packages }: { packages: PackageRow[] }
             billingCycle: p.billing_cycle,
             description: p.description ?? "",
             items: toEditorItems(p.items),
+            ...templateFields(p),
           }
         : emptyDraft(kind),
     );
@@ -105,6 +127,7 @@ export default function PackagesManager({ packages }: { packages: PackageRow[] }
       billingCycle: p.billing_cycle,
       description: p.description ?? "",
       items: toEditorItems(p.items),
+      ...templateFields(p),
     });
   };
 
@@ -120,6 +143,14 @@ export default function PackagesManager({ packages }: { packages: PackageRow[] }
       billingCycle: draft.billingCycle,
       description: draft.description,
       items: toRows(draft.items),
+      ...(draft.kind === "recurring"
+        ? {
+            scopeIncluded: draft.scopeIncluded,
+            scopeExcluded: draft.scopeExcluded,
+            responseTargets: draft.targets.filter((t) => t.target.trim()),
+            annualDiscount: Number(draft.annualDiscount) || 0,
+          }
+        : {}),
     });
     setSaving(false);
     if (!res.ok) {
@@ -309,6 +340,33 @@ export default function PackagesManager({ packages }: { packages: PackageRow[] }
               </label>
             </div>
             <BreakdownEditor items={draft.items} onChange={(items) => setDraft({ ...draft, items })} currency={draft.currency} />
+            {draft.kind === "recurring" && (
+              <details className="pk-defaults" open={!draft.id}>
+                <summary>
+                  <span className="bl-label">Agreement defaults</span>
+                  <span className="bl-meta">Copied into each new agreement made from this package</span>
+                </summary>
+                <div className="bl-fields">
+                  <label className="ux-label">
+                    <span>Included (one per line)</span>
+                    <textarea className="ux-input" rows={7} value={draft.scopeIncluded} onChange={(e) => setDraft({ ...draft, scopeIncluded: e.target.value })} />
+                  </label>
+                  <label className="ux-label">
+                    <span>Not included (printed on invoices)</span>
+                    <textarea className="ux-input" rows={7} value={draft.scopeExcluded} onChange={(e) => setDraft({ ...draft, scopeExcluded: e.target.value })} />
+                  </label>
+                  <label className="ux-label">
+                    <span>Annual commitment discount ({draft.currency})</span>
+                    <input className="ux-input" inputMode="decimal" value={draft.annualDiscount} onChange={(e) => setDraft({ ...draft, annualDiscount: e.target.value })} />
+                  </label>
+                  <div className="ux-label bl-meta" style={{ alignSelf: "end" }}>
+                    Annual price: {formatMoney(Math.max(0, breakdownTotal(draft.items) * 12 - (Number(draft.annualDiscount) || 0)), draft.currency)}
+                  </div>
+                </div>
+                <span className="bl-label">Response targets</span>
+                <TargetsEditor value={draft.targets} onChange={(targets) => setDraft({ ...draft, targets })} />
+              </details>
+            )}
             <div className="bl-form-foot">
               <button type="button" className="ux-btn ux-btn--secondary" onClick={() => setDraft(null)}>
                 Cancel

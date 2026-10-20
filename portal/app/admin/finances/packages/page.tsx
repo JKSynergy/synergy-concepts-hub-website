@@ -4,6 +4,8 @@ import { PageHeader } from "@/components/ux/primitives";
 import { canAccessFinance, isInternal } from "@/lib/security/roles";
 import PackagesManager, { type PackageRow } from "./packages-manager";
 import "@/components/billing/billing.css";
+import "@/app/admin/agreements/agreements.css";
+import { parseTargets } from "@/lib/billing/response-targets";
 
 export const metadata = { title: "Service Packages" };
 
@@ -20,7 +22,7 @@ export default async function PackagesPage() {
 
   const { data: packages } = await supabase
     .from("service_packages")
-    .select("id, name, kind, currency, billing_cycle, description, archived_at, updated_at, items:service_package_items(section, description, detail, quantity, unit, unit_price, position)")
+    .select("id, name, kind, currency, billing_cycle, description, archived_at, updated_at, scope_included, scope_excluded, response_targets, annual_discount, items:service_package_items(section, description, detail, quantity, unit, unit_price, position)")
     .order("name");
 
   const { data: charges } = await supabase.from("recurring_charges").select("package_id").not("package_id", "is", null);
@@ -41,6 +43,10 @@ export default async function PackagesPage() {
     archived_at: p.archived_at,
     updated_at: p.updated_at,
     usedBy: usage.get(p.id) ?? 0,
+    scope_included: p.scope_included,
+    scope_excluded: p.scope_excluded,
+    response_targets: parseTargets(p.response_targets),
+    annual_discount: Number(p.annual_discount ?? 0),
     items: [...(p.items ?? [])]
       .sort((a, b) => a.position - b.position)
       .map((i) => ({ ...i, quantity: Number(i.quantity), unit_price: Number(i.unit_price) })),

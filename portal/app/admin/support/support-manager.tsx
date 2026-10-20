@@ -42,6 +42,8 @@ export type SupportRequestRow = {
   first_response_at: string | null;
   resolved_at: string | null;
   quote_agreed_at: string | null;
+  /** Agreed response target for covered work (met: null = no verdict yet). */
+  target?: { label: string; met: boolean | null } | null;
   invoice_id: string | null;
   invoice: { number: string; status: string } | null;
   recordedBy: string | null;
@@ -294,6 +296,14 @@ export default function SupportManager({
                   {fmtTime(r.requested_at)} · {CHANNEL[r.channel]}
                   <br />
                   {resp ? `responded in ${resp}` : r.status === "cancelled" ? "" : "no response yet"}
+                  {r.target && r.target.met !== null && (
+                    <>
+                      <br />
+                      <span className={r.target.met ? "bl-target-ok" : "bl-target-bad"} title={`Target: ${r.target.label}`}>
+                        {r.target.met ? "✓ within target" : "✕ target missed"}
+                      </span>
+                    </>
+                  )}
                 </div>
                 <div className="bl-req-status">
                   {r.invoice && canPrice ? (

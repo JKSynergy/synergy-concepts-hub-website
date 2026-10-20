@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/ux/primitives";
 import { canAccessFinance, isInternal } from "@/lib/security/roles";
 import SupportManager, { type SupportRequestRow, type RateCard } from "./support-manager";
 import type { BreakdownRow } from "@/components/billing/breakdown-editor";
+import { measure, parseTargets } from "@/lib/billing/response-targets";
 import "@/components/billing/billing.css";
 
 export const metadata = { title: "Support Requests" };
@@ -44,7 +45,7 @@ export default async function SupportPage() {
   const { data: systemsData } = await supabase.from("systems").select("id, name, client_id").order("name");
   const { data: agreementsData } = await supabase
     .from("staff_service_agreements_view")
-    .select("id, name, client_id, status");
+    .select("id, name, client_id, status, response_targets");
 
   const items: Record<string, BreakdownRow[]> = {};
   const invoices: Record<string, { number: string; status: string }> = {};
@@ -96,7 +97,18 @@ export default async function SupportPage() {
     }
   }
 
+  // Response targets: the request's agreement, else the client's active one.
+  const targetsByAgreement: Record<string, ReturnType<typeof parseTargets>> = {};
+  const activeByClient: Record<string, string> = {};
+  for (const a of agreementsData ?? []) {
+    targetsByAgreement[a.id] = parseTargets(a.response_targets);
+    if (a.status === "active" && !activeByClient[a.client_id]) activeByClient[a.client_id] = a.id;
+  }
+  const now = new Date();
+
   const rows: SupportRequestRow[] = (requests ?? []).map((r) => {
+    const agrId = r.service_agreement_id ?? activeByClient[r.client_id] ?? null;
+    const outcome = r.billing === "covered" && agrId && r.status !== "cancelled" ? measure(targetsByAgreement[agrId], r, now) : null;
     const client = one<{ company_name: string | null; full_name: string | null; email: string }>(r.client);
     const recorder = one<{ full_name: string | null; email: string }>(r.recorder);
     return {
@@ -118,6 +130,7 @@ export default async function SupportPage() {
       first_response_at: r.first_response_at,
       resolved_at: r.resolved_at,
       quote_agreed_at: r.quote_agreed_at,
+      target: outcome ? { label: outcome.target.target, met: outcome.met } : null,
       invoice_id: r.invoice_id,
       invoice: r.invoice_id ? invoices[r.invoice_id] ?? null : null,
       recordedBy: recorder?.full_name || recorder?.email || null,

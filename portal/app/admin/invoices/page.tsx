@@ -5,6 +5,10 @@ import { PageHeader, ugx } from "@/components/ux/primitives";
 import InvoicesTable, { type InvoiceRow } from "./invoices-table";
 import { OPEN_STATUSES, isPastDue, todayIso } from "./fin-utils";
 import { canAccessFinance, isAdmin as isAdminRole } from "@/lib/security/roles";
+import { loadAgreements, chargePeriods } from "@/lib/billing/agreement-data";
+import { addDays, periodLabel, todayEAT } from "@/lib/billing/periods";
+import { DueList, type DueRow } from "@/components/billing/due-list";
+import "@/components/billing/billing.css";
 
 export default async function AdminInvoicesPage() {
   const supabase = await createClient();
@@ -26,7 +30,7 @@ export default async function AdminInvoicesPage() {
 
   const { data: invoices } = await supabase
     .from("invoices")
-    .select("id, invoice_number, status, total, due_date, issue_date, client_id")
+    .select("id, invoice_number, status, total, currency, due_date, issue_date, client_id")
     .order("created_at", { ascending: false });
 
   const invList = invoices ?? [];
@@ -55,6 +59,7 @@ export default async function AdminInvoicesPage() {
     return {
       id: inv.id,
       invoice_number: inv.invoice_number,
+      currency: inv.currency ?? "UGX",
       status: inv.status,
       total,
       issue_date: inv.issue_date,
@@ -66,6 +71,32 @@ export default async function AdminInvoicesPage() {
     };
   });
 
+  // Agreement periods ready to bill (and those coming up in the next 7 days).
+  const { agreements, charges, runs } = await loadAgreements(supabase, { finance: true });
+  const eat = todayEAT();
+  const soonUntil = addDays(eat, 7);
+  const dueRows: DueRow[] = [];
+  for (const c of charges.filter((x) => x.active)) {
+    const a = agreements.find((x) => x.id === c.agreement_id);
+    if (!a || !["active", "reactivation_pending"].includes(a.status)) continue;
+    for (const p of chargePeriods(a, c, runs, eat)) {
+      if (p.state === "invoiced" || (p.state === "upcoming" && p.invoiceDate > soonUntil)) continue;
+      dueRows.push({
+        agreementId: a.id,
+        agreementName: a.name,
+        chargeId: c.id,
+        clientName: a.clientName,
+        periodStart: p.start,
+        periodLabel: periodLabel(p),
+        amount: c.amount,
+        currency: c.currency,
+        invoiceDate: p.invoiceDate,
+        state: p.state === "due" ? "due" : "upcoming",
+      });
+    }
+  }
+  dueRows.sort((x, y) => x.invoiceDate.localeCompare(y.invoiceDate));
+
   const outstanding = rows.reduce((s, r) => s + (r.balance ?? 0), 0);
   const overdueRows = rows.filter((r) => r.pastDue);
   const overdueBalance = overdueRows.reduce((s, r) => s + (r.balance ?? 0), 0);
@@ -75,13 +106,15 @@ export default async function AdminInvoicesPage() {
     <div className="ux-page ux-page--wide">
       <PageHeader
         title="Invoices"
-        description="Raise, send and follow up invoices. Amounts are in UGX."
+        description="Raise, send and follow up invoices. Monthly agreement invoices appear under Due to invoice when their period is ready."
         actions={
           <Link href="/admin/invoices/new" className="ux-btn ux-btn--primary">
             New invoice
           </Link>
         }
       />
+
+      <DueList rows={dueRows} />
 
       {rows.length > 0 && (
         <div className="ux-figures" style={{ marginBottom: 28 }}>

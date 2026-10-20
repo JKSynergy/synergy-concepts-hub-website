@@ -11,6 +11,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { writeAuditLog } from "@/lib/audit";
 import { canAccessFinance, isOperationalStaff } from "@/lib/security/roles";
 import { isUuid } from "@/lib/security/access";
+import { cleanTargets, type ResponseTarget } from "@/lib/billing/response-targets";
 
 export type ActionResult<T = unknown> = { ok: boolean; data?: T; error?: string };
 
@@ -52,7 +53,8 @@ function cleanItems(raw: unknown): { items?: BreakdownItem[]; error?: string } {
     const quantity = Number(row.quantity);
     const unitPrice = Number(row.unit_price);
     if (!Number.isFinite(quantity) || quantity <= 0) return { error: `Line ${i + 1}: quantity must be above 0` };
-    if (!Number.isFinite(unitPrice) || unitPrice < 0) return { error: `Line ${i + 1}: unit price cannot be negative` };
+    // A negative unit price is a discount line (e.g. an annual-commitment discount).
+    if (!Number.isFinite(unitPrice)) return { error: `Line ${i + 1}: enter a unit price` };
     items.push({
       section: text(row.section, 120),
       description,
@@ -100,6 +102,11 @@ export type PackageInput = {
   billingCycle?: string;
   description?: string | null;
   items: BreakdownItem[];
+  /** Agreement template fields (monthly packages). */
+  scopeIncluded?: string | null;
+  scopeExcluded?: string | null;
+  responseTargets?: ResponseTarget[] | null;
+  annualDiscount?: number | null;
 };
 
 export async function savePackage(input: PackageInput): Promise<ActionResult<{ id: string; total: number }>> {
@@ -119,6 +126,10 @@ export async function savePackage(input: PackageInput): Promise<ActionResult<{ i
     currency: oneOf(CURRENCIES, input.currency, "UGX"),
     billing_cycle: oneOf(CYCLES, input.billingCycle, "monthly"),
     description: text(input.description, 600),
+    scope_included: text(input.scopeIncluded, 4000),
+    scope_excluded: text(input.scopeExcluded, 4000),
+    response_targets: cleanTargets(input.responseTargets),
+    annual_discount: Math.max(0, Math.round(Number(input.annualDiscount ?? 0) * 100) / 100 || 0),
   };
 
   let id = input.id;

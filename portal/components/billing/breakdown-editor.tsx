@@ -14,6 +14,8 @@ export type EditorItem = {
   quantity: string;
   unit: string;
   unit_price: string;
+  /** Discount lines are entered as a positive amount and stored negative. */
+  discount?: boolean;
 };
 
 export type BreakdownRow = {
@@ -32,6 +34,10 @@ export function blankItem(section = ""): EditorItem {
   return { key: newKey(), section, description: "", detail: "", quantity: "1", unit: "month", unit_price: "0" };
 }
 
+export function blankDiscount(): EditorItem {
+  return { key: newKey(), section: "", description: "Discount", detail: "", quantity: "1", unit: "", unit_price: "0", discount: true };
+}
+
 export function toEditorItems(rows: BreakdownRow[] | null | undefined): EditorItem[] {
   return (rows ?? []).map((r) => ({
     key: newKey(),
@@ -40,7 +46,8 @@ export function toEditorItems(rows: BreakdownRow[] | null | undefined): EditorIt
     detail: r.detail ?? "",
     quantity: String(Number(r.quantity)),
     unit: r.unit ?? "",
-    unit_price: String(Number(r.unit_price)),
+    unit_price: String(Math.abs(Number(r.unit_price))),
+    discount: Number(r.unit_price) < 0,
   }));
 }
 
@@ -51,13 +58,13 @@ export function toRows(items: EditorItem[]): BreakdownRow[] {
     detail: i.detail.trim() || null,
     quantity: Number(i.quantity),
     unit: i.unit.trim() || null,
-    unit_price: Number(i.unit_price),
+    unit_price: i.discount ? -Math.abs(Number(i.unit_price)) : Number(i.unit_price),
   }));
 }
 
 const lineAmount = (i: EditorItem) => {
   const q = Number(i.quantity);
-  const p = Number(i.unit_price);
+  const p = Math.abs(Number(i.unit_price)) * (i.discount ? -1 : 1);
   return Number.isFinite(q) && Number.isFinite(p) ? Math.round(q * p * 100) / 100 : 0;
 };
 
@@ -101,7 +108,7 @@ export function BreakdownEditor({
   };
   const renameSection = (from: string, to: string) =>
     onChange(items.map((i) => (i.section === from ? { ...i, section: to } : i)));
-  const lastSection = items.length ? items[items.length - 1].section : "";
+  const lastSection = [...items].reverse().find((i) => !i.discount)?.section ?? "";
 
   const sectionTotals = new Map<string, number>();
   for (const i of items) sectionTotals.set(i.section, (sectionTotals.get(i.section) ?? 0) + lineAmount(i));
@@ -121,7 +128,7 @@ export function BreakdownEditor({
         </div>
         {items.length === 0 && <div className="bl-empty">No lines yet. Add a section or a line below.</div>}
         {items.map((it, idx) => {
-          const startsSection = it.section && (idx === 0 || items[idx - 1].section !== it.section);
+          const startsSection = !it.discount && it.section && (idx === 0 || items[idx - 1].section !== it.section);
           return (
             <Fragment key={it.key}>
               {startsSection && (
@@ -135,13 +142,13 @@ export function BreakdownEditor({
                   <span className="bl-mono">{fmt(sectionTotals.get(it.section) ?? 0)}</span>
                 </div>
               )}
-              <div className="bl-ed-row" role="row">
+              <div className={`bl-ed-row${it.discount ? " is-discount" : ""}`} role="row">
                 <div className="bl-ed-desc" role="cell">
                   <input
                     id={`${uid}-d-${idx}`}
                     className="ux-input"
-                    placeholder="What this line covers"
-                    aria-label={`Line ${idx + 1} description`}
+                    placeholder={it.discount ? "e.g. Annual commitment discount" : "What this line covers"}
+                    aria-label={`Line ${idx + 1} ${it.discount ? "discount" : "description"}`}
                     value={it.description}
                     onChange={(e) => set(it.key, { description: e.target.value })}
                   />
@@ -171,7 +178,8 @@ export function BreakdownEditor({
                     onChange={(e) => set(it.key, { unit: e.target.value })}
                   />
                 </div>
-                <div className="bl-num" role="cell" data-label="Unit price">
+                <div className="bl-num bl-uprice" role="cell" data-label={it.discount ? "Discount" : "Unit price"}>
+                  {it.discount && <span className="bl-disc-sign" aria-hidden="true">−</span>}
                   <input
                     className="ux-input"
                     inputMode="decimal"
@@ -215,6 +223,9 @@ export function BreakdownEditor({
           onClick={() => onChange([...items, blankItem(`Section ${new Set(items.map((i) => i.section).filter(Boolean)).size + 1}`)])}
         >
           + Section
+        </button>
+        <button type="button" className="ux-btn ux-btn--secondary ux-btn--small" onClick={() => onChange([...items, blankDiscount()])}>
+          + Discount
         </button>
       </div>
 

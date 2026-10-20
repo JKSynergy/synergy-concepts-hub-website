@@ -51,7 +51,7 @@ export default async function PackagesPage() {
       <PageHeader
         eyebrow="Finance"
         title="Packages"
-        description="Reusable price breakdowns. A monthly package explains a standard fee line by line on the invoice; a rate card prices one-off maintenance requests."
+        description="Reusable price breakdowns. A monthly package explains a standard fee line by line on the invoice; a quote template holds the usual lines for a one-off job, so each quote starts from them and can be adjusted."
       />
       <PackagesManager packages={rows} />
     </div>

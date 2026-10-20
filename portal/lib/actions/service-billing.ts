@@ -232,7 +232,7 @@ export async function createSupportRequest(
     .single();
   if (error || !data) return { ok: false, error: dbError(error?.message ?? "Could not log the request") };
 
-  // Pre-price chargeable work from the chosen rate card (finance/admin only).
+  // Pre-price chargeable work from the chosen quote template (finance/admin only).
   if (input.ratePackageId && oneOf(BILLING, input.billing, "chargeable") === "chargeable" && canAccessFinance(ctx.role)) {
     const { data: rate } = await supabase
       .from("service_package_items")

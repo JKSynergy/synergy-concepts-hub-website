@@ -28,7 +28,7 @@ export type PackageRow = {
   items: (BreakdownRow & { position: number })[];
 };
 
-const KIND_LABEL: Record<string, string> = { recurring: "Monthly package", per_request: "Rate card" };
+const KIND_LABEL: Record<string, string> = { recurring: "Monthly package", per_request: "Quote template" };
 const CYCLE_LABEL: Record<string, string> = {
   monthly: "/ month",
   quarterly: "/ quarter",
@@ -146,9 +146,9 @@ export default function PackagesManager({ packages }: { packages: PackageRow[] }
             <small>standard fees, itemised</small>
           </div>
           <div className="bl-sum">
-            <span className="bl-label">Rate cards</span>
+            <span className="bl-label">Quote templates</span>
             <b>{active.filter((p) => p.kind === "per_request").length}</b>
-            <small>for pay-per-request work</small>
+            <small>starting points for one-off job quotes</small>
           </div>
           <div className="bl-sum">
             <span className="bl-label">In use</span>
@@ -161,7 +161,7 @@ export default function PackagesManager({ packages }: { packages: PackageRow[] }
             + Monthly package
           </button>
           <button type="button" className="ux-btn ux-btn--secondary" onClick={() => open(undefined, "per_request")}>
-            + Rate card
+            + Quote template
           </button>
         </div>
       </div>
@@ -172,7 +172,7 @@ export default function PackagesManager({ packages }: { packages: PackageRow[] }
         <select className="ux-select" aria-label="Package type" value={kindFilter} onChange={(e) => setKindFilter(e.target.value)}>
           <option value="all">All types</option>
           <option value="recurring">Monthly packages</option>
-          <option value="per_request">Rate cards</option>
+          <option value="per_request">Quote templates</option>
         </select>
         <label className="bl-meta" style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
           <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} /> Show archived
@@ -185,7 +185,7 @@ export default function PackagesManager({ packages }: { packages: PackageRow[] }
       {visible.length === 0 ? (
         <div className="bl-panel bl-empty">
           <b>No packages yet</b>
-          Create a monthly package to itemise a standard fee, or a rate card for one-off maintenance.
+          Create a monthly package to itemise a standard fee, or a quote template to start one-off job quotes from.
         </div>
       ) : (
         <ul className="bl-grid">
@@ -266,7 +266,7 @@ export default function PackagesManager({ packages }: { packages: PackageRow[] }
         <Dialog labelledBy="pkg-dialog-title" onClose={() => setDraft(null)} maxWidth={920}>
           <div className="bl-form bl-dialog-scroll">
             <h3 id="pkg-dialog-title">
-              {draft.id ? "Edit" : "New"} {draft.kind === "per_request" ? "rate card" : "monthly package"}
+              {draft.id ? "Edit" : "New"} {draft.kind === "per_request" ? "quote template" : "monthly package"}
             </h3>
             <p>
               {draft.kind === "per_request"

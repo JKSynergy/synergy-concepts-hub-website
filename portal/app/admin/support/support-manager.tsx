@@ -504,15 +504,15 @@ function LogRequestDialog({
               <option value="covered" disabled={!activeAgreement}>
                 Covered by agreement{activeAgreement ? "" : " (none active)"}
               </option>
-              <option value="chargeable">Chargeable (pay per request)</option>
+              <option value="chargeable">Chargeable (quoted job)</option>
               <option value="no_charge">No charge</option>
             </select>
           </label>
           {canPrice && billing === "chargeable" && (
             <label className="ux-label">
-              <span>Price with</span>
+              <span>Start quote from</span>
               <select className="ux-select ux-input" value={rateId} onChange={(e) => setRateId(e.target.value)}>
-                <option value="">{rateCards.length ? "Price later" : "No rate cards yet"}</option>
+                <option value="">{rateCards.length ? "Quote later" : "No quote templates yet"}</option>
                 {rateCards.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name} ({c.currency})

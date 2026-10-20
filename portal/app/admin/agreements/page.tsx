@@ -3,6 +3,9 @@ import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/ux/primitives";
 import { isInternal, isAdmin as checkIsAdmin, isOperationalStaff, canAccessFinance } from "@/lib/security/roles";
 import AgreementsManager from "./agreements-manager";
+import type { ChargePackageOption } from "./charge-breakdown";
+import type { BreakdownRow } from "@/components/billing/breakdown-editor";
+import "@/components/billing/billing.css";
 
 export const metadata = { title: "Service Agreements & Recurring Billing" };
 
@@ -56,6 +59,7 @@ export default async function AgreementsPage() {
     start_date: string;
     end_date: string | null;
     created_at: string;
+    package_id?: string | null;
   };
 
   type RecurringChargeRunItem = {
@@ -78,6 +82,8 @@ export default async function AgreementsPage() {
 
   let recurringCharges: RecurringChargeItem[] = [];
   let recurringChargeRuns: RecurringChargeRunItem[] = [];
+  const chargeItems: Record<string, BreakdownRow[]> = {};
+  let chargePackages: ChargePackageOption[] = [];
 
   if (canSeeFinancials) {
     const { data: rc } = await supabase
@@ -85,6 +91,36 @@ export default async function AgreementsPage() {
       .select("*")
       .order("created_at", { ascending: false });
     recurringCharges = (rc ?? []) as RecurringChargeItem[];
+
+    // Itemised breakdowns (migration 037) and the monthly packages to start from.
+    const { data: rci } = await supabase
+      .from("recurring_charge_items")
+      .select("recurring_charge_id, section, description, detail, quantity, unit, unit_price, position")
+      .order("position");
+    for (const i of rci ?? []) {
+      (chargeItems[i.recurring_charge_id] ??= []).push({
+        section: i.section,
+        description: i.description,
+        detail: i.detail,
+        quantity: Number(i.quantity),
+        unit: i.unit,
+        unit_price: Number(i.unit_price),
+      });
+    }
+    const { data: pk } = await supabase
+      .from("service_packages")
+      .select("id, name, currency, items:service_package_items(section, description, detail, quantity, unit, unit_price, position)")
+      .eq("kind", "recurring")
+      .is("archived_at", null)
+      .order("name");
+    chargePackages = (pk ?? []).map((p) => ({
+      id: p.id,
+      name: p.name,
+      currency: p.currency,
+      items: [...(p.items ?? [])]
+        .sort((a, b) => a.position - b.position)
+        .map((i) => ({ ...i, quantity: Number(i.quantity), unit_price: Number(i.unit_price) })),
+    }));
 
     const { data: rcr } = await supabase
       .from("recurring_charge_runs")
@@ -159,6 +195,8 @@ export default async function AgreementsPage() {
         isAdmin={isAdmin}
         canSeeFinancials={canSeeFinancials}
         isStaff={isStaff}
+        chargeItems={chargeItems}
+        chargePackages={chargePackages}
       />
     </div>
   );

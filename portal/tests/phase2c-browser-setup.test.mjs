@@ -40,7 +40,10 @@ test("launcher covers every environment variable the application source reads", 
     // Scheduler secrets pass through from the operator's environment /
     // .env.local; without one the protected endpoint fails closed (401).
     // They gate an internal route, not an external integration.
-    "CRON_SECRET", "MONITORING_SCHEDULER_SECRET"]);
+    "CRON_SECRET", "MONITORING_SCHEDULER_SECRET",
+    // Set by the platform/runtime, not configuration: only displayed (the
+    // Operations environment badge), never used to make a decision.
+    "VERCEL_ENV", "NODE_ENV"]);
   assert.deepEqual([...used].filter((n) => !handled.has(n)), [], "an env var the app reads is not controlled by the launcher");
 });
 

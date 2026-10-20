@@ -19,6 +19,7 @@ const SECTIONS: ShellSection[] = [
       { href: "/admin/invoices", label: "Invoices", match: "/admin/invoices" },
       { href: "/admin/finances", label: "Payments", match: "/admin/finances", exact: true },
       { href: "/admin/reports", label: "Reports", match: "/admin/reports" },
+      { href: "/admin/finances/packages", label: "Packages", match: "/admin/finances/packages" },
       { href: "/admin/finances/provider-costs", label: "Provider Costs", match: "/admin/finances/provider-costs" },
     ],
   },
@@ -68,6 +69,7 @@ export function AdminShell({
     enquiries: { href: "/admin/leads", label: "Enquiries", match: ["/admin/bookings", "/admin/leads"] },
     clients: { href: "/admin/clients", label: "Clients", match: ["/admin/clients"] },
     projects: { href: "/admin/projects", label: "Projects", match: ["/admin/projects"] },
+    support: { href: "/admin/support", label: "Support", match: ["/admin/support"] },
     agreements: { href: "/admin/agreements", label: "Agreements", match: ["/admin/agreements"] },
     finance: { href: "/admin/invoices", label: "Finance", match: ["/admin/invoices", "/admin/finances", "/admin/reports"] },
     systems: { href: "/admin/systems", label: "Systems", match: ["/admin/systems"] },
@@ -78,14 +80,14 @@ export function AdminShell({
 
   const groups: ShellGroup[] = financeOnly
     ? [
-        // finance sees Clients, Projects (read-only), Agreements, Finance and Operations
-        { label: "Work", ariaLabel: "Work", items: [item.clients, item.projects] },
+        // finance sees Clients, Projects (read-only), Support, Agreements, Finance and Operations
+        { label: "Work", ariaLabel: "Work", items: [item.clients, item.projects, item.support] },
         { label: "Money", ariaLabel: "Money", items: [item.agreements, item.finance] },
         { label: "Platform", ariaLabel: "Platform", items: [item.operations] },
       ]
     : [
         { ariaLabel: "Main", items: [item.dashboard] },
-        { label: "Work", ariaLabel: "Work", items: [item.enquiries, item.clients, item.projects] },
+        { label: "Work", ariaLabel: "Work", items: [item.enquiries, item.clients, item.projects, item.support] },
         { label: "Money", ariaLabel: "Money", items: finance ? [item.agreements, item.finance] : [item.agreements] },
         { label: "Platform", ariaLabel: "Platform", items: [item.systems, item.operations] },
         { label: "Settings", ariaLabel: "Settings", items: isAdmin ? [item.services, item.team] : [item.services] },

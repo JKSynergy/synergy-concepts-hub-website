@@ -12,6 +12,8 @@ import {
   terminateAgreement,
   generateRecurringInvoice,
 } from "@/lib/actions/agreements";
+import { ChargeBreakdownButton, type ChargePackageOption } from "./charge-breakdown";
+import type { BreakdownRow } from "@/components/billing/breakdown-editor";
 
 export interface AgreementItem {
   id: string;
@@ -64,6 +66,7 @@ export interface RecurringChargeItem {
   start_date: string;
   end_date: string | null;
   created_at: string;
+  package_id?: string | null;
 }
 
 export interface RecurringChargeRunItem {
@@ -114,6 +117,8 @@ interface Props {
   isAdmin: boolean;
   canSeeFinancials: boolean;
   isStaff: boolean;
+  chargeItems?: Record<string, BreakdownRow[]>;
+  chargePackages?: ChargePackageOption[];
 }
 
 function standingTone(standing?: string): Tone {
@@ -160,6 +165,8 @@ export default function AgreementsManager({
   isAdmin,
   canSeeFinancials,
   isStaff,
+  chargeItems = {},
+  chargePackages = [],
 }: Props) {
   const router = useRouter();
   const clientLabel = (id: string, name?: string | null, email?: string | null) => {
@@ -803,6 +810,11 @@ export default function AgreementsManager({
                             <StatusMark tone={ch.active ? "success" : "neutral"}>
                               {ch.active ? "Active" : "Inactive"}
                             </StatusMark>
+                            <ChargeBreakdownButton
+                              charge={ch}
+                              items={chargeItems[ch.id] ?? []}
+                              packages={chargePackages}
+                            />
                           </div>
                         </div>
                       ))}

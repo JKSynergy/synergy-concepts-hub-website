@@ -471,6 +471,9 @@ export async function generateRecurringInvoice(
       subtotal: charge.amount,
       total: charge.amount,
       notes: `Recurring billing for ${agreement.name} — Period: ${input.periodStart} to ${input.periodEnd}`,
+      document_style: "service",
+      service_period_start: input.periodStart,
+      service_period_end: input.periodEnd,
     })
     .select("id, invoice_number, due_date, total, currency, status")
     .single();
@@ -479,16 +482,43 @@ export async function generateRecurringInvoice(
     return { ok: false, error: invErr ? invErr.message : "Failed to create invoice" };
   }
 
-  // 6. Insert Line Item
-  const { error: itemErr } = await supabase
-    .from("invoice_line_items")
-    .insert({
-      invoice_id: invoice.id,
-      description: `${charge.name} (${input.periodStart} to ${input.periodEnd})`,
-      quantity: 1,
-      unit_price: charge.amount,
-      amount: charge.amount,
-    });
+  // 6. Insert Line Items — the charge's itemised breakdown when it has one
+  //    (migration 037 guarantees it adds up to the charge), else one line.
+  const { data: breakdown } = await supabase
+    .from("recurring_charge_items")
+    .select("section, description, detail, quantity, unit, unit_price, position")
+    .eq("recurring_charge_id", charge.id)
+    .order("position");
+
+  const period = { period_start: input.periodStart, period_end: input.periodEnd };
+  const lines =
+    breakdown && breakdown.length > 0
+      ? breakdown.map((b) => ({
+          invoice_id: invoice.id,
+          section: b.section,
+          description: b.description,
+          detail: b.detail,
+          quantity: b.quantity,
+          unit: b.unit,
+          unit_price: b.unit_price,
+          position: b.position,
+          ...period,
+        }))
+      : [
+          {
+            invoice_id: invoice.id,
+            section: null,
+            description: charge.name,
+            detail: charge.description ?? null,
+            quantity: 1,
+            unit: null,
+            unit_price: charge.amount,
+            position: 0,
+            ...period,
+          },
+        ];
+
+  const { error: itemErr } = await supabase.from("invoice_line_items").insert(lines);
 
   if (itemErr) {
     return { ok: false, error: itemErr.message };

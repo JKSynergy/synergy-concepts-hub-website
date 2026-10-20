@@ -222,6 +222,11 @@ export interface Invoice {
   currency: string;
   notes: string | null;
   scope_of_work?: string | null;
+  document_style?: "standard" | "service";
+  service_period_start?: string | null;
+  service_period_end?: string | null;
+  agreement_id?: string | null;
+  recurring_charge_id?: string | null;
   pdf_url: string | null;
   created_at: string;
   updated_at: string;
@@ -234,6 +239,12 @@ export interface InvoiceLineItem {
   quantity: number;
   unit_price: number;
   amount: number;
+  section?: string | null;
+  detail?: string | null;
+  unit?: string | null;
+  period_start?: string | null;
+  period_end?: string | null;
+  position?: number;
   created_at: string;
 }
 

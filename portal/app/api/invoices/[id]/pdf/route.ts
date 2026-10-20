@@ -4,7 +4,15 @@ import { canViewInvoiceDocument, isPortalRole, isUuid } from "@/lib/security/acc
 import { checkApplicationAccess } from "@/lib/actions/application-suspension";
 import { pdf } from "@react-pdf/renderer";
 import InvoicePDF from "@/lib/pdf/invoice-template";
-import { splitLines, splitProjectNotes, DEFAULT_SIGNATURE, type InvoiceDoc } from "@/lib/pdf/invoice-doc";
+import {
+  splitLines,
+  splitProjectNotes,
+  DEFAULT_SIGNATURE,
+  DEFAULT_PAYMENT_METHODS,
+  type InvoiceDoc,
+} from "@/lib/pdf/invoice-doc";
+import ServiceInvoicePDF from "@/lib/pdf/service-invoice-template";
+import { buildServiceInvoice, type SvcRequestRecord } from "@/lib/pdf/service-invoice-doc";
 import { readFileSync } from "fs";
 import { join } from "path";
 
@@ -97,6 +105,59 @@ export async function GET(
   const signaturePath = join(process.cwd(), "public", "images", "SCH E-Signature small.png");
   const signatureBuffer = readFileSync(signaturePath);
   const signatureSrc = `data:image/png;base64,${signatureBuffer.toString("base64")}`;
+
+  // Itemised service invoices (recurring agreements and per-request support,
+  // migration 037) use the service layout. Its service record comes from a
+  // database function that re-checks the caller may see this invoice.
+  if (invoice!.document_style === "service") {
+    const { data: record } = await supabase.rpc("invoice_service_record", { p_invoice_id: id });
+    const rec = (record ?? {}) as {
+      agreement?: { name: string; contract_reference: string | null; billing_cycle: string | null } | null;
+      requests?: SvcRequestRecord[];
+      incidents?: { severity: string; opened_at: string }[] | null;
+      backups?: { status: string }[] | null;
+    };
+    const c: {
+      company_name?: string | null;
+      full_name?: string | null;
+      email?: string | null;
+      billing_address?: string | null;
+      phone?: string | null;
+      tax_id?: string | null;
+    } = client ?? {};
+    const svc = buildServiceInvoice({
+      invoice: invoice!,
+      lines: lineItems ?? [],
+      client: {
+        name: c.company_name || c.full_name || c.email || "Client",
+        lines: [c.billing_address, c.email, c.phone, c.tax_id ? `Tax ID: ${c.tax_id}` : null].filter(Boolean) as string[],
+      },
+      agreement: rec.agreement ?? null,
+      requests: rec.requests ?? [],
+      incidents: rec.incidents ?? null,
+      backups: rec.backups ?? null,
+      paymentMethods: DEFAULT_PAYMENT_METHODS,
+      signature: { ...DEFAULT_SIGNATURE, imageSrc: signatureSrc },
+    });
+    const status = invoice!.status;
+    const stampSrc =
+      status === "paid"
+        ? paidStampSrc
+        : status === "partially paid"
+          ? partialStampSrc
+          : status === "sent" || status === "overdue"
+            ? unpaidStampSrc
+            : status === "cancelled"
+              ? cancelledStampSrc
+              : null;
+    const svcBlob = await pdf(ServiceInvoicePDF({ inv: svc, logoSrc, stampSrc })).toBlob();
+    return new NextResponse(Buffer.from(await svcBlob.arrayBuffer()), {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${invoice!.invoice_number}.pdf"`,
+      },
+    });
+  }
 
   // Build the document model: scope comes from the invoice's own Scope of Work
   // field (falling back to the linked project), notes from the invoice itself.

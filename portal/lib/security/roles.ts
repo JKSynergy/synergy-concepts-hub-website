@@ -40,6 +40,9 @@ export const canViewClientsAndProjects = isInternal;
 /** Only admin creates/edits clients, projects, services, team, academy and roles. */
 export const canManageTeam = isAdmin;
 export const canManageServices = isAdmin;
+/** Capture Films quotations: discounts, final amounts, the price list and the exchange rate are admin-only. */
+export const canReviewQuotes = isAdmin;
+export const canManageQuoteCatalog = isAdmin;
 
 /** Where a signed-in user lands. */
 export function landingFor(role: R): string {

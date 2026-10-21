@@ -145,11 +145,23 @@
     });
   }
 
-  /* Enquiry form: posts to the portal's /api/quote (lands in the leads table) */
+  /* Enquiry form: posts to the portal's /api/quote (lands in the leads table).
+     Each submission carries a request id (a retry is stored once), the time since
+     the page loaded and a hidden "website" field (both used by the portal's spam checks). */
+  var newRequestId = function () {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    var b = new Uint8Array(16);
+    (window.crypto || window.msCrypto).getRandomValues(b);
+    b[6] = (b[6] & 15) | 64; b[8] = (b[8] & 63) | 128;
+    var h = Array.prototype.map.call(b, function (x) { return (x + 256).toString(16).slice(1); }).join('');
+    return h.slice(0, 8) + '-' + h.slice(8, 12) + '-' + h.slice(12, 16) + '-' + h.slice(16, 20) + '-' + h.slice(20);
+  };
   var form = document.getElementById('enquiry');
   if (form) {
     var status = document.getElementById('formStatus');
     var submit = form.querySelector('[type="submit"]');
+    var loadedAt = Date.now();
+    var requestId = newRequestId();
     var pre = new URLSearchParams(location.search).get('service');
     if (pre && form.elements.service && form.elements.service.querySelector('option[value="' + pre.replace(/[^a-z-]/g, '') + '"]')) {
       form.elements.service.value = pre;
@@ -174,7 +186,10 @@
         email: form.elements.email.value.trim(),
         phone: form.elements.phone.value.trim(),
         service: SERVICE_MAP[choice] || choice,
-        brief: brief
+        brief: brief,
+        request_id: requestId,
+        elapsed_ms: Date.now() - loadedAt,
+        website: form.elements.website ? form.elements.website.value : ''
       };
 
       fetch(PORTAL_URL + '/api/quote', {
@@ -182,11 +197,21 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       }).then(function (r) {
-        if (!r.ok) throw new Error('failed');
-        status.textContent = 'Thank you. We will reply within 24 hours.';
-        form.reset();
+        return r.json().catch(function () { return {}; }).then(function (body) {
+          if (r.ok) {
+            status.textContent = 'Thank you. We will reply within 24 hours.' + (body.reference ? ' Your reference is ' + body.reference + '.' : '');
+            form.reset();
+            requestId = newRequestId();
+            return;
+          }
+          // The portal's messages are written for visitors (no internal detail).
+          var msg = body && body.error ? body.error : '';
+          if (body && body.fields && body.fields.length) msg += ' ' + body.fields.map(function (f) { return f.message; }).join(' ');
+          status.textContent = msg || 'Something went wrong. Please email info@synergyconceptshub.com or message us on WhatsApp.';
+        });
       }).catch(function () {
-        status.textContent = 'Something went wrong. Please email info@synergyconceptshub.com or message us on WhatsApp.';
+        // Network failure: the same request id is reused on retry, so it is stored only once.
+        status.textContent = 'Something went wrong. Please try again, email info@synergyconceptshub.com or message us on WhatsApp.';
       }).then(function () {
         submit.disabled = false;
         submit.textContent = 'Send enquiry';

@@ -36,7 +36,8 @@ Each business has a section bar (secondary navigation, sticky under the header o
 | Synergy Multimedia Academy | `/academy/` | Bridge page; courses, intakes and applications stay on the Academy website |
 | Shared | | `/`, `/work/`, `/about/`, `/contact/` |
 
-- `/capture-films/quote/` is the canonical home of the future Capture Films package builder (event type, photography and/or videography, package, optional extras such as drone). Not built: today it is the shared enquiry form limited to Capture Films services. No packages or prices are shown. Drone coverage appears only as an optional inclusion in suitable packages (`DRONE_NOTE`).
+- `/capture-films/quote/` holds the Capture Films quotation builder (`assets/js/quote-builder.js`, loaded only on that page; components `.qb-*` in `sch.css`). It reads the live price list from the portal (`/api/quote/catalog`) and posts selections (never prices) to `/api/quote`, where the portal recalculates every amount. If the price list cannot load, the builder stays hidden and the simple enquiry form below it is used. Drone coverage is described as an optional inclusion in suitable packages (`DRONE_NOTE`). Prices are never hard-coded in the marketing pages.
+- Every enquiry form sends a request id (retries are stored once), the time since page load and a hidden `website` field (`.hp`), used by the portal's spam checks.
 - Academy links go only to the verified pages in `SMA_PAGES` in `build.py`.
 - Old `/creative/...` URLs 301-redirect to their new pages. Generated folders of moved pages are removed at build time (`RETIRED_OUTPUT_DIRS`).
 - Attribution: every enquiry option carries `data-business`; `sch.js` writes `Business: <name>` and `Service: <label>` at the top of the brief sent to the portal's `/api/quote`. The `service` values sent to the portal are unchanged. `<body data-business>` marks each page's business (`sch-group` for shared pages) for future analytics; no analytics runs on the site today.

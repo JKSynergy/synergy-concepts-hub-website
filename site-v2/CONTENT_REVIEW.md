@@ -22,8 +22,26 @@ Portfolio images are gated separately by `_review/portfolio.json` (see "Portfoli
 | Capture Films core offer (confirmed by the business, Oct 2026) | Photography and videography for events (corporate events, conferences, celebrations), weddings, Kukyala and introduction ceremonies. New page `/capture-films/events/`; `/capture-films/weddings/` now covers weddings, Kukyala and introductions (Kwanjula). | No event (non-wedding) portfolio images are approved yet: add some to `_review/portfolio.json` when available. Kukyala and introduction (Kwanjula) descriptions confirmed by the owner, 21 Oct 2026. |
 | Drone coverage | Described only as an optional inclusion in suitable photography and videography packages, "where the venue and conditions allow". No prices, package names, permissions or guarantees. | Wording confirmed by the owner, 21 Oct 2026. |
 | Photo books, animation and motion graphics | Not listed anywhere: no existing site content or documentation supports them. | Confirm which are offered before adding them. |
-| Capture Films package builder (FUTURE, not built) | Pages lead to the enquiry form at `/capture-films/quote/` (portal `/api/quote`). No packages, prices or online configuration are shown or claimed. | Separate implementation item: event type -> photography and/or videography -> package -> optional extras such as drone -> enquiry. Build at `/capture-films/quote/` and keep the `/api/quote` integration. |
+| Capture Films quotation builder (built, Oct 2026) | `/capture-films/quote/`: event, services, extras with a running total, UGX/USD, date/venue/logistics, contact, review, submit. Prices are the business-supplied list, loaded live from the portal (`/api/quote/catalog`); the simple form remains below it and is used automatically if the price list cannot load. | See "Quotation builder: open business decisions" below. |
 | Academy highlights on `/academy/` | Courses and intakes, monthly masterclass, Project Lab and holiday/other programmes, each linking to a page on synergymultimediaacademy.com verified on 21 Oct 2026 (`/programs`, `/intake`, `/masterclass`, `/project-lab`, `/holiday-programs`). No intake dates, fees or masterclass speakers are copied, because they change. Subject list taken from the Academy's programme categories. | Re-check the links if the Academy site changes its routes (unknown paths there show the homepage, so a broken link would not look broken). |
+
+
+## Quotation builder: open business decisions
+
+Prices, deliverables and availability are exactly the supplied list (portal migration 040, editable at portal `/admin/services/capture-films`). These points were not specified and use a cautious default:
+
+| Item | Current default | To confirm |
+| --- | --- | --- |
+| Exchange rate (UGX per USD) | Not set. USD is shown as unavailable; UGX works. | An admin sets the rate on the price-list page. |
+| Kampala service area boundary | Not defined. The customer chooses "within the Kampala service area" or "outside Kampala"; the page says the team confirms it. No location is checked automatically. | Define the area (districts or a radius) if customers should be told. |
+| Upcountry transport and accommodation | Outside Kampala the customer chooses either "I will provide transport and accommodation" or "Please quote logistics separately". No logistics fee is ever added automatically; an admin enters any agreed logistics charge in the quotation review. | Confirm the wording and that no standard upcountry fee should be shown. |
+| Which extras need photography or videography | Only the 4K upgrade and the 25/45-minute edits require videography (as supplied). Extra photo books, framed prints, extra photographers and extra videographers can be chosen with either service, or with only the other service (for example an extra videographer with photography only). | Say if any of these should require a service. This is a `requires` setting in the price list; the price-list page does not edit it yet, so it needs a new catalogue version (a small developer change, no code change to the builder). |
+| 25- and 45-minute special edits | Added on top of standard videography (as supplied); both can be chosen together. | Confirm both may be chosen together. |
+| Memory Lane, Love Story, Same-day edit / highlights | Shown by name only, with their prices. No description, duration or deliverable is stated. | Supply one-line descriptions if wanted. |
+| Social media reels quantity | 1 to 50 reels per request (a form limit, not a price), Other event only. | Adjust the minimum and maximum on the price-list page if needed. |
+| Who may change prices, the rate and discounts | Administrators only, enforced in the portal and again by the database functions. Staff can view quotations and the price list read-only. Finance users cannot open booking pages today. | Confirm, or allow Finance (needs a role change). |
+| Legacy enquiry forms | Now validated by the portal: a malformed email or phone number, or a message over 5,000 characters, is refused with a message saying what to fix (previously accepted). Phone stays optional on these forms and required in the quotation builder. | None expected. |
+| Price-list safety | The price-list page validates every change before publishing; the database function itself only checks the basic shape. An administrator bypassing the page could publish an invalid list, in which case the builder hides itself and the simple form is used. | None (administrators only). |
 
 ## Portfolio images
 

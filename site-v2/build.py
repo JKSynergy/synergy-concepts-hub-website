@@ -180,7 +180,8 @@ import re as _re
 def _asset_version(rel):
     with open(os.path.join(SRC, rel), "rb") as f:
         return hashlib.sha256(f.read().replace(b"\r\n", b"\n")).hexdigest()[:10]
-ASSET_V = {"css": _asset_version("assets/css/sch.css"), "js": _asset_version("assets/js/sch.js")}
+ASSET_V = {"css": _asset_version("assets/css/sch.css"), "js": _asset_version("assets/js/sch.js"),
+           "qb": _asset_version("assets/js/quote-builder.js")}
 
 # Output folders of pages that moved to a business section (old URLs now 301-redirect, see _redirects).
 # They are generated files only; removing them keeps stale copies out of the deploy folder.
@@ -311,7 +312,7 @@ def breadcrumb_ld(*crumbs):
         ],
     }
 
-def page(path, title, desc, body, current="", schema="", out_file=None, og_img=None, biz=None):
+def page(path, title, desc, body, current="", schema="", out_file=None, og_img=None, biz=None, extra_js=()):
     url = SITE + path
     # data-business: which Synergy business a page belongs to (parent-level pages: "sch-group").
     # A stable hook for business-level attribution if analytics is added later; no tracking runs today.
@@ -362,7 +363,7 @@ def page(path, title, desc, body, current="", schema="", out_file=None, og_img=N
 {body}
 </main>
 {FOOTER}
-<script src="/assets/js/sch.js?v={ASSET_V["js"]}" defer></script>
+<script src="/assets/js/sch.js?v={ASSET_V["js"]}" defer></script>{"".join(f'<script src="/assets/js/{n}.js?v={ASSET_V[k]}" defer></script>' for n, k in extra_js)}
 </body>
 </html>
 '''
@@ -553,6 +554,7 @@ def form_html(scope=None, business=""):
 <option value="other">Other</option></select></div>
 </div>
 <div class="field"><label for="f-brief">About your project</label><textarea id="f-brief" name="brief" required></textarea></div>
+<div class="hp" aria-hidden="true"><label for="f-website">Website</label><input id="f-website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
 <div class="form-foot"><button class="btn" type="submit">Send enquiry</button><p id="formStatus" role="status"></p></div>
 </form>'''
 
@@ -938,8 +940,8 @@ client_design = [it for it in items("design") if "own brand" not in (it.get("cli
 # Core offer (confirmed by the business, Oct 2026): photography and videography for events, weddings,
 # Kukyala and introduction ceremonies; also portraits, studio and product photography and business video.
 # Drone coverage is an optional inclusion in suitable packages, never a standalone service or a guarantee.
-# The package builder (event type -> photography/videography -> package -> extras such as drone) is a
-# FUTURE item; until it exists, every page leads to the enquiry form at QUOTE. Do not show packages or prices.
+# Prices are shown only by the quotation builder at QUOTE, loaded live from the portal's price list
+# (portal: /admin/services/capture-films). Do not hard-code prices in these pages.
 DRONE_NOTE = ("Drone coverage can be included as an option in suitable photography and videography packages, "
               "where the venue and conditions allow. Ask about it when you request a quote.")
 
@@ -982,7 +984,7 @@ films_body = f'''
 <li><h3>Choose the coverage</h3><p>Photography, videography or both. Drone coverage can be added to suitable packages where the venue and conditions allow.</p></li>
 <li><h3>Receive a quote</h3><p>We confirm the details with you and send a quote for that coverage.</p></li>
 </ol>
-<!-- Future: the Capture Films package builder (event type, photography and/or videography, package, optional extras such as drone) belongs at {QUOTE}. Not built yet. -->
+<!-- The Capture Films quotation builder lives at {QUOTE} (assets/js/quote-builder.js). -->
 <div class="actions" style="margin-top:48px"><a class="btn" href="{QUOTE}">Get a Quote</a></div>
 </div></section>
 {other_businesses("films")}
@@ -1136,16 +1138,30 @@ page("/capture-films/videography/", "Event & Business Videography in Kampala | S
      "Videography for events, weddings, Kukyala and introduction ceremonies, plus promotional, social media and corporate video in Kampala by Synergy Capture Films.",
      video_body, "/capture-films/videography/", schema=VIDEO_LD, biz="films")
 
-# Quote request (the future home of the Capture Films package builder)
-quote_body = enquiry_body("films", "Get a Quote", "Request a quote from Synergy Capture Films.",
-    "Tell us about the occasion or shoot. A short description is enough: we reply within 24 hours with questions or a quote.",
-    ["The occasion: an event, a wedding, a Kukyala or an introduction ceremony, a portrait or product shoot, or business video",
-     "The date, or how flexible it is, and the location",
-     "What you would like covered: photography, videography or both, and roughly for how long",
-     "Whether you would like drone coverage considered (available in suitable packages, where the venue and conditions allow)",
-     "What you need at the end: edited photographs, a film, or both"],
-    ["films"])
-quote_body += "\n<!-- Future: the Capture Films package builder (event type, photography and/or videography, package, optional extras such as drone) replaces or extends this form. Keep this URL and the /api/quote integration. -->\n"
+# Quote request: the Capture Films quotation builder (assets/js/quote-builder.js) plus the simple form.
+# The builder loads the price list from the portal (/api/quote/catalog) and stays hidden if it cannot;
+# the simple enquiry form below always works. Both post to the portal's /api/quote.
+_guide = ["The occasion: an event, a wedding, a Kukyala or an introduction ceremony, a portrait or product shoot, or business video",
+          "The date, or how flexible it is, and the location",
+          "What you would like covered: photography, videography or both, and roughly for how long",
+          "Whether you would like drone coverage considered (available in suitable packages, where the venue and conditions allow)",
+          "What you need at the end: edited photographs, a film, or both"]
+quote_body = f'''
+<section class="page-head"><div class="wrap">{crumb("films", "Get a Quote")}
+<h1>Request a quote from Synergy Capture Films.</h1>
+<p class="lede">Tell us about the occasion. We reply within 24 hours with questions or a quotation.</p></div></section>
+<section class="sec" id="builder" hidden data-api="{PORTAL}"><div class="wrap">
+<div class="qb-intro"><p class="eyebrow">Quotation builder</p>
+<p class="prose">Choose your event, the services and any extras to see an itemised estimate, then send it to our team. This is a quotation request: nothing is booked or charged.</p></div>
+<div id="qb"></div>
+<p style="margin-top:48px"><button type="button" class="link" id="simple-toggle" hidden aria-expanded="false" aria-controls="enquiry-form">Prefer to describe it in your own words? Use the simple form</button></p>
+</div></section>
+<section class="sec" id="enquiry-form"><div class="wrap"><div class="contact">
+<div class="info"><div><h2 class="h3" style="margin-bottom:20px">What to tell us</h2>{plain(_guide)}</div>
+{CONTACT_DL}</div>
+<div class="form">{form_html(["films"], BUSINESSES["films"]["name"])}</div>
+</div></div></section>
+'''
 QUOTE_LD = json_ld(
     breadcrumb_ld(("Home", "/"), ("Synergy Capture Films", "/capture-films/"), ("Get a Quote", QUOTE)),
     {"@type": "ContactPage", "@id": f"{SITE}{QUOTE}#webpage", "name": "Request a quote from Synergy Capture Films",
@@ -1153,7 +1169,7 @@ QUOTE_LD = json_ld(
 )
 page(QUOTE, "Request a Photography or Video Quote | Synergy Capture Films",
      "Request a photography or videography quote from Synergy Capture Films for an event, wedding, Kukyala, introduction ceremony, portrait shoot or business video.",
-     quote_body, QUOTE, schema=QUOTE_LD, biz="films")
+     quote_body, QUOTE, schema=QUOTE_LD, biz="films", extra_js=(("quote-builder", "qb"),))
 
 # ---------- SYNERGY CREATIVE HUB ----------
 creative_body = f'''

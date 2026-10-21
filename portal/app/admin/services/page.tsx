@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ServicesManager from "./services-manager";
+import { NavLink as Link } from "@/components/nav-link";
 import { PageHeader } from "@/components/ux/primitives";
 import type { Service } from "@/lib/types";
 import { canManageServices, isOperationalStaff } from "@/lib/security/roles";
@@ -31,6 +32,10 @@ export default async function AdminServicesPage() {
   return (
     <div className="ux-page ux-page--wide">
       <ServicesManager services={(services ?? []) as Service[]} canEdit={canManageServices(profile.role)} />
+      <p className="ux-notice" style={{ marginTop: 32 }}>
+        Website quotations for Synergy Capture Films use their own price list:{" "}
+        <Link href="/admin/services/capture-films">Capture Films quotation price list →</Link>
+      </p>
     </div>
   );
 }

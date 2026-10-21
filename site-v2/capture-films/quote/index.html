@@ -27,7 +27,7 @@
 <link rel="manifest" href="/manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/sch.css?v=e4f09c3c55">
+<link rel="stylesheet" href="/assets/css/sch.css?v=e43486cf18">
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://synergyconceptshub.com/"},{"@type":"ListItem","position":2,"name":"Synergy Capture Films","item":"https://synergyconceptshub.com/capture-films/"},{"@type":"ListItem","position":3,"name":"Get a Quote","item":"https://synergyconceptshub.com/capture-films/quote/"}]},{"@type":"ContactPage","@id":"https://synergyconceptshub.com/capture-films/quote/#webpage","name":"Request a quote from Synergy Capture Films","url":"https://synergyconceptshub.com/capture-films/quote/","about":{"@type":"Organization","name":"Synergy Capture Films","url":"https://synergyconceptshub.com/capture-films/","parentOrganization":{"@id":"https://synergyconceptshub.com/#organization"}}}]}</script>
 </head>
 <body data-business="films" class="has-secbar">
@@ -42,7 +42,13 @@
 
 <section class="page-head"><div class="wrap"><p class="eyebrow"><a href="/capture-films/" style="text-decoration:none">Synergy Capture Films</a> &nbsp;/&nbsp; Get a Quote</p>
 <h1>Request a quote from Synergy Capture Films.</h1>
-<p class="lede">Tell us about the occasion or shoot. A short description is enough: we reply within 24 hours with questions or a quote.</p></div></section>
+<p class="lede">Tell us about the occasion. We reply within 24 hours with questions or a quotation.</p></div></section>
+<section class="sec" id="builder" hidden data-api="https://portal.synergyconceptshub.com"><div class="wrap">
+<div class="qb-intro"><p class="eyebrow">Quotation builder</p>
+<p class="prose">Choose your event, the services and any extras to see an itemised estimate, then send it to our team. This is a quotation request: nothing is booked or charged.</p></div>
+<div id="qb"></div>
+<p style="margin-top:48px"><button type="button" class="link" id="simple-toggle" hidden aria-expanded="false" aria-controls="enquiry-form">Prefer to describe it in your own words? Use the simple form</button></p>
+</div></section>
 <section class="sec" id="enquiry-form"><div class="wrap"><div class="contact">
 <div class="info"><div><h2 class="h3" style="margin-bottom:20px">What to tell us</h2><ul class="plain-list"><li>The occasion: an event, a wedding, a Kukyala or an introduction ceremony, a portrait or product shoot, or business video</li><li>The date, or how flexible it is, and the location</li><li>What you would like covered: photography, videography or both, and roughly for how long</li><li>Whether you would like drone coverage considered (available in suitable packages, where the venue and conditions allow)</li><li>What you need at the end: edited photographs, a film, or both</li></ul></div>
 <dl>
@@ -63,10 +69,10 @@
 <option value="other">Other</option></select></div>
 </div>
 <div class="field"><label for="f-brief">About your project</label><textarea id="f-brief" name="brief" required></textarea></div>
+<div class="hp" aria-hidden="true"><label for="f-website">Website</label><input id="f-website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
 <div class="form-foot"><button class="btn" type="submit">Send enquiry</button><p id="formStatus" role="status"></p></div>
 </form></div>
 </div></div></section>
-<!-- Future: the Capture Films package builder (event type, photography and/or videography, package, optional extras such as drone) replaces or extends this form. Keep this URL and the /api/quote integration. -->
 
 </main>
 <footer class="site-footer"><div class="wrap">
@@ -85,6 +91,6 @@
 </div>
 <div class="base"><span>&copy; 2026 Synergy Concepts Hub. Kampala, Uganda.</span><a href="#top">Back to top &#8593;</a></div>
 </div></footer>
-<script src="/assets/js/sch.js?v=264ce05f7d" defer></script>
+<script src="/assets/js/sch.js?v=9f249c76f9" defer></script><script src="/assets/js/quote-builder.js?v=0364403af5" defer></script>
 </body>
 </html>

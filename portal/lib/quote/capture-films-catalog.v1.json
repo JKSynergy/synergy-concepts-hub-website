@@ -1,0 +1,339 @@
+{
+  "schema": 1,
+  "currency": "UGX",
+  "events": [
+    {
+      "id": "wedding",
+      "label": "Wedding"
+    },
+    {
+      "id": "kwanjula",
+      "label": "Kwanjula / Introduction"
+    },
+    {
+      "id": "kukyala",
+      "label": "Kukyala"
+    },
+    {
+      "id": "other",
+      "label": "Other event"
+    }
+  ],
+  "services": [
+    {
+      "id": "photography",
+      "label": "Photography",
+      "prices": {
+        "wedding": 2000000,
+        "kwanjula": 2000000,
+        "kukyala": 1000000,
+        "other": 1000000
+      },
+      "deliverables": {
+        "wedding": [
+          "200 edited and printed photographs",
+          "One 12×12-inch photo book containing the printed photographs",
+          "One 12×16-inch framed print"
+        ],
+        "kwanjula": [
+          "200 edited and printed photographs",
+          "One 12×12-inch photo book containing the printed photographs",
+          "One 12×16-inch framed print"
+        ],
+        "kukyala": [
+          "100–150 edited photographs delivered as soft copies",
+          "Photo book available on request (quoted separately)"
+        ],
+        "other": [
+          "Edited photographs delivered as soft copies"
+        ]
+      }
+    },
+    {
+      "id": "videography",
+      "label": "Videography",
+      "prices": {
+        "wedding": 2000000,
+        "kwanjula": 2000000,
+        "kukyala": 1000000,
+        "other": 1000000
+      },
+      "deliverables": {
+        "wedding": [
+          "Standard HD long video delivered on a flash disk"
+        ],
+        "kwanjula": [
+          "Standard HD long video delivered on a flash disk"
+        ],
+        "kukyala": [
+          "Standard HD long video delivered on a flash disk"
+        ],
+        "other": [
+          "Standard HD long video delivered on a flash disk"
+        ]
+      }
+    }
+  ],
+  "extras": [
+    {
+      "id": "video_4k",
+      "label": "4K video upgrade",
+      "requires": [
+        "videography"
+      ],
+      "pricing": {
+        "wedding": {
+          "type": "fixed",
+          "amount": 1500000
+        },
+        "kwanjula": {
+          "type": "fixed",
+          "amount": 1500000
+        },
+        "kukyala": {
+          "type": "fixed",
+          "amount": 1500000
+        },
+        "other": {
+          "type": "fixed",
+          "amount": 1500000
+        }
+      }
+    },
+    {
+      "id": "edit_25",
+      "label": "Special 25-minute edited video",
+      "requires": [
+        "videography"
+      ],
+      "pricing": {
+        "wedding": {
+          "type": "fixed",
+          "amount": 1000000
+        },
+        "kwanjula": {
+          "type": "fixed",
+          "amount": 1000000
+        }
+      }
+    },
+    {
+      "id": "edit_45",
+      "label": "Special 45-minute edited video",
+      "requires": [
+        "videography"
+      ],
+      "pricing": {
+        "wedding": {
+          "type": "fixed",
+          "amount": 1000000
+        },
+        "kwanjula": {
+          "type": "fixed",
+          "amount": 1000000
+        }
+      }
+    },
+    {
+      "id": "memory_lane",
+      "label": "Memory Lane",
+      "pricing": {
+        "wedding": {
+          "type": "fixed",
+          "amount": 600000
+        },
+        "kwanjula": {
+          "type": "fixed",
+          "amount": 600000
+        }
+      }
+    },
+    {
+      "id": "love_story",
+      "label": "Love Story",
+      "pricing": {
+        "wedding": {
+          "type": "fixed",
+          "amount": 700000
+        }
+      }
+    },
+    {
+      "id": "same_day_edit",
+      "label": "Same-day edit / highlights",
+      "pricing": {
+        "wedding": {
+          "type": "fixed",
+          "amount": 700000
+        },
+        "kwanjula": {
+          "type": "fixed",
+          "amount": 700000
+        }
+      }
+    },
+    {
+      "id": "social_reel",
+      "label": "Social media content",
+      "unit": "reel",
+      "pricing": {
+        "other": {
+          "type": "per_unit",
+          "amount": 150000,
+          "min": 1,
+          "max": 50
+        }
+      }
+    },
+    {
+      "id": "drone",
+      "label": "Drone coverage",
+      "note": "Subject to venue suitability, conditions, availability and approval.",
+      "pricing": {
+        "wedding": {
+          "type": "fixed",
+          "amount": 500000
+        },
+        "kwanjula": {
+          "type": "fixed",
+          "amount": 500000
+        },
+        "kukyala": {
+          "type": "fixed",
+          "amount": 500000
+        },
+        "other": {
+          "type": "fixed",
+          "amount": 500000
+        }
+      }
+    },
+    {
+      "id": "live_streaming",
+      "label": "Live streaming",
+      "pricing": {
+        "wedding": {
+          "type": "special_quote"
+        },
+        "kwanjula": {
+          "type": "special_quote"
+        },
+        "kukyala": {
+          "type": "special_quote"
+        },
+        "other": {
+          "type": "special_quote"
+        }
+      }
+    },
+    {
+      "id": "extra_photographer",
+      "label": "Extra photographer",
+      "pricing": {
+        "wedding": {
+          "type": "fixed",
+          "amount": 700000
+        },
+        "kwanjula": {
+          "type": "fixed",
+          "amount": 700000
+        },
+        "kukyala": {
+          "type": "fixed",
+          "amount": 700000
+        },
+        "other": {
+          "type": "fixed",
+          "amount": 500000
+        }
+      }
+    },
+    {
+      "id": "extra_videographer",
+      "label": "Extra videographer",
+      "pricing": {
+        "wedding": {
+          "type": "fixed",
+          "amount": 700000
+        },
+        "kwanjula": {
+          "type": "fixed",
+          "amount": 700000
+        },
+        "kukyala": {
+          "type": "fixed",
+          "amount": 700000
+        },
+        "other": {
+          "type": "fixed",
+          "amount": 500000
+        }
+      }
+    },
+    {
+      "id": "screens",
+      "label": "Screens",
+      "pricing": {
+        "wedding": {
+          "type": "special_quote"
+        },
+        "kwanjula": {
+          "type": "special_quote"
+        },
+        "kukyala": {
+          "type": "special_quote"
+        },
+        "other": {
+          "type": "special_quote"
+        }
+      }
+    },
+    {
+      "id": "photo_book",
+      "label": "Additional photo book",
+      "pricing": {
+        "wedding": {
+          "type": "fixed",
+          "amount": 1000000
+        },
+        "kwanjula": {
+          "type": "fixed",
+          "amount": 1000000
+        },
+        "kukyala": {
+          "type": "on_request"
+        },
+        "other": {
+          "type": "fixed",
+          "amount": 1000000
+        }
+      }
+    },
+    {
+      "id": "framed_print",
+      "label": "Additional framed print",
+      "pricing": {
+        "wedding": {
+          "type": "fixed",
+          "amount": 200000
+        },
+        "kwanjula": {
+          "type": "fixed",
+          "amount": 200000
+        },
+        "kukyala": {
+          "type": "on_request"
+        }
+      }
+    }
+  ],
+  "logistics": {
+    "kampala": "Within our Kampala service area, Synergy Capture Films provides transport for the team. No separate transport charge is added.",
+    "upcountry": "Outside Kampala, you provide transport and accommodation for the team, or ask us for a separate logistics quotation based on the location.",
+    "area": "Our team confirms whether your venue is within the Kampala service area."
+  },
+  "notes": {
+    "usd": "USD prices are indicative conversions of our UGX price list using the exchange rate set by Synergy Capture Films.",
+    "request": "This is a quotation request, not a booking or payment. Our team reviews it and confirms the quotation with you."
+  }
+}

@@ -5,7 +5,8 @@ import BookingDetailActions from "./booking-detail-actions";
 import { PageHeader, Section, StatusMark } from "@/components/ux/primitives";
 import { BOOKING_TONE, bookingTypeText, fmtDateTime } from "../booking-labels";
 import type { BookingStatus } from "@/lib/types";
-import { isOperationalStaff } from "@/lib/security/roles";
+import { canReviewQuotes, isOperationalStaff } from "@/lib/security/roles";
+import QuotePanel from "./quote-panel";
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -66,7 +67,9 @@ export default async function AdminBookingDetailPage({
   const clientLabel =
     client?.company_name || client?.full_name || client?.email || "Unknown requester";
 
-  const meta = Object.entries((booking.metadata as Record<string, unknown>) ?? {});
+  // Internal keys are not shown as rows; a structured quotation has its own section below.
+  const HIDDEN_META = new Set(["request_id", "quote_request_id"]);
+  const meta = Object.entries((booking.metadata as Record<string, unknown>) ?? {}).filter(([k]) => !HIDDEN_META.has(k));
   const status = booking.status as BookingStatus;
 
   return (
@@ -114,6 +117,8 @@ export default async function AdminBookingDetailPage({
           )}
         </dl>
       </Section>
+
+      <QuotePanel supabase={supabase} bookingId={id} canReview={canReviewQuotes(profile.role)} />
 
       <Section title="Requester">
         <dl className="ux-dl">

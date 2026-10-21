@@ -25,6 +25,8 @@ export type InvoiceDoc = {
   /** Rendered under "Notes". Defaults when null; [] omits the section entirely. */
   projectNotes?: string[] | null;
   paymentTerms?: string[] | null;
+  /** Heading for the payment-terms section; set for an invoice's own agreed arrangement. */
+  paymentTermsLabel?: string | null;
   additionalTerms?: string[] | null;
   /** Defaults when null; [] omits the section entirely. */
   standardTerms?: string[] | null;
@@ -113,5 +115,50 @@ function isPaymentScheduleLine(line: string): boolean {
  * from duplicating or contradicting the centralized Payment Terms.
  */
 export function splitProjectNotes(text: string | null | undefined): string[] {
-  return splitLines(text).filter((line) => !isPaymentScheduleLine(line));
+  const lines = splitLines(text);
+  const block = agreedBlock(lines);
+  return lines
+    .filter((_, i) => !block || i < block.start || i >= block.end)
+    .filter((line) => !isPaymentScheduleLine(line));
+}
+
+/**
+ * A short line with no sentence punctuation, e.g. "Deliverables" or
+ * "Agreed Payment Terms": shown as a sub-heading inside Notes.
+ */
+export function isNoteHeading(line: string): boolean {
+  const l = stripMarkdown(line);
+  if (!l || l.length > 40) return false;
+  if (/[.;!?,%]$|:/.test(l) || /^\d/.test(l)) return false;
+  return l.split(/\s+/).length <= 4;
+}
+
+/** Removes stray markdown emphasis (e.g. "**") typed into notes. */
+export function stripMarkdown(line: string): string {
+  return line.replace(/\*\*|__/g, "").replace(/\s+/g, " ").trim();
+}
+
+const AGREED_HEADING = /^(agreed|special|custom)\s+payment\s+(terms|arrangements?|schedule)\s*:?$/i;
+
+/** Lines [start, end) of an "Agreed Payment Terms" block in the notes, heading included. */
+function agreedBlock(lines: string[]): { start: number; end: number } | null {
+  const start = lines.findIndex((l) => AGREED_HEADING.test(stripMarkdown(l)));
+  if (start === -1) return null;
+  let end = start + 1;
+  while (end < lines.length && !isNoteHeading(lines[end])) end++;
+  return { start, end };
+}
+
+/**
+ * An invoice's own payment arrangement, written in its notes under a heading
+ * such as "Agreed Payment Terms". When present it replaces the standard 80/20
+ * terms on the PDF, and every line under the heading is kept (schedule lines
+ * included). Returns null when the notes contain no such block.
+ */
+export function agreedPaymentTerms(text: string | null | undefined): string[] | null {
+  const lines = splitLines(text);
+  const block = agreedBlock(lines);
+  if (!block) return null;
+  const terms = lines.slice(block.start + 1, block.end).map(stripMarkdown).filter(Boolean);
+  return terms.length > 0 ? terms : null;
 }

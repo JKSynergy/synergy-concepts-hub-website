@@ -7,6 +7,7 @@ import ServiceInvoicePDF from "@/lib/pdf/service-invoice-template";
 import { buildServiceInvoice, type SvcRequestRecord } from "@/lib/pdf/service-invoice-doc";
 import { DEFAULT_PAYMENT_METHODS, DEFAULT_SIGNATURE } from "@/lib/pdf/invoice-doc";
 import { brandAssets } from "@/lib/pdf/brand-assets";
+import { preparePdfFonts } from "@/lib/pdf/pdf-theme";
 import { addDays, todayEAT } from "@/lib/billing/periods";
 
 // Preview of the invoice one billing period of an agreement would produce.
@@ -109,6 +110,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     signature: { ...DEFAULT_SIGNATURE, imageSrc: assets.signature },
   });
 
+  await preparePdfFonts();
   const blob = await pdf(ServiceInvoicePDF({ inv: svc, logoSrc: assets.logo, stampSrc: null })).toBlob();
   return new NextResponse(Buffer.from(await blob.arrayBuffer()), {
     headers: {

@@ -7,9 +7,9 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import zlib from "node:zlib";
 import ts from "typescript";
 import { renderToBuffer } from "@react-pdf/renderer";
+import { pdfPages } from "./helpers/pdf-text.mjs";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -21,6 +21,7 @@ function build() {
     ["invoice-doc", "ts"],
     ["service-invoice-doc", "ts"],
     ["service-invoice-template", "tsx"],
+    ["pdf-theme", "ts"],
     ["response-targets", "ts", "billing"],
   ]) {
     const source = readFileSync(join(ROOT, "lib", folder, `${name}.${ext}`), "utf8");
@@ -36,26 +37,22 @@ function build() {
   return dir;
 }
 
+/** All text in the PDF as one string (embedded fonts decoded via their ToUnicode maps). */
 function text(buf) {
-  const txt = buf.toString("latin1");
-  const out = [];
-  for (const m of txt.matchAll(/stream\r?\n([\s\S]*?)\r?\nendstream/g)) {
-    try {
-      const d = zlib.inflateSync(Buffer.from(m[1], "latin1")).toString("latin1");
-      for (const a of d.match(/\[[^\]]*\]\s*TJ/g) || []) {
-        out.push([...a.matchAll(/<([0-9A-Fa-f]+)>/g)].map((x) => Buffer.from(x[1], "hex").toString("latin1")).join(""));
-      }
-    } catch {
-      /* non-text stream */
-    }
-  }
-  return out.join("\n");
+  return pdfPages(buf)
+    .flat()
+    .join(" ")
+    .replace(/\s+/g, " ");
 }
 
 const dir = build();
 const { buildServiceInvoice, fmtPeriod, fmtRange, fmtDuration } = await import(`file://${join(dir, "service-invoice-doc.js")}`);
 const { default: ServiceInvoicePDF } = await import(`file://${join(dir, "service-invoice-template.js")}`);
 const { DEFAULT_PAYMENT_METHODS } = await import(`file://${join(dir, "invoice-doc.js")}`);
+// As the PDF routes do. Without it, glyphs cached while embedding one PDF (e.g.
+// the dots inside a colon) lose their text in the next PDF rendered by the same
+// process: the USD test below would read "18 75" instead of "18.75".
+await (await import(`file://${join(dir, "pdf-theme.js")}`)).preparePdfFonts();
 test.after(() => rmSync(dir, { recursive: true, force: true }));
 
 const line = (position, section, description, quantity, unit, unit_price, extra = {}) => ({

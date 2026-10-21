@@ -85,12 +85,23 @@ const nextConfig: NextConfig & { outputFileTracingIncludes?: Record<string, stri
     ];
   },
   outputFileTracingIncludes: {
+    // PDFs embed Sora/Inter and the brand images, read from disk at request time.
     "/api/invoices/[id]/pdf": [
       "./node_modules/pdfkit/js/standard-fonts/**/*",
+      "./public/fonts/pdf/**/*",
+      "./public/images/**/*",
+    ],
+    "/api/receipts/[id]/pdf": [
+      "./public/fonts/pdf/**/*",
+      "./public/images/sch-logo-mark-pdf.png",
+      "./public/images/SCH E-Signature small.png",
+      "./public/images/SCH E-Stamp small paid.png",
+      "./public/images/SCH E-Stamp small partially paid.png",
     ],
     "/api/agreements/[id]/preview": [
       "./node_modules/pdfkit/js/standard-fonts/**/*",
-      "./public/images/logo-with-black.png",
+      "./public/fonts/pdf/**/*",
+      "./public/images/sch-logo-mark-pdf.png",
       "./public/images/SCH E-Signature small.png",
     ],
   },

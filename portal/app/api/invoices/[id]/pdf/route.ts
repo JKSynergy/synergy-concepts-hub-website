@@ -7,11 +7,13 @@ import InvoicePDF from "@/lib/pdf/invoice-template";
 import {
   splitLines,
   splitProjectNotes,
+  agreedPaymentTerms,
   DEFAULT_SIGNATURE,
   DEFAULT_PAYMENT_METHODS,
   type InvoiceDoc,
 } from "@/lib/pdf/invoice-doc";
 import ServiceInvoicePDF from "@/lib/pdf/service-invoice-template";
+import { preparePdfFonts } from "@/lib/pdf/pdf-theme";
 import { buildServiceInvoice, type SvcRequestRecord } from "@/lib/pdf/service-invoice-doc";
 import { readFileSync } from "fs";
 import { join } from "path";
@@ -106,6 +108,8 @@ export async function GET(
   const signatureBuffer = readFileSync(signaturePath);
   const signatureSrc = `data:image/png;base64,${signatureBuffer.toString("base64")}`;
 
+  await preparePdfFonts();
+
   // Itemised service invoices (recurring agreements and per-request support,
   // migration 037) use the service layout. Its service record comes from a
   // database function that re-checks the caller may see this invoice.
@@ -150,7 +154,8 @@ export async function GET(
             : status === "cancelled"
               ? cancelledStampSrc
               : null;
-    const svcBlob = await pdf(ServiceInvoicePDF({ inv: svc, logoSrc, stampSrc })).toBlob();
+    const markSrc = `data:image/png;base64,${readFileSync(join(process.cwd(), "public", "images", "sch-logo-mark-pdf.png")).toString("base64")}`;
+    const svcBlob = await pdf(ServiceInvoicePDF({ inv: svc, logoSrc: markSrc, stampSrc })).toBlob();
     return new NextResponse(Buffer.from(await svcBlob.arrayBuffer()), {
       headers: {
         "Content-Type": "application/pdf",
@@ -179,6 +184,14 @@ export async function GET(
   const noteLines = splitProjectNotes(invoice!.notes);
   if (noteLines.length > 0) doc.projectNotes = noteLines;
 
+  // An arrangement written under "Agreed Payment Terms" in the notes replaces
+  // the standard 80/20 terms, so the client never sees two conflicting schedules.
+  const agreedTerms = agreedPaymentTerms(invoice!.notes);
+  if (agreedTerms) {
+    doc.paymentTerms = agreedTerms;
+    doc.paymentTermsLabel = "Agreed Payment Terms";
+  }
+
   doc.signature = signatureSrc ? { ...DEFAULT_SIGNATURE, imageSrc: signatureSrc } : null;
 
   const blob = await pdf(
@@ -186,7 +199,7 @@ export async function GET(
       invoice: invoice!,
       lineItems: lineItems ?? [],
       client: client ?? { email: "" },
-      logoSrc,
+      logoSrc: `data:image/png;base64,${readFileSync(join(process.cwd(), "public", "images", "sch-logo-mark-pdf.png")).toString("base64")}`,
       paidStampSrc,
       unpaidStampSrc,
       partialStampSrc,

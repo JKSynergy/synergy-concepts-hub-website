@@ -6,7 +6,7 @@ const dataUri = (path: string) => `data:image/png;base64,${readFileSync(path).to
 
 export function brandAssets() {
   return {
-    logo: dataUri(join(process.cwd(), "public", "images", "logo-with-black.png")),
+    logo: dataUri(join(process.cwd(), "public", "images", "sch-logo-mark-pdf.png")),
     signature: dataUri(join(process.cwd(), "public", "images", "SCH E-Signature small.png")),
   };
 }

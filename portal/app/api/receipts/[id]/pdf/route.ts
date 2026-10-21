@@ -4,6 +4,7 @@ import { canViewInvoiceDocument, isPortalRole, isUuid } from "@/lib/security/acc
 import { checkApplicationAccess } from "@/lib/actions/application-suspension";
 import { pdf } from "@react-pdf/renderer";
 import ReceiptPDF from "@/lib/pdf/receipt-template";
+import { preparePdfFonts } from "@/lib/pdf/pdf-theme";
 import { readFileSync } from "fs";
 import { join } from "path";
 
@@ -75,20 +76,25 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const logoPath = join(process.cwd(), "public", "images", "logo-with-black.png");
-  const logoBuffer = readFileSync(logoPath);
-  const logoSrc = `data:image/png;base64,${logoBuffer.toString("base64")}`;
+  const image = (file: string) =>
+    `data:image/png;base64,${readFileSync(join(process.cwd(), "public", "images", file)).toString("base64")}`;
 
-  const signaturePath = join(process.cwd(), "public", "images", "SCH E-Signature small.png");
-  const signatureBuffer = readFileSync(signaturePath);
-  const signatureSrc = `data:image/png;base64,${signatureBuffer.toString("base64")}`;
+  await preparePdfFonts();
 
-  const paidStampPath = join(process.cwd(), "public", "images", "SCH E-Stamp small paid.png");
-  const paidStampBuffer = readFileSync(paidStampPath);
-  const paidStampSrc = `data:image/png;base64,${paidStampBuffer.toString("base64")}`;
-
+  // The template picks the stamp from the balance left after this payment:
+  // "Paid" only when nothing is outstanding, otherwise "Partially paid".
   const blob = await pdf(
-    ReceiptPDF({ receipt, payment, invoice, client: client ?? { email: "" }, logoSrc, signatureSrc, paidStampSrc, payments: payments ?? [] })
+    ReceiptPDF({
+      receipt,
+      payment,
+      invoice,
+      client: client ?? { email: "" },
+      logoSrc: image("sch-logo-mark-pdf.png"),
+      signatureSrc: image("SCH E-Signature small.png"),
+      paidStampSrc: image("SCH E-Stamp small paid.png"),
+      partialStampSrc: image("SCH E-Stamp small partially paid.png"),
+      payments: payments ?? [],
+    })
   ).toBlob();
 
   const buffer = Buffer.from(await blob.arrayBuffer());

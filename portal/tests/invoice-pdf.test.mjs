@@ -2,7 +2,8 @@
 //
 // Verifies the content-driven renderer: natural pagination, continuation
 // headers, repeated table headers, section ordering (scope before pricing),
-// payment-term precedence, optional sections, and per-page footers.
+// payment-term precedence (including an invoice's own agreed arrangement),
+// payments to date, status stamps, optional sections, and per-page footers.
 //
 // The template is TSX, so the test transpiles it with the project's TypeScript
 // into a temp directory and imports the emitted JS — no bundler required.
@@ -12,11 +13,12 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import zlib from "node:zlib";
 import React from "react";
 import ts from "typescript";
 import { renderToBuffer } from "@react-pdf/renderer";
-import { splitLines, splitProjectNotes, defaultScheduleAmounts } from "../lib/pdf/invoice-doc.ts";
+import { splitLines, splitProjectNotes, agreedPaymentTerms, defaultScheduleAmounts } from "../lib/pdf/invoice-doc.ts";
+import { stampForStatus } from "../lib/pdf/pdf-theme.ts";
+import { pdfPages } from "./helpers/pdf-text.mjs";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -26,7 +28,7 @@ function buildTemplate() {
   const cacheRoot = join(ROOT, "node_modules", ".cache");
   mkdirSync(cacheRoot, { recursive: true });
   const dir = mkdtempSync(join(cacheRoot, "invpdf-"));
-  for (const [name, ext] of [["invoice-template", "tsx"], ["invoice-doc", "ts"]]) {
+  for (const [name, ext] of [["invoice-template", "tsx"], ["invoice-doc", "ts"], ["pdf-theme", "ts"]]) {
     const source = readFileSync(join(ROOT, "lib", "pdf", `${name}.${ext}`), "utf8");
     const out = ts.transpileModule(source, {
       fileName: `${name}.${ext}`,
@@ -35,37 +37,14 @@ function buildTemplate() {
         module: ts.ModuleKind.ESNext,
         target: ts.ScriptTarget.ES2020,
       },
-    }).outputText.replace(/from "\.\/invoice-doc"/, 'from "./invoice-doc.js"');
+    }).outputText.replace(/from "\.\/(invoice-doc|pdf-theme)"/g, 'from "./$1.js"');
     writeFileSync(join(dir, `${name}.js`), out);
   }
   return dir;
 }
 
-function decodePages(buf) {
-  const txt = buf.toString("latin1");
-  const streams = [...txt.matchAll(/stream\r?\n([\s\S]*?)\r?\nendstream/g)].map((m) => m[1]);
-  const pages = [];
-  for (const st of streams) {
-    try {
-      const d = zlib.inflateSync(Buffer.from(st, "latin1")).toString("latin1");
-      const arr = d.match(/\[[^\]]*\]\s*TJ/g) || [];
-      const lines = arr
-        .map((a) =>
-          [...a.matchAll(/<([0-9A-Fa-f]+)>/g)]
-            .map((x) => Buffer.from(x[1], "hex").toString("latin1"))
-            .join("")
-        )
-        .filter((s) => s.trim());
-      if (!lines.length) continue;
-      const pg = lines.find((x) => /Page \d+ of/.test(x));
-      if (pg) pages[parseInt(pg.match(/\d+/)[0], 10) - 1] = lines;
-      else pages.push(lines);
-    } catch {
-      /* non-text stream */
-    }
-  }
-  return pages;
-}
+/** Text runs per page (embedded Sora/Inter fonts are decoded via their ToUnicode maps). */
+const decodePages = (buf) => pdfPages(buf);
 
 const invoice = (over = {}) => ({
   id: "inv-1",
@@ -104,6 +83,14 @@ const li = (i, description, unit_price) => ({
 
 let InvoicePDF;
 
+// Load the fonts and prime their glyph caches once, as the PDF routes do
+// (see preparePdfFonts in lib/pdf/pdf-theme.ts).
+{
+  const dir = buildTemplate();
+  await (await import(`file://${join(dir, "pdf-theme.js")}`)).preparePdfFonts();
+  rmSync(dir, { recursive: true, force: true });
+}
+
 test("invoice PDF: small invoice renders required page-1 content; bare invoice renders", async () => {
   const dir = buildTemplate();
   ({ default: InvoicePDF } = await import(`file://${join(dir, "invoice-template.js")}`));
@@ -119,10 +106,10 @@ test("invoice PDF: small invoice renders required page-1 content; bare invoice r
     const pages = decodePages(small);
     assert.ok(pages.length >= 1 && pages.length <= 2, `expected 1-2 pages, got ${pages.length}`);
     const p1 = pages[0].join(" ");
-    assert.match(p1, /INVOICE/);
+    assert.match(p1, /Invoice/);
     assert.match(p1, /SCOPE OF WORK/);
     assert.match(p1, /INVESTMENT/);
-    assert.match(p1, /TOTAL DUE/);
+    assert.match(p1, /AMOUNT DUE/);
     assert.match(p1, /Page 1 of \d+/);
 
     const bare = await renderToBuffer(
@@ -391,6 +378,11 @@ function routeDoc(inv) {
   if (scope.length > 0) doc.scope = { items: scope };
   const notes = splitProjectNotes(inv.notes);
   if (notes.length > 0) doc.projectNotes = notes;
+  const agreed = agreedPaymentTerms(inv.notes);
+  if (agreed) {
+    doc.paymentTerms = agreed;
+    doc.paymentTermsLabel = "Agreed Payment Terms";
+  }
   doc.signature = null;
   return doc;
 }
@@ -415,9 +407,10 @@ test("SCH-2026-0006: scope_of_work renders on page 1 immediately above Investmen
   const tableIdx = p1.indexOf("DESCRIPTION");
   assert.ok(scopeIdx > -1 && investIdx > -1 && tableIdx > -1, "scope, investment and table headings on page 1");
   assert.ok(scopeIdx < investIdx && investIdx < tableIdx, "scope → investment → table");
-  // Every scope line sits between the scope heading and the investment heading — nothing else in between.
-  assert.deepEqual(p1.slice(scopeIdx + 1, investIdx), SCOPE_0006);
-  assert.ok(p1.includes("TOTAL DUE") && p1.includes("UGX 3,600,000"), "total due on page 1");
+  // Every scope line sits between the scope heading and the investment heading — nothing else
+  // in between apart from the list numbers.
+  assert.deepEqual(p1.slice(scopeIdx + 1, investIdx).filter((s) => !/^\d{2}$/.test(s)), SCOPE_0006);
+  assert.ok(p1.includes("AMOUNT DUE") && p1.includes("UGX 3,600,000"), "amount due on page 1");
   // Scope is not repeated further down the document.
   assert.equal(pages.flat().filter((s) => s === SCOPE_0006[0]).length, 1);
 });
@@ -437,11 +430,103 @@ test("SCH-2026-0006: only the official 80/20 schedule appears; 75/25 is gone", a
   assert.deepEqual(defaultScheduleAmounts(1_000_001), { deposit: 800_001, balance: 200_000 }, "amounts always sum to the total");
 });
 
-test("invoice PDF: status label is taken from the invoice record, not the template", async () => {
-  for (const status of ["draft", "paid", "partially paid", "overdue", "cancelled"]) {
-    const p1 = (await render0006({ status }))[0];
-    assert.ok(p1.includes(status.toUpperCase()), `${status} shown`);
-    assert.ok(!p1.includes("SENT"), `${status}: no hardcoded SENT`);
+test("invoice PDF: the stamp follows the invoice status; drafts are labelled instead", async () => {
+  assert.equal(stampForStatus("paid"), "paid");
+  assert.equal(stampForStatus("partially paid"), "partial");
+  assert.equal(stampForStatus("sent"), "unpaid");
+  assert.equal(stampForStatus("overdue"), "unpaid");
+  assert.equal(stampForStatus("cancelled"), "cancelled");
+  assert.equal(stampForStatus("draft"), null);
+  assert.ok((await render0006({ status: "draft" }))[0].includes("DRAFT"), "draft labelled");
+  // With stamp images supplied, issued invoices show the stamp, not a text badge.
+  const dir = buildTemplate();
+  ({ default: InvoicePDF } = await import(`file://${join(dir, "invoice-template.js")}`));
+  try {
+    const png = `data:image/png;base64,${readFileSync(join(ROOT, "public", "images", "sch-logo-mark-pdf.png")).toString("base64")}`;
+    const inv = invoice0006({ status: "sent" });
+    const p1 = decodePages(
+      await renderToBuffer(
+        React.createElement(InvoicePDF, { invoice: inv, lineItems: items0006, client, doc: routeDoc(inv), unpaidStampSrc: png })
+      )
+    )[0];
+    assert.ok(!p1.includes("SENT"), "no text badge when the stamp is shown");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
-  assert.ok((await render0006({ status: "sent" }))[0].includes("SENT"));
+});
+
+// ── SCH-2026-0008 shape: notes with sub-headings and an agreed payment arrangement ──
+const NOTES_0008 = [
+  "Deliverables",
+  "1. Edited Ceremony Photographs: 100–150 professionally edited digital photographs.",
+  "2. Kukyala Highlights Video:** One (1) professionally edited short highlights video.",
+  "Exclusions",
+  "The following are not included in the quoted package:",
+  "Full-length recording of the ceremony.",
+  "Agreed Payment Terms",
+  "Special payment arrangement agreed upon for this booking; these are not the standard payment terms.",
+  "70% deposit payable upon confirmation of the booking.",
+  "30% Payment: Payable on the date of the event.",
+].join("\n");
+
+test("agreedPaymentTerms: lines under an 'Agreed Payment Terms' heading are kept whole, schedule lines included", () => {
+  assert.deepEqual(agreedPaymentTerms(NOTES_0008), [
+    "Special payment arrangement agreed upon for this booking; these are not the standard payment terms.",
+    "70% deposit payable upon confirmation of the booking.",
+    "30% Payment: Payable on the date of the event.",
+  ]);
+  assert.equal(agreedPaymentTerms("Payment due by the due date."), null);
+  // The block is moved out of Notes entirely.
+  const notes = splitProjectNotes(NOTES_0008);
+  assert.ok(!notes.some((l) => /Agreed Payment Terms|70%|30%|Special payment/.test(l)));
+  assert.ok(notes.includes("Exclusions"));
+});
+
+test("SCH-2026-0008: the agreed arrangement replaces the standard 80/20 terms", async () => {
+  const dir = buildTemplate();
+  ({ default: InvoicePDF } = await import(`file://${join(dir, "invoice-template.js")}`));
+  try {
+    const inv = { ...invoice(), invoice_number: "SCH-2026-0008", total: 1_000_000, subtotal: 1_000_000, notes: NOTES_0008 };
+    const doc = routeDoc(inv);
+    const all = decodePages(
+      await renderToBuffer(React.createElement(InvoicePDF, { invoice: inv, lineItems: [li(1, "Photography", 1_000_000)], client, doc }))
+    )
+      .flat()
+      .join(" ")
+      .replace(/\s+/g, " ");
+    assert.match(all, /AGREED PAYMENT TERMS/);
+    assert.match(all, /70% deposit payable upon confirmation/);
+    assert.match(all, /30% Payment: Payable on the date of the event\./);
+    assert.doesNotMatch(all, /80%|Deposit \(80%\)/, "standard schedule not shown");
+    // Notes keep their structure; stray markdown is removed.
+    assert.match(all, /Deliverables/);
+    assert.match(all, /Kukyala Highlights Video/);
+    assert.doesNotMatch(all, /\*\*/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("invoice PDF: payments to date reduce the amount shown as due", async () => {
+  const dir = buildTemplate();
+  ({ default: InvoicePDF } = await import(`file://${join(dir, "invoice-template.js")}`));
+  try {
+    const inv = { ...invoice(), status: "partially paid", total: 1_000_000, subtotal: 1_000_000 };
+    const p1 = decodePages(
+      await renderToBuffer(
+        React.createElement(InvoicePDF, {
+          invoice: inv,
+          lineItems: [li(1, "Photography", 1_000_000)],
+          client,
+          payments: [{ id: "p1", invoice_id: "inv-1", amount: 500_000, method: "mobile_money", paid_at: "2026-10-21T10:00:00Z" }],
+          doc: { signature: null },
+        })
+      )
+    )[0].join(" ");
+    assert.match(p1, /Paid to date/);
+    assert.match(p1, /BALANCE DUE/);
+    assert.match(p1, /UGX 500,000/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

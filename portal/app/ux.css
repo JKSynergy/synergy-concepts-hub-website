@@ -433,6 +433,14 @@ textarea.ux-input { min-height: 84px; resize: vertical; }
 .ux-fin-addrow td { background: var(--ux-paper); }
 .ux-fin-addrow .ux-input { width: 100%; min-width: 0; }
 .ux-fin-addrow .ux-num .ux-input { text-align: right; }
+/* Editable number cells: the finance table's wide number-cell padding left almost no room
+   for the digits, so input rows use tighter padding and wider number columns. */
+.ux-fin-addrow .ux-input[type="number"] { padding-left: 8px; padding-right: 4px; }
+@media (min-width: 768px) {
+  .ux-fin-addrow td.ux-num { padding-left: 8px; padding-right: 8px; }
+  .ux-fin-qty { width: 112px; }
+  .ux-fin-price { width: 180px; }
+}
 .ux-fin-actionbar { display: flex; flex-wrap: wrap; gap: 8px 32px; align-items: center; }
 .ux-fin-sub { display: block; font-size: 12px; color: var(--ux-muted); margin-top: 2px; font-family: var(--ux-f-body); font-weight: 400; letter-spacing: 0; }
 .ux-fin-note { white-space: pre-wrap; max-width: 70ch; }

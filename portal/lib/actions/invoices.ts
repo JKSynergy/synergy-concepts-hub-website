@@ -121,6 +121,38 @@ export async function addLineItem(
   return { success: true };
 }
 
+export async function updateLineItem(
+  lineItemId: string,
+  invoiceId: string,
+  formData: FormData
+): Promise<ActionResult> {
+  const { supabase, allowed } = await requireFinance();
+  if (!allowed) return { error: "Forbidden" };
+
+  const description = (formData.get("description") as string)?.trim();
+  const quantity = Number(formData.get("quantity"));
+  const unit_price = Number(formData.get("unit_price"));
+
+  if (!description) return { error: "Description is required" };
+  if (!Number.isFinite(quantity) || quantity <= 0) return { error: "Quantity must be greater than 0" };
+  if (!Number.isFinite(unit_price) || unit_price < 0) return { error: "Unit price cannot be negative" };
+
+  // The amount and the invoice totals are recalculated by the database triggers,
+  // which also refuse the change once a payment has been recorded.
+  const { data, error } = await supabase
+    .from("invoice_line_items")
+    .update({ description, quantity, unit_price })
+    .eq("id", lineItemId)
+    .eq("invoice_id", invoiceId)
+    .select("id");
+
+  if (error) return { error: error.message };
+  if (!data || data.length === 0) return { error: "Line item not found" };
+  revalidatePath(`/admin/invoices/${invoiceId}`);
+  revalidatePath(`/client/invoices/${invoiceId}`);
+  return { success: true };
+}
+
 export async function deleteLineItem(lineItemId: string, invoiceId: string): Promise<ActionResult> {
   const { supabase, allowed } = await requireFinance();
   if (!allowed) return { error: "Forbidden" };

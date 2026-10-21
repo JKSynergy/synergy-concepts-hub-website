@@ -209,10 +209,10 @@ export default function NewInvoiceForm({
                     <td data-label="Description">
                       <input form="ni-add" className="ux-input" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="New line item" aria-label="Description" required />
                     </td>
-                    <td className="ux-num" data-label="Qty" style={{ width: 90 }}>
+                    <td className="ux-num ux-fin-qty" data-label="Qty">
                       <input form="ni-add" className="ux-input" type="number" value={qty} onChange={(e) => setQty(Number(e.target.value))} min={1} aria-label="Quantity" />
                     </td>
-                    <td className="ux-num" data-label="Unit price (UGX)" style={{ width: 170 }}>
+                    <td className="ux-num ux-fin-price" data-label="Unit price (UGX)">
                       <input form="ni-add" className="ux-input" type="number" value={price} onChange={(e) => setPrice(e.target.value === "" ? "" : Number(e.target.value))} min={0} aria-label="Unit price in UGX" required />
                     </td>
                     <td className="ux-num" data-label="Amount">

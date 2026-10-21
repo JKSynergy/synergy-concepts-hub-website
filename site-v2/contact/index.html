@@ -27,21 +27,22 @@
 <link rel="manifest" href="/manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/sch.css?v=65d69aa9a4">
+<link rel="stylesheet" href="/assets/css/sch.css?v=e4f09c3c55">
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://synergyconceptshub.com/"},{"@type":"ListItem","position":2,"name":"Contact","item":"https://synergyconceptshub.com/contact/"}]},{"@type":"ContactPage","@id":"https://synergyconceptshub.com/contact/#webpage","name":"Contact Synergy Concepts Hub","url":"https://synergyconceptshub.com/contact/","mainEntity":{"@id":"https://synergyconceptshub.com/#organization"}}]}</script>
 </head>
-<body>
+<body data-business="sch-group">
 <a class="skip" href="#main">Skip to content</a>
 <header class="site-header"><div class="hdr">
 <a class="brand" href="/" aria-label="Synergy Concepts Hub, home"><img src="/assets/img/logo-mark-light.png" alt="" width="30" height="30"><span>Synergy Concepts Hub</span></a>
 <button class="menu-btn" aria-expanded="false" aria-controls="nav">Menu</button>
-<nav class="nav" id="nav" aria-label="Main"><ul class="nav-links"><li><a href="/technology/">Technology</a></li><li class="nav-drop"><a href="/creative/">Creative</a><button class="nav-caret" type="button" aria-expanded="false" aria-controls="nav-sub-creative" aria-label="Creative pages"><span aria-hidden="true">&#9662;</span></button><ul class="nav-sub" id="nav-sub-creative"><li><a href="/creative/photography/">Photography &amp; Video</a></li><li><a href="/creative/design/">Graphic Design &amp; Branding</a></li><li><a href="/creative/social-media-content/">Social Media Content</a></li></ul></li><li><a href="/products/">Products</a></li><li><a href="/work/">Work</a></li><li><a href="/about/">About</a></li></ul><div class="nav-actions"><a class="nav-portal" href="https://portal.synergyconceptshub.com">Portal&nbsp;&#8594;</a><a class="btn" href="/contact/">Start a Project</a></div></nav>
+<nav class="nav" id="nav" aria-label="Main"><ul class="nav-links"><li class="nav-biz"><a href="/technology/"><span class="nb">Concepts Hub</span><span class="nt">Technology &amp; products</span></a></li><li class="nav-biz"><a href="/capture-films/"><span class="nb">Capture Films</span><span class="nt">Photography &amp; video</span></a></li><li class="nav-biz"><a href="/creative-hub/"><span class="nb">Creative Hub</span><span class="nt">Design &amp; content</span></a></li><li class="nav-biz"><a href="/academy/"><span class="nb">Multimedia Academy</span><span class="nt">Courses &amp; training</span></a></li><li class="nav-gap" aria-hidden="true"></li><li class="nav-sup"><a href="/work/">Our Work</a></li><li class="nav-sup"><a href="/about/">About</a></li></ul><div class="nav-actions"><a class="nav-portal" href="https://portal.synergyconceptshub.com">Portal&nbsp;&#8594;</a><a class="btn" href="/contact/">Start a Project</a></div></nav>
 </div></header>
+
 <main id="main">
 
 <section class="page-head"><div class="wrap"><p class="eyebrow">Contact</p>
 <h1>Contact Synergy Concepts Hub to start a project.</h1>
-<p class="lede">Tell us what you need across business software, websites, photography, graphic design or social media content. A short description is enough and we reply within 24 hours.</p></div></section>
+<p class="lede">Tell us what you need across business software, websites, photography, video, graphic design or social media content. Choose the service and we pass it to the right Synergy business. A short description is enough and we reply within 24 hours.</p></div></section>
 <section class="sec " id="contact"><div class="wrap">
 
 <div class="contact">
@@ -60,18 +61,8 @@
 <div class="field"><label for="f-phone">Phone or WhatsApp (optional)</label><input id="f-phone" name="phone" type="tel" autocomplete="tel"></div>
 <div class="field"><label for="f-service">What do you need?</label><select id="f-service" name="service" required>
 <option value="">Select</option>
-<optgroup label="Creative">
-<option value="photography">Photography &amp; Video</option>
-<option value="design">Graphic Design &amp; Branding</option>
-<option value="social">Social Media Content</option>
-<option value="social-management">Social Media Management</option>
-<option value="campaign">Campaign &amp; Content Production</option>
-<option value="creative">Other creative work</option>
-</optgroup>
-<optgroup label="Technology">
-<option value="technology">Systems, websites or automation</option>
-</optgroup>
-<option value="products">Products</option><option value="other">Other</option></select></div>
+<optgroup label="Synergy Capture Films"><option value="photography" data-business="Synergy Capture Films">Photography</option><option value="weddings" data-business="Synergy Capture Films">Weddings &amp; ceremonies</option><option value="video" data-business="Synergy Capture Films">Videography</option></optgroup><optgroup label="Synergy Creative Hub"><option value="design" data-business="Synergy Creative Hub">Graphic Design &amp; Branding</option><option value="social" data-business="Synergy Creative Hub">Social Media Content</option><option value="social-management" data-business="Synergy Creative Hub">Social Media Management</option><option value="campaign" data-business="Synergy Creative Hub">Campaign &amp; Content Production</option><option value="creative" data-business="Synergy Creative Hub">Other creative work</option></optgroup><optgroup label="Synergy Concepts Hub"><option value="technology" data-business="Synergy Concepts Hub">Systems, websites or automation</option><option value="products" data-business="Synergy Concepts Hub">Products</option></optgroup>
+<option value="other">Other</option></select></div>
 </div>
 <div class="field"><label for="f-brief">About your project</label><textarea id="f-brief" name="brief" required></textarea></div>
 <div class="form-foot"><button class="btn" type="submit">Send enquiry</button><p id="formStatus" role="status"></p></div>
@@ -82,31 +73,19 @@
 <footer class="site-footer"><div class="wrap">
 <div class="grid">
 <div><a class="brand" href="/"><img src="/assets/img/logo-mark-light.png" alt="" width="30" height="30"><span>Synergy Concepts Hub</span></a>
-<p class="about">Technology and business creative company in Kampala, Uganda. The company behind Synergy Multimedia Academy.</p></div>
-<div><p class="lbl">Technology</p><ul>
-<li><a href="/technology/#business-systems">Business Systems</a></li>
-<li><a href="/technology/#web-digital-platforms">Web &amp; Digital Platforms</a></li>
-<li><a href="/technology/#ai-automation">AI &amp; Automation</a></li>
-<li><a href="/technology/#managed-technology">Managed Technology</a></li></ul></div>
-<div><p class="lbl">Creative</p><ul>
-<li><a href="/creative/photography/">Photography &amp; Video</a></li>
-<li><a href="/creative/design/">Graphic Design &amp; Branding</a></li>
-<li><a href="/creative/social-media-content/">Social Media Content</a></li>
-<li><a href="/creative/#campaign-content-production">Campaign &amp; Content Production</a></li></ul></div>
-<div><p class="lbl">Company</p><ul>
-<li><a href="/products/">Products</a></li>
-<li><a href="/work/">Work</a></li>
-<li><a href="/about/">About</a></li>
-<li><a href="/contact/">Contact</a></li></ul></div>
+<p class="about">Technology company in Kampala, Uganda, and the parent company of Synergy Capture Films, Synergy Creative Hub and Synergy Multimedia Academy.</p></div>
+<div><p class="lbl">Concepts Hub</p><ul><li><a href="/technology/#business-systems">Business Systems</a></li><li><a href="/technology/#web-digital-platforms">Web &amp; Digital Platforms</a></li><li><a href="/technology/#ai-automation">AI &amp; Automation</a></li><li><a href="/technology/#managed-technology">Managed Technology</a></li><li><a href="/products/">Products</a></li></ul></div>
+<div><p class="lbl">Capture Films</p><ul><li><a href="/capture-films/">Overview</a></li><li><a href="/capture-films/photography/">Photography</a></li><li><a href="/capture-films/weddings/">Weddings &amp; Ceremonies</a></li><li><a href="/capture-films/videography/">Videography</a></li><li><a href="/capture-films/quote/">Get a Quote</a></li></ul></div>
+<div><p class="lbl">Creative Hub</p><ul><li><a href="/creative-hub/">Overview</a></li><li><a href="/creative-hub/design/">Design &amp; Branding</a></li><li><a href="/creative-hub/social-media-content/">Social Media Content</a></li><li><a href="/creative-hub/#campaign-content-production">Campaign Production</a></li><li><a href="/creative-hub/brief/">Send a Brief</a></li></ul></div>
+<div><p class="lbl">Company</p><ul><li><a href="/academy/">Multimedia Academy</a></li><li><a href="/work/">Our Work</a></li><li><a href="/about/">About</a></li><li><a href="/contact/">Contact</a></li><li><a href="https://portal.synergyconceptshub.com">Portal</a></li></ul></div>
 <div><p class="lbl">Elsewhere</p><ul>
-<li><a href="https://synergymultimediaacademy.com/" target="_blank" rel="noopener">Academy (SMA) &#8599;</a></li>
-<li><a href="https://portal.synergyconceptshub.com">Portal</a></li>
+<li><a href="https://synergymultimediaacademy.com/" target="_blank" rel="noopener">Academy website &#8599;</a></li>
 <li><a href="https://www.linkedin.com/company/synergyconceptshub" target="_blank" rel="noopener">LinkedIn</a></li>
 <li><a href="https://www.instagram.com/synergycapturefilms_weddings" target="_blank" rel="noopener">Instagram</a></li>
 <li><a href="https://www.youtube.com/@synergycapturefilms_ug" target="_blank" rel="noopener">YouTube</a></li></ul></div>
 </div>
 <div class="base"><span>&copy; 2026 Synergy Concepts Hub. Kampala, Uganda.</span><a href="#top">Back to top &#8593;</a></div>
 </div></footer>
-<script src="/assets/js/sch.js?v=566a8e3c81" defer></script>
+<script src="/assets/js/sch.js?v=b45ae68c05" defer></script>
 </body>
 </html>

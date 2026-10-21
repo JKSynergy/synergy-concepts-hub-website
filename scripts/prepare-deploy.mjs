@@ -7,6 +7,11 @@
  * Its contents become the site ROOT (site-v2/index.html -> _deploy/index.html).
  * Nothing from the old root-level website (index.html, css/, js/, images/ ...)
  * is copied. The portal (portal/) is a separate app and is never published.
+ *
+ * Fail-safe packaging: the old _deploy is deleted first, the new folder is built and
+ * checked in _deploy.staging, and only a folder that passed every check is renamed to
+ * _deploy. On any failure both folders are removed, so a failed run never leaves a
+ * stale, partial or rejected _deploy that `wrangler pages deploy` could publish.
  */
 import fs from 'fs';
 import path from 'path';
@@ -15,6 +20,7 @@ import { fileURLToPath } from 'url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const srcDir = path.join(root, 'site-v2');
 const outDir = path.join(root, '_deploy');
+const stageDir = path.join(root, '_deploy.staging');
 const MAX_BYTES = 24 * 1024 * 1024;
 
 // Directory names that are never published, at any depth.
@@ -81,30 +87,56 @@ function walk(dir, out = []) {
   return out;
 }
 
-// ── 1. Source must be the approved site ─────────────────────────────────────
+// Only these two folders are ever deleted, and only as direct children of the repository root.
+function removeOwned(dir) {
+  if (dir !== outDir && dir !== stageDir) throw new Error(`refusing to delete ${dir}`);
+  if (path.dirname(dir) !== root) throw new Error(`refusing to delete ${dir}: not in ${root}`);
+  // maxRetries covers Windows EBUSY/EPERM while antivirus or indexing holds a file briefly.
+  fs.rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+  if (fs.existsSync(dir)) throw new Error(`could not delete ${dir}`);
+}
+
+// Rename staging -> _deploy. On Windows a just-written folder can be locked for a moment, so retry.
+function promote() {
+  for (let attempt = 1; ; attempt++) {
+    try { fs.renameSync(stageDir, outDir); return; }
+    catch (e) {
+      if (attempt >= 10 || !['EPERM', 'EACCES', 'EBUSY'].includes(e.code)) throw e;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 200);
+    }
+  }
+}
+
+class Abort extends Error {}
+
+function build() {
+// ── 1. Remove any previous output first, so no failure below can leave one behind ──
+removeOwned(stageDir);
+removeOwned(outDir);
+
+// ── 2. Source must be the approved site ─────────────────────────────────────
 if (!fs.existsSync(path.join(srcDir, 'index.html'))) {
-  console.error('ABORT: site-v2/index.html not found. Refusing to build.');
-  process.exit(1);
+  throw new Abort('site-v2/index.html not found. Refusing to build.');
 }
 
-// ── 2. Fresh output folder ──────────────────────────────────────────────────
-if (fs.existsSync(outDir)) fs.rmSync(outDir, { recursive: true, force: true });
-fs.mkdirSync(outDir, { recursive: true });
+// ── 3. Build in the staging folder ─────────────────────────────────────────
+fs.mkdirSync(stageDir);
+const out = stageDir;
 
-console.log('Copying site-v2 -> _deploy ...');
-const skipped = copyRecursive(srcDir, outDir);
+console.log('Copying site-v2 -> _deploy.staging ...');
+const skipped = copyRecursive(srcDir, out);
 
-// ── 3. Security headers (Cloudflare Pages _headers) ─────────────────────────
+// ── 4. Security headers (Cloudflare Pages _headers) ─────────────────────────
 // site-v2 has none of its own; reuse the reviewed repo-root _headers file.
-if (!fs.existsSync(path.join(outDir, '_headers')) && fs.existsSync(path.join(root, '_headers'))) {
-  fs.copyFileSync(path.join(root, '_headers'), path.join(outDir, '_headers'));
+if (!fs.existsSync(path.join(out, '_headers')) && fs.existsSync(path.join(root, '_headers'))) {
+  fs.copyFileSync(path.join(root, '_headers'), path.join(out, '_headers'));
 }
 
-// ── 4. Retire the OLD site's service worker ─────────────────────────────────
+// ── 5. Retire the OLD site's service worker ─────────────────────────────────
 // The old site registered /sw.js and cached its pages (cache "sch-v1.x").
 // Returning visitors would keep seeing the old site. This replacement worker
 // deletes those caches, unregisters itself and reloads open tabs.
-fs.writeFileSync(path.join(outDir, 'sw.js'), `// Retires the previous site's service worker. Safe to keep.
+fs.writeFileSync(path.join(out, 'sw.js'), `// Retires the previous site's service worker. Safe to keep.
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
@@ -118,11 +150,11 @@ self.addEventListener('activate', (event) => {
 });
 `);
 
-// ── 5. Guards: fail the build rather than publish something unsafe ─────────
-const entries = walk(outDir);
+// ── 6. Guards: fail the build rather than publish something unsafe ─────────
+const entries = walk(out);
 const problems = [];
-if (!fs.existsSync(path.join(outDir, 'index.html'))) problems.push('_deploy/index.html missing');
-if (Buffer.compare(fs.readFileSync(path.join(outDir, 'index.html')), fs.readFileSync(path.join(srcDir, 'index.html'))) !== 0) {
+if (!fs.existsSync(path.join(out, 'index.html'))) problems.push('_deploy/index.html missing');
+else if (Buffer.compare(fs.readFileSync(path.join(out, 'index.html')), fs.readFileSync(path.join(srcDir, 'index.html'))) !== 0) {
   problems.push('_deploy/index.html is not site-v2/index.html');
 }
 const SECRET_RES = [
@@ -135,7 +167,7 @@ const SECRET_RES = [
 ];
 let files = 0;
 for (const e of entries) {
-  const rel = path.relative(outDir, e.p).replace(/\\/g, '/');
+  const rel = path.relative(out, e.p).replace(/\\/g, '/');
   const segs = rel.split('/');
   if (segs.some((s) => /^\.env/i.test(s))) problems.push(`env file/dir present: ${rel}`);
   if (segs.includes('portal')) problems.push(`portal present: ${rel}`);
@@ -148,9 +180,29 @@ for (const e of entries) {
   }
 }
 if (problems.length) {
-  console.error('\nABORT: unsafe deploy folder:\n - ' + problems.join('\n - '));
-  process.exit(1);
+  throw new Abort('unsafe deploy folder:\n - ' + problems.join('\n - '));
 }
 
-console.log(`\nReady: ${outDir} (${files} files) — source: site-v2/`);
-if (skipped) console.log(`Skipped ${skipped} oversized file(s).`);
+// ── 7. Promote: only a folder that passed every check becomes _deploy ──────
+promote();
+if (fs.existsSync(stageDir) || !fs.existsSync(path.join(outDir, 'index.html'))) {
+  throw new Abort('promotion of _deploy.staging to _deploy did not complete');
+}
+return { files, skipped };
+}
+
+try {
+  const { files, skipped } = build();
+  console.log(`\nReady: ${outDir} (${files} files) — source: site-v2/`);
+  if (skipped) console.log(`Skipped ${skipped} oversized file(s).`);
+} catch (err) {
+  console.error(`\nABORT: ${err instanceof Abort ? err.message : (err && err.stack) || err}`);
+  let cleaned = true;
+  for (const dir of [stageDir, outDir]) {
+    try { removeOwned(dir); } catch (e) { cleaned = false; console.error(`  cleanup failed: ${e.message}`); }
+  }
+  console.error(cleaned
+    ? 'No _deploy folder was left behind. Nothing can be deployed until packaging succeeds.'
+    : 'WARNING: delete _deploy and _deploy.staging by hand before deploying anything.');
+  process.exitCode = 1;
+}

@@ -233,6 +233,9 @@ a.row:hover .a { transform: translateX(4px); }
 .field label { font-size: .8125rem; color: var(--fg-2); }
 .field input, .field select, .field textarea { width: 100%; background: transparent; border: 0; border-bottom: 1px solid var(--rule); border-radius: 0; padding: 12px 0; font-size: 1rem; color: var(--fg); }
 .field select option { color: var(--ink); background: var(--navy-2); }
+/* Group headings in the dropdown list ("Creative", "Technology"): without this, Windows draws them
+   white-on-white because they inherit the light text but keep the system's light background. */
+.field select optgroup { color: var(--orange-text); background: var(--navy-2); font-style: normal; font-weight: 600; }
 .field textarea { resize: vertical; min-height: 120px; }
 .field input:focus, .field select:focus, .field textarea:focus { outline: 0; border-color: var(--orange); }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }

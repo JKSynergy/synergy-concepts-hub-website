@@ -38,7 +38,7 @@ Next.js 15 + TypeScript portal for Synergy Concepts Hub. Admin + Client dashboar
    NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
    SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
    NEXT_PUBLIC_PORTAL_URL=https://your-portal-domain.vercel.app
-   ADMIN_NOTIFY_EMAIL=synergyconceptshub@gmail.com
+   ADMIN_NOTIFY_EMAIL=info@synergyconceptshub.com
    MARKETING_SITE_ORIGIN=https://synergyconceptshub.com
    ```
    > The service role key (Settings -> API) is required for the admin client invite flow. Keep it server-side only.

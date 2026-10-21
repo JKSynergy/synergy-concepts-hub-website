@@ -187,7 +187,7 @@
         status.textContent = 'Thank you. We will reply within 24 hours.';
         form.reset();
       }).catch(function () {
-        status.textContent = 'Something went wrong. Please email synergyconceptshub@gmail.com or message us on WhatsApp.';
+        status.textContent = 'Something went wrong. Please email info@synergyconceptshub.com or message us on WhatsApp.';
       }).then(function () {
         submit.disabled = false;
         submit.textContent = 'Send enquiry';

@@ -59,7 +59,7 @@ Professional website for Synergy Concepts Hub - A creative and digital transform
 - **Charcoal:** #2E2E2E
 
 ## 📞 Contact Information
-- **Email:** synergyconceptshub@gmail.com
+- **Email:** info@synergyconceptshub.com
 - **Location:** Kampala, Uganda
 - **Services:** Creative & Digital Solutions
 

@@ -356,7 +356,7 @@ export function buildServiceInvoice(input: {
       : undefined,
     paymentTerms: [
       dueText,
-      "Please quote the invoice number as the payment reference and email proof of payment to synergyconceptshub@gmail.com.",
+      "Please quote the invoice number as the payment reference and email proof of payment to info@synergyconceptshub.com.",
     ],
     paymentMethods: input.paymentMethods,
     signature: input.signature ?? null,

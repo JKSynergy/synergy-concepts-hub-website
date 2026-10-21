@@ -15,7 +15,7 @@ ROOT = os.path.join(SRC, "_review", "preview") if PREVIEW else SRC
 SITE = "https://synergyconceptshub.com"
 SMA = "https://synergymultimediaacademy.com/"
 PORTAL = "https://portal.synergyconceptshub.com"
-EMAIL = "synergyconceptshub@gmail.com"
+EMAIL = "info@synergyconceptshub.com"
 PHONE_DISPLAY = "+256 706 739 311"
 PHONE_TEL = "+256706739311"
 WHATSAPP = "https://wa.me/256706739311?text=Hello%20Synergy%20Concepts%20Hub"

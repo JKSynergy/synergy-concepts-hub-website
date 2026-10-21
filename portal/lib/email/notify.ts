@@ -13,7 +13,7 @@ export type EmailOutcome = { status: "sent" } | { status: "skipped" } | { status
 
 export async function sendEmail({ to, subject, html }: SendArgs): Promise<EmailOutcome> {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM ?? "SCH Portal <synergyconceptshub@gmail.com>";
+  const from = process.env.EMAIL_FROM ?? "Synergy Concepts Hub <info@synergyconceptshub.com>";
 
   if (!apiKey) {
     // Email not configured — skipped (dev / free tier). Callers are told, so

@@ -38,7 +38,7 @@ export const SCH_BRAND = {
   name: "Synergy Concepts Hub",
   tagline: "Where Ideas Come to Life",
   phone: "+256706739311",
-  email: "synergyconceptshub@gmail.com",
+  email: "info@synergyconceptshub.com",
   website: "www.synergyconceptshub.com",
 } as const;
 
@@ -62,7 +62,7 @@ export const DEFAULT_NOTES: string[] = ["Payment due by the due date.", "Thank y
 
 export const DEFAULT_STANDARD_TERMS: string[] = [
   "Please quote the invoice number as the payment reference for all transactions.",
-  "A remittance advice or proof of payment should be emailed to synergyconceptshub@gmail.com after payment.",
+  "A remittance advice or proof of payment should be emailed to info@synergyconceptshub.com after payment.",
   "All deliverables remain the property of Synergy Concepts Hub until full payment has been received.",
 ];
 

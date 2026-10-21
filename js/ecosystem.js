@@ -888,7 +888,7 @@
       } catch (err) {
         if (status) {
           status.textContent =
-            'Something went wrong. Please email synergyconceptshub@gmail.com.';
+            'Something went wrong. Please email info@synergyconceptshub.com.';
           status.classList.add('text-red-400');
         }
       } finally {

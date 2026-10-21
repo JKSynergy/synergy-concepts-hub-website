@@ -60,74 +60,112 @@ def items(category=None, group=None):
     return [it for it in ITEMS if (category is None or it["category"] == category)
             and (group is None or it["group"] == group)]
 
-# Five top-level links; Creative opens a small menu of its sub-pages. Academy lives in the footer.
-NAV = [
-    ("Technology", "/technology/", None),
-    ("Creative", "/creative/", [
-        ("Photography & Video", "/creative/photography/"),
-        ("Graphic Design & Branding", "/creative/design/"),
-        ("Social Media Content", "/creative/social-media-content/"),
-    ]),
-    ("Products", "/products/", None),
-    ("Work", "/work/", None),
-    ("About", "/about/", None),
-]
-# Pages that highlight a nav item other than their own URL
-NAV_PARENT = {}
+# ---- Business destinations (information architecture, Oct 2026) ----
+# The four Synergy businesses are the primary navigation. Synergy Concepts Hub is the parent company and
+# also the home of its own technology services and software products. Each business has a section bar
+# (secondary navigation) shown on its pages: pages declare their business with page(..., biz=KEY).
+# Shared corporate pages (Work, About, Contact) belong to no business.
+BUSINESSES = {
+    "sch": {
+        "name": "Synergy Concepts Hub", "short": "Concepts Hub", "tag": "Technology &amp; products",
+        "href": "/technology/",
+        "sub": [("Technology", "/technology/"), ("Products", "/products/"),
+                ("Technology work", "/work/#technology"), ("Start a Project", "/contact/?service=technology")],
+    },
+    "films": {
+        "name": "Synergy Capture Films", "short": "Capture Films", "tag": "Photography &amp; video",
+        "href": "/capture-films/",
+        "sub": [("Overview", "/capture-films/"), ("Photography", "/capture-films/photography/"),
+                ("Weddings &amp; Ceremonies", "/capture-films/weddings/"), ("Videography", "/capture-films/videography/"),
+                ("Our Work", "/work/#photography"), ("Get a Quote", "/capture-films/quote/")],
+    },
+    "creative": {
+        "name": "Synergy Creative Hub", "short": "Creative Hub", "tag": "Design &amp; content",
+        "href": "/creative-hub/",
+        "sub": [("Overview", "/creative-hub/"), ("Design &amp; Branding", "/creative-hub/design/"),
+                ("Social Media Content", "/creative-hub/social-media-content/"),
+                ("Our Work", "/work/#design"), ("Send a Brief", "/creative-hub/brief/")],
+    },
+    "academy": {
+        "name": "Synergy Multimedia Academy", "short": "Multimedia Academy", "tag": "Courses &amp; training",
+        "href": "/academy/",
+        "sub": [("Overview", "/academy/"), ("Courses &amp; admissions", SMA)],
+    },
+}
+BIZ_ORDER = ["sch", "films", "creative", "academy"]
 
 def esc(s): return html.escape(s, quote=True)
+SUPPORT_NAV = [("Our Work", "/work/"), ("About", "/about/")]
+# The last secondary link of a business is its enquiry action, shown with the accent.
+_CTA_LABELS = {"Start a Project", "Get a Quote", "Send a Brief"}
 
-def header(current):
-    links = ""
-    for label, href, sub in NAV:
-        if not sub:
-            cur = ' aria-current="page"' if current == href else ""
-            links += f'<li><a href="{href}"{cur}>{label}</a></li>'
+def ext_link(label, href, cls=""):
+    """External link (other Synergy sites, social channels): opens in a new tab, says so to screen readers."""
+    c = f' class="{cls}"' if cls else ""
+    return (f'<a{c} href="{href}" target="_blank" rel="noopener">{label}&nbsp;<span aria-hidden="true">&#8599;</span>'
+            f'<span class="vh"> (opens another website)</span></a>')
+
+def section_bar(biz, current):
+    b = BUSINESSES[biz]
+    lis = ""
+    for label, href in b["sub"]:
+        if href.startswith("http"):
+            lis += f"<li>{ext_link(label, href)}</li>"
             continue
-        # parent is highlighted on its own page and on every sub-page
-        in_section = current == href or any(current == h for _, h in sub)
-        cur = ' aria-current="page"' if current == href else (' aria-current="true"' if in_section else "")
-        items = ""
-        for l, h in sub:
-            sub_cur = ' aria-current="page"' if current == h else ""
-            items += f'<li><a href="{h}"{sub_cur}>{esc(l)}</a></li>'
-        links += (f'<li class="nav-drop"><a href="{href}"{cur}>{label}</a>'
-                  f'<button class="nav-caret" type="button" aria-expanded="false" aria-controls="nav-sub-{label.lower()}" '
-                  f'aria-label="{label} pages"><span aria-hidden="true">&#9662;</span></button>'
-                  f'<ul class="nav-sub" id="nav-sub-{label.lower()}">{items}</ul></li>')
+        cur = ' aria-current="page"' if current == href else ""
+        cls = ' class="secbar-cta"' if label in _CTA_LABELS else ""
+        lis += f'<li><a href="{href}"{cls}{cur}>{label}</a></li>'
+    return (f'<nav class="secbar" aria-label="{b["name"]}"><div class="secbar-in">'
+            f'<a class="secbar-name" href="{b["href"]}">{b["name"]}</a><ul>{lis}</ul></div></nav>')
+
+def header(current, biz=None):
+    links = ""
+    for key in BIZ_ORDER:
+        b = BUSINESSES[key]
+        cur = ' aria-current="page"' if current == b["href"] else (' aria-current="true"' if key == biz else "")
+        links += (f'<li class="nav-biz"><a href="{b["href"]}"{cur}><span class="nb">{b["short"]}</span>'
+                  f'<span class="nt">{b["tag"]}</span></a></li>')
+    links += '<li class="nav-gap" aria-hidden="true"></li>'
+    for label, href in SUPPORT_NAV:
+        cur = ' aria-current="page"' if current == href else ""
+        links += f'<li class="nav-sup"><a href="{href}"{cur}>{label}</a></li>'
     actions = (
         f'<a class="nav-portal" href="{PORTAL}">Portal&nbsp;&#8594;</a>'
         '<a class="btn" href="/contact/">Start a Project</a>'
     )
+    bar = section_bar(biz, current) if biz else ""
     return f'''<a class="skip" href="#main">Skip to content</a>
 <header class="site-header"><div class="hdr">
 <a class="brand" href="/" aria-label="Synergy Concepts Hub, home"><img src="{IMG}logo-mark-light.png" alt="" width="30" height="30"><span>Synergy Concepts Hub</span></a>
 <button class="menu-btn" aria-expanded="false" aria-controls="nav">Menu</button>
 <nav class="nav" id="nav" aria-label="Main"><ul class="nav-links">{links}</ul><div class="nav-actions">{actions}</div></nav>
-</div></header>'''
+</div></header>
+{bar}'''
+
+def _flinks(lst):
+    return "".join(f'<li><a href="{h}">{l}</a></li>' for l, h in lst)
 
 FOOTER = f'''<footer class="site-footer"><div class="wrap">
 <div class="grid">
 <div><a class="brand" href="/"><img src="{IMG}logo-mark-light.png" alt="" width="30" height="30"><span>Synergy Concepts Hub</span></a>
-<p class="about">Technology and business creative company in Kampala, Uganda. The company behind Synergy Multimedia Academy.</p></div>
-<div><p class="lbl">Technology</p><ul>
-<li><a href="/technology/#business-systems">Business Systems</a></li>
-<li><a href="/technology/#web-digital-platforms">Web &amp; Digital Platforms</a></li>
-<li><a href="/technology/#ai-automation">AI &amp; Automation</a></li>
-<li><a href="/technology/#managed-technology">Managed Technology</a></li></ul></div>
-<div><p class="lbl">Creative</p><ul>
-<li><a href="/creative/photography/">Photography &amp; Video</a></li>
-<li><a href="/creative/design/">Graphic Design &amp; Branding</a></li>
-<li><a href="/creative/social-media-content/">Social Media Content</a></li>
-<li><a href="/creative/#campaign-content-production">Campaign &amp; Content Production</a></li></ul></div>
-<div><p class="lbl">Company</p><ul>
-<li><a href="/products/">Products</a></li>
-<li><a href="/work/">Work</a></li>
-<li><a href="/about/">About</a></li>
-<li><a href="/contact/">Contact</a></li></ul></div>
+<p class="about">Technology company in Kampala, Uganda, and the parent company of Synergy Capture Films, Synergy Creative Hub and Synergy Multimedia Academy.</p></div>
+<div><p class="lbl">Concepts Hub</p><ul>{_flinks([
+    ("Business Systems", "/technology/#business-systems"), ("Web &amp; Digital Platforms", "/technology/#web-digital-platforms"),
+    ("AI &amp; Automation", "/technology/#ai-automation"), ("Managed Technology", "/technology/#managed-technology"),
+    ("Products", "/products/")])}</ul></div>
+<div><p class="lbl">Capture Films</p><ul>{_flinks([
+    ("Overview", "/capture-films/"), ("Photography", "/capture-films/photography/"),
+    ("Weddings &amp; Ceremonies", "/capture-films/weddings/"), ("Videography", "/capture-films/videography/"),
+    ("Get a Quote", "/capture-films/quote/")])}</ul></div>
+<div><p class="lbl">Creative Hub</p><ul>{_flinks([
+    ("Overview", "/creative-hub/"), ("Design &amp; Branding", "/creative-hub/design/"),
+    ("Social Media Content", "/creative-hub/social-media-content/"),
+    ("Campaign Production", "/creative-hub/#campaign-content-production"), ("Send a Brief", "/creative-hub/brief/")])}</ul></div>
+<div><p class="lbl">Company</p><ul>{_flinks([
+    ("Multimedia Academy", "/academy/"), ("Our Work", "/work/"), ("About", "/about/"), ("Contact", "/contact/"),
+    ("Portal", PORTAL)])}</ul></div>
 <div><p class="lbl">Elsewhere</p><ul>
-<li><a href="{SMA}" target="_blank" rel="noopener">Academy (SMA) &#8599;</a></li>
-<li><a href="{PORTAL}">Portal</a></li>
+<li><a href="{SMA}" target="_blank" rel="noopener">Academy website &#8599;</a></li>
 <li><a href="https://www.linkedin.com/company/synergyconceptshub" target="_blank" rel="noopener">LinkedIn</a></li>
 <li><a href="https://www.instagram.com/synergycapturefilms_weddings" target="_blank" rel="noopener">Instagram</a></li>
 <li><a href="https://www.youtube.com/@synergycapturefilms_ug" target="_blank" rel="noopener">YouTube</a></li></ul></div>
@@ -143,6 +181,14 @@ def _asset_version(rel):
     with open(os.path.join(SRC, rel), "rb") as f:
         return hashlib.sha256(f.read().replace(b"\r\n", b"\n")).hexdigest()[:10]
 ASSET_V = {"css": _asset_version("assets/css/sch.css"), "js": _asset_version("assets/js/sch.js")}
+
+# Output folders of pages that moved to a business section (old URLs now 301-redirect, see _redirects).
+# They are generated files only; removing them keeps stale copies out of the deploy folder.
+RETIRED_OUTPUT_DIRS = ["creative"]
+for _d in RETIRED_OUTPUT_DIRS:
+    _p = os.path.join(ROOT, _d)
+    if os.path.isdir(_p):
+        shutil.rmtree(_p)
 
 def _relativize(out, path):
     """Review preview only: rewrite root-relative URLs (/assets/..., /work/) as relative ones, so the
@@ -265,8 +311,11 @@ def breadcrumb_ld(*crumbs):
         ],
     }
 
-def page(path, title, desc, body, current="", schema="", out_file=None, og_img=None):
+def page(path, title, desc, body, current="", schema="", out_file=None, og_img=None, biz=None):
     url = SITE + path
+    # data-business: which Synergy business a page belongs to (parent-level pages: "sch-group").
+    # A stable hook for business-level attribution if analytics is added later; no tracking runs today.
+    body_attr = f' data-business="{biz or "sch-group"}"' + (' class="has-secbar"' if biz else "")
     og_path, og_w, og_h, og_alt = og_img or DEFAULT_OG_IMAGE
     og_url_full = f"{SITE}{og_path}"
     # out_file: write a single top-level file (used for 404.html) with noindex and no canonical
@@ -307,8 +356,8 @@ def page(path, title, desc, body, current="", schema="", out_file=None, og_img=N
 <link rel="stylesheet" href="/assets/css/sch.css?v={ASSET_V["css"]}">
 {schema}
 </head>
-<body>
-{header(current)}
+<body{body_attr}>
+{header(current, biz)}
 <main id="main">
 {body}
 </main>
@@ -447,21 +496,49 @@ def case_for_set(st):
                 return c
     return None
 
+CONTACT_DL = f'''<dl>
+<div><dt>Email</dt><dd><a href="mailto:{EMAIL}">{EMAIL}</a></dd></div>
+<div><dt>Phone and WhatsApp</dt><dd><a href="tel:{PHONE_TEL}">{PHONE_DISPLAY}</a> &middot; <a href="{WHATSAPP}" target="_blank" rel="noopener">WhatsApp</a></dd></div>
+<div><dt>Location</dt><dd>Kampala, Uganda</dd></div>
+</dl>'''
+
+ACADEMY_NOTE = (f'<p class="small">Looking for courses or training? Visit '
+                f'<a class="link" href="{SMA}" target="_blank" rel="noopener">Synergy Multimedia Academy &#8599;</a></p>')
+
 def contact_block(sec_cls="dark"):
     return f'''<section class="sec {sec_cls}" id="contact"><div class="wrap">
 {sec_head("", "Contact", "Start a project.", "Tell us what you need. A short description is enough. We reply within 24 hours.")}
 <div class="contact">
-<div class="info"><dl>
-<div><dt>Email</dt><dd><a href="mailto:{EMAIL}">{EMAIL}</a></dd></div>
-<div><dt>Phone and WhatsApp</dt><dd><a href="tel:{PHONE_TEL}">{PHONE_DISPLAY}</a> &middot; <a href="{WHATSAPP}" target="_blank" rel="noopener">WhatsApp</a></dd></div>
-<div><dt>Location</dt><dd>Kampala, Uganda</dd></div>
-</dl>
-<p class="small">Looking for courses or training? Visit <a class="link" href="{SMA}" target="_blank" rel="noopener">Synergy Multimedia Academy &#8599;</a></p></div>
+<div class="info">{CONTACT_DL}
+{ACADEMY_NOTE}</div>
 <div class="form">{form_html()}</div>
 </div></div></section>'''
 
-def form_html():
-    return '''<form id="enquiry" novalidate>
+# Enquiry options, grouped by the business that delivers them. The option values are what the portal's
+# /api/quote receives (mapped to its lead categories in sch.js); data-business is written into the brief
+# ("Business: ...") so each lead shows which Synergy business it is for. Values are never renamed:
+# existing ?service= links and portal records depend on them.
+FORM_GROUPS = [
+    ("films", "Synergy Capture Films", [
+        ("photography", "Photography"), ("weddings", "Weddings &amp; ceremonies"), ("video", "Videography")]),
+    ("creative", "Synergy Creative Hub", [
+        ("design", "Graphic Design &amp; Branding"), ("social", "Social Media Content"),
+        ("social-management", "Social Media Management"), ("campaign", "Campaign &amp; Content Production"),
+        ("creative", "Other creative work")]),
+    ("sch", "Synergy Concepts Hub", [
+        ("technology", "Systems, websites or automation"), ("products", "Products")]),
+]
+
+def form_html(scope=None, business=""):
+    """The enquiry form (id="enquiry", handled by sch.js). scope: business keys to offer (default: all).
+    business: the form-level business name, used when "Other" is chosen on a business page."""
+    groups = [g for g in FORM_GROUPS if scope is None or g[0] in scope]
+    opts = ""
+    for _key, name, options in groups:
+        inner = "".join(f'<option value="{v}" data-business="{name}">{l}</option>' for v, l in options)
+        opts += f'<optgroup label="{name}">{inner}</optgroup>' if len(groups) > 1 else inner
+    biz_attr = f' data-business="{business}"' if business else ""
+    return f'''<form id="enquiry" novalidate{biz_attr}>
 <div class="two">
 <div class="field"><label for="f-name">Name</label><input id="f-name" name="name" type="text" required autocomplete="name"></div>
 <div class="field"><label for="f-email">Email</label><input id="f-email" name="email" type="email" required autocomplete="email"></div>
@@ -470,18 +547,8 @@ def form_html():
 <div class="field"><label for="f-phone">Phone or WhatsApp (optional)</label><input id="f-phone" name="phone" type="tel" autocomplete="tel"></div>
 <div class="field"><label for="f-service">What do you need?</label><select id="f-service" name="service" required>
 <option value="">Select</option>
-<optgroup label="Creative">
-<option value="photography">Photography &amp; Video</option>
-<option value="design">Graphic Design &amp; Branding</option>
-<option value="social">Social Media Content</option>
-<option value="social-management">Social Media Management</option>
-<option value="campaign">Campaign &amp; Content Production</option>
-<option value="creative">Other creative work</option>
-</optgroup>
-<optgroup label="Technology">
-<option value="technology">Systems, websites or automation</option>
-</optgroup>
-<option value="products">Products</option><option value="other">Other</option></select></div>
+{opts}
+<option value="other">Other</option></select></div>
 </div>
 <div class="field"><label for="f-brief">About your project</label><textarea id="f-brief" name="brief" required></textarea></div>
 <div class="form-foot"><button class="btn" type="submit">Send enquiry</button><p id="formStatus" role="status"></p></div>
@@ -491,13 +558,17 @@ def cta_band(text="Have a project in mind?", label="Start a Project", href="/con
     return f'''<section class="sec dark sec--tight"><div class="wrap"><div class="actions" style="justify-content:space-between">
 <h2 style="max-width:22ch">{text}</h2><a class="btn" href="{href}">{label}</a></div></div></section>'''
 
-# Enquiry links: each opens the contact form with the right service pre-selected.
+# Enquiry links: each opens the business's own enquiry page with the right service pre-selected.
+QUOTE = "/capture-films/quote/"
+BRIEF = "/creative-hub/brief/"
 CTA = {
-    "photography": ("Book a photography session", "/contact/?service=photography"),
-    "design": ("Request a design quote", "/contact/?service=design"),
-    "social": ("Get a content quote", "/contact/?service=social"),
-    "social-management": ("Ask about account management", "/contact/?service=social-management"),
-    "campaign": ("Plan a campaign", "/contact/?service=campaign"),
+    "photography": ("Request a photography quote", f"{QUOTE}?service=photography"),
+    "weddings": ("Request a wedding quote", f"{QUOTE}?service=weddings"),
+    "video": ("Request a video quote", f"{QUOTE}?service=video"),
+    "design": ("Request a design quote", f"{BRIEF}?service=design"),
+    "social": ("Get a content quote", f"{BRIEF}?service=social"),
+    "social-management": ("Ask about account management", f"{BRIEF}?service=social-management"),
+    "campaign": ("Plan a campaign", f"{BRIEF}?service=campaign"),
 }
 
 def cta_link(key):
@@ -522,7 +593,7 @@ ORG_ENTITY = {
         "height": 256,
     },
     "image": f"{SITE}{IMG}brand-stationery.jpg",
-    "description": "Technology and business creative company in Kampala, Uganda: photography and video, graphic design and branding, social media content, business systems, websites, AI and automation, and managed technology.",
+    "description": "Technology company in Kampala, Uganda, and parent company of Synergy Capture Films (photography and video), Synergy Creative Hub (graphic design, branding and content) and Synergy Multimedia Academy (training). Builds business systems, websites, automation and software products.",
     "email": EMAIL,
     "telephone": PHONE_TEL,
     "address": {
@@ -538,14 +609,14 @@ ORG_ENTITY = {
         {
             "@type": "Organization",
             "name": "Synergy Capture Films",
-            "url": f"{SITE}/creative/photography/",
-            "description": "Photography and video production side of Synergy Concepts Hub in Kampala, Uganda.",
+            "url": f"{SITE}/capture-films/",
+            "description": "Photography and video production business of Synergy Concepts Hub in Kampala, Uganda: portraits, studio and product photography, weddings and ceremonies, and business video.",
         },
         {
             "@type": "Organization",
             "name": "Synergy Creative Hub",
-            "url": f"{SITE}/creative/design/",
-            "description": "Graphic design, brand identity and company profile design side of Synergy Concepts Hub in Kampala, Uganda.",
+            "url": f"{SITE}/creative-hub/",
+            "description": "Graphic design, brand identity, social media content and campaign production business of Synergy Concepts Hub in Kampala, Uganda.",
         },
     ],
     "subOrganization": {
@@ -581,19 +652,72 @@ def first(category, group=None):
     its = items(category, group)
     return its[0] if its else None
 
-CREATIVE = [
-    ("01", "Photography &amp; Video", "Portraits, studio sessions, product and brand photography, and business video. By Synergy Capture Films.", "/creative/photography/", first("photography", "product") or first("photography")),
-    ("02", "Graphic Design &amp; Branding", "Logos and identity, company profiles, presentations and promotional design. By Synergy Creative Hub.", "/creative/design/", first("design", "profiles") or first("design")),
-    ("03", "Social Media Content", "Photos, short-form video and graphics for your channels, planned and produced each month.", "/creative/social-media-content/", first("design", "social")),
-    ("04", "Campaign &amp; Content Production", "Content for launches, promotions and corporate communication.", "/creative/#campaign-content-production", None),
+PRODUCT_ROWS = f'''<div class="rows rows--sm">
+<a class="row row--kind" href="/products/#quickcredit"><span class="n">In use</span><span class="t">QuickCredit</span><span class="d">Enterprise lending platform with mobile money integration, credit scoring and real-time analytics.</span><span class="a" aria-hidden="true">&rarr;</span></a>
+<a class="row row--kind" href="/products/#sma-sync"><span class="n">In use</span><span class="t">SMA Sync</span><span class="d">Offline-first media synchronization software for creative production workflows. Built by Synergy. Used by SMA.</span><span class="a" aria-hidden="true">&rarr;</span></a>
+<a class="row row--kind" href="/products/#recovery-tools"><span class="n">Coming soon</span><span class="t">Creative and media recovery tools</span><span class="d">Tools for creative production, and for recovering and organizing photo and video files.</span><span class="a" aria-hidden="true">&rarr;</span></a>
+</div>'''
+
+def any_link(label, href):
+    return ext_link(label, href) if href.startswith("http") else f'<a href="{href}">{label}</a>'
+
+def static_img(name, w, h, alt, eager=False):
+    load = 'loading="eager" fetchpriority="high"' if eager else 'loading="lazy"'
+    return f'<img src="{IMG}{name}" alt="{esc(alt)}" width="{w}" height="{h}" {load} decoding="async">'
+
+def item_by_id(item_id):
+    return next((it for it in ITEMS if it["id"] == item_id), None)
+
+def pic_for(item_id, fallback):
+    """A portfolio image if that item is approved, otherwise a fallback static image (name, w, h, alt)."""
+    it = item_by_id(item_id)
+    return img_tag(it, "(max-width: 900px) 100vw, 40vw") if it else static_img(*fallback)
+
+# The four business destinations, as shown on the homepage. Copy states only services the site already offers.
+DESTINATIONS = [
+    ("sch", "01", "Business software, websites, automation and managed technology, and our own software products, built and supported in Kampala.",
+     [("Business Systems", "/technology/#business-systems"), ("Websites &amp; platforms", "/technology/#web-digital-platforms"),
+      ("AI &amp; Automation", "/technology/#ai-automation"), ("Products", "/products/")],
+     "Go to Concepts Hub",
+     static_img("brand-stationery.jpg", 1400, 1400, "Synergy Concepts Hub stationery: notebook, letterhead, business card and mug")),
+    ("films", "02", "Portraits, studio sessions, product photography, weddings and ceremonies, and video for businesses.",
+     [("Photography", "/capture-films/photography/"), ("Weddings &amp; Ceremonies", "/capture-films/weddings/"),
+      ("Videography", "/capture-films/videography/"), ("Get a Quote", "/capture-films/quote/")],
+     "Go to Capture Films",
+     pic_for("wed-vannie-5", ("studio-portrait.jpg", 1000, 1500, "Studio portrait by Synergy Capture Films"))),
+    ("creative", "03", "Logos and brand identity, company profiles, promotional design, and monthly social media content.",
+     [("Design &amp; Branding", "/creative-hub/design/"), ("Social Media Content", "/creative-hub/social-media-content/"),
+      ("Campaign Production", "/creative-hub/#campaign-content-production"), ("Send a Brief", "/creative-hub/brief/")],
+     "Go to Creative Hub",
+     static_img("design-matsen.jpg", 1400, 788, "Company profile designed by Synergy Creative Hub")),
+    ("academy", "04", "Practical courses, holiday programs and multimedia training for the next generation of creators.",
+     [("About the Academy", "/academy/"), ("Courses &amp; admissions", SMA)],
+     "Go to the Academy",
+     static_img("sma-learning.jpg", 1400, 933, "A student editing photos on a laptop at Synergy Multimedia Academy")),
 ]
+
+def destinations():
+    out = '<div class="bizlist">'
+    for key, n, prop, links, go, pic in DESTINATIONS:
+        b = BUSINESSES[key]
+        lis = "".join(f"<li>{any_link(l, h)}</li>" for l, h in links)
+        out += f'''<article class="biz" id="biz-{key}" aria-labelledby="h-biz-{key}">
+<div class="biz-head"><span class="n">{n}</span><h3 id="h-biz-{key}"><a href="{b["href"]}">{b["name"]}</a></h3><p class="lbl">{b["tag"]}</p></div>
+<div class="biz-body"><p class="biz-prop">{prop}</p><ul class="biz-links">{lis}</ul>
+<a class="link" href="{b["href"]}">{go} &rarr;</a></div>
+<a class="biz-pic" href="{b["href"]}" tabindex="-1" aria-hidden="true">{pic}</a>
+</article>'''
+    return out + "</div>"
 
 CLIENTS_STRIP = '''<div class="clients"><div class="wrap"><span class="label">Selected clients</span><span>QuickCredit</span><span>Afrisites</span><span>Octagon Africa</span><span>Elgon Bottling</span><span>Ecotrust</span><span>Diani Art Gallery</span></div></div>''' if SHOW_SELECTED_CLIENTS else '<!-- Selected clients line hidden until client names are approved for public display (SHOW_SELECTED_CLIENTS in build.py) -->'
 
 # Selected work: items flagged "home" in portfolio.json (approved only, even in the preview),
 # shown in justified pairs at their native proportions, then one technology project.
-CAT_PAGE = {"photography": "/creative/photography/", "design": "/creative/design/"}
-CAT_LABEL = {"photography": "Photography", "design": "Design"}
+def item_page(it):
+    if it["category"] == "photography":
+        return "/capture-films/weddings/" if it["group"] == "weddings" else "/capture-films/photography/"
+    return "/creative-hub/design/"
+CAT_LABEL = {"photography": "Photography &middot; Capture Films", "design": "Design &middot; Creative Hub"}
 
 def selected_work():
     picks = sorted((it for it in ITEMS if it.get("home") and it["status"] == "approved"), key=lambda it: it["home"])[:4]
@@ -602,8 +726,8 @@ def selected_work():
         out += '<div class="jrow">'
         for it in picks[i:i + 2]:
             s = _SIZES[it["id"]]["files"]["full"]
-            out += (f'<figure class="ji" style="--ar:{s[1] / s[2]:.4f}"><a href="{CAT_PAGE[it["category"]]}">'
-                    f'{img_tag(it, "(max-width: 560px) 100vw, 50vw", eager=(i == 0))}</a>'
+            out += (f'<figure class="ji" style="--ar:{s[1] / s[2]:.4f}"><a href="{item_page(it)}">'
+                    f'{img_tag(it, "(max-width: 560px) 100vw, 50vw")}</a>'
                     f'<figcaption><b>{esc(it["caption"])}</b><span>{CAT_LABEL[it["category"]]}</span></figcaption></figure>')
         out += "</div>"
     return out
@@ -611,51 +735,40 @@ def selected_work():
 home = f'''
 <section class="hero"><div class="wrap">
 <p class="eyebrow">Synergy Concepts Hub &middot; Kampala, Uganda</p>
-<h1>Business software, websites, photography and design.</h1>
-<p class="lede">We photograph, design and produce content for businesses, and build the systems, websites and automation they run on.</p>
-<div class="actions"><a class="btn" href="/contact/">Start a Project</a><a class="link" href="/work/">See our work &rarr;</a></div>
+<h1>One company. Four Synergy businesses.</h1>
+<p class="lede">Synergy Concepts Hub builds business software, websites and its own software products. Through Synergy Capture Films, Synergy Creative Hub and Synergy Multimedia Academy, it also photographs and films, designs, and trains. Choose the business that fits what you need.</p>
+<div class="actions"><a class="btn" href="/contact/">Start a Project</a><a class="link" href="#businesses">Find the right business &darr;</a></div>
 </div></section>
 {CLIENTS_STRIP}
 
+<section class="sec" id="businesses"><div class="wrap">
+{sec_head("01", "Our businesses", "Four businesses, one point of contact.", "Each Synergy business has its own team and its own services. Not sure which one you need? Tell us about the project and we will pass it to the right team.")}
+{destinations()}
+</div></section>
+
+<section class="sec stone" id="technology"><div class="wrap">
+{sec_head("02", "Concepts Hub &middot; Technology", "Systems, platforms and automation, built properly and looked after.")}
+{rows(TECH)}
+</div></section>
+
 <section class="sec sec--work" id="work"><div class="wrap">
 <div class="sel-head"><p class="eyebrow">Selected work</p>
-<p class="sel-links"><a class="link" href="/creative/photography/">Photography &rarr;</a><a class="link" href="/creative/design/">Design &rarr;</a><a class="link" href="/work/">All work &rarr;</a></p></div>
+<p class="sel-links"><a class="link" href="/capture-films/photography/">Photography &rarr;</a><a class="link" href="/creative-hub/design/">Design &rarr;</a><a class="link" href="/work/">All work &rarr;</a></p></div>
 {selected_work()}
 <div class="rows" style="margin-top:48px">
 <a class="row row--kind" href="/work/#technology"><span class="n">Business system</span><span class="t">QuickCredit</span><span class="d">Lending platform with mobile money, credit scoring and live analytics.</span><span class="a" aria-hidden="true">&rarr;</span></a>
 </div>
 </div></section>
 
-<section class="sec stone" id="creative"><div class="wrap">
-{sec_head("01", "Creative", "Photography, design and content that make a business look as established as it is.")}
-{img_rows(CREATIVE)}
-</div></section>
-
-<section class="sec" id="technology"><div class="wrap">
-{sec_head("02", "Technology", "Systems, platforms and automation, built properly and looked after.")}
-{rows(TECH)}
-</div></section>
-
 <section class="sec stone sec--tight" id="products"><div class="wrap">
 {sec_head("03", "Products", "We also build our own software.")}
-<div class="rows rows--sm">
-<a class="row row--kind" href="/products/#quickcredit"><span class="n">In use</span><span class="t">QuickCredit</span><span class="d">Enterprise lending platform with mobile money integration, credit scoring and real-time analytics.</span><span class="a" aria-hidden="true">&rarr;</span></a>
-<a class="row row--kind" href="/products/#sma-sync"><span class="n">In use</span><span class="t">SMA Sync</span><span class="d">Offline-first media synchronization software for creative production workflows. Built by Synergy. Used by SMA.</span><span class="a" aria-hidden="true">&rarr;</span></a>
-<a class="row row--kind" href="/products/"><span class="n">Coming soon</span><span class="t">Creative and media recovery tools</span><span class="d">Tools for creative production, and for recovering and organizing photo and video files.</span><span class="a" aria-hidden="true">&rarr;</span></a>
-</div>
+{PRODUCT_ROWS}
 </div></section>
-
-<section class="sec" id="academy"><div class="wrap"><div class="split">
-<div class="pic"><img src="{IMG}sma-learning.jpg" alt="A student editing photos on a laptop at Synergy Multimedia Academy" loading="lazy" width="1400" height="933"></div>
-<div class="txt"><p class="eyebrow">Synergy Multimedia Academy</p><h2>Looking to learn creative and digital skills?</h2>
-<p class="prose">Synergy Multimedia Academy is our education brand: courses, holiday programs and creative learning for the next generation of creators.</p>
-<a class="link" href="{SMA}" target="_blank" rel="noopener">Visit the Academy &#8599;</a></div>
-</div></div></section>
 
 {contact_block()}
 '''
-page("/", "Synergy Concepts Hub | Software, Design & Photography in Uganda",
-     "Synergy Concepts Hub builds custom business software, websites and automation, and produces commercial photography and graphic design in Kampala, Uganda.",
+page("/", "Synergy Concepts Hub | Technology, Creative & Training in Uganda",
+     "Synergy Concepts Hub, Kampala: business software and products, and the parent company of Synergy Capture Films, Synergy Creative Hub and Synergy Multimedia Academy.",
      home, schema=HOME_LD)
 
 # ---------- TECHNOLOGY ----------
@@ -666,7 +779,7 @@ def svc(id_, n, title, intro, deliver, suited, work=""):
 <div class="cols"><div><h3 class="lbl">What we deliver</h3>{plain(deliver)}</div><div><h3 class="lbl">Suited to</h3><p class="prose">{suited}</p>{"<div style='margin-top:28px'>"+w+"</div>" if w else ""}</div></div></div></article>'''
 
 tech_body = f'''
-<section class="page-head"><div class="wrap"><p class="eyebrow">Technology</p>
+<section class="page-head"><div class="wrap"><p class="eyebrow">Synergy Concepts Hub &middot; Technology</p>
 <h1>Custom business software, websites and systems in Uganda.</h1>
 <p class="lede">We design, build and run the software your business depends on. One team, from first conversation to ongoing support.</p></div></section>
 <section class="sec"><div class="wrap">
@@ -692,7 +805,11 @@ tech_body = f'''
 <li><h3>Build</h3><p>We design and build practical technology and creative solutions around that need.</p></li>
 <li><h3>Support</h3><p>We stay involved where ongoing maintenance, infrastructure or creative support is required.</p></li>
 </ol></div></section>
-{cta_band("Tell us what you need to build.")}
+<section class="sec" id="products"><div class="wrap">
+{sec_head("", "Products", "Software we build and run ourselves.")}
+{PRODUCT_ROWS}
+</div></section>
+{cta_band("Tell us what you need to build.", "Start a Project", "/contact/?service=technology")}
 '''
 TECH_LD = json_ld(
     breadcrumb_ld(("Home", "/"), ("Technology", "/technology/")),
@@ -713,14 +830,16 @@ TECH_LD = json_ld(
 )
 page("/technology/", "Custom Software, Websites & Business Systems in Kampala, Uganda",
      "Custom business software, corporate websites, workflow automation and managed hosting built and supported by Synergy Concepts Hub in Kampala, Uganda.",
-     tech_body, "/technology/", schema=TECH_LD)
+     tech_body, "/technology/", schema=TECH_LD, biz="sch")
 
-# ---------- CREATIVE ----------
+# ---------- BUSINESS SECTION HELPERS ----------
 PHOTO_GROUPS = [  # key, title, description, gallery columns
     ("portraits", "Portraits &amp; headshots", "Professional portraits for company profiles, websites and personal branding.", "c3"),
     ("studio", "Studio sessions", "Personal, couple and graduation portraits, photographed in the studio.", "c3"),
     ("product", "Product &amp; brand", "Products, and the people using them, photographed for brand and social media use.", "c3"),
-    ("weddings", "Weddings &amp; ceremonies", "Weddings, introductions and other ceremonies.", "c3"),
+]
+WEDDING_GROUPS = [
+    ("weddings", "Weddings &amp; ceremonies", "Weddings, introduction ceremonies and traditional ceremonies.", "c3"),
 ]
 DESIGN_GROUPS = [
     ("logos", "Logos &amp; brand identity", "Logos for businesses and organisations, shown flat, as delivered.", "c4"),
@@ -758,101 +877,259 @@ def creative_svc(id_, n, title, brand, intro, deliver, suited, pics, links):
 <p class="svc-links">{links}</p></div></div>
 {pics}</div></article>'''
 
+def crumb(biz, label):
+    b = BUSINESSES[biz]
+    return f'<p class="eyebrow"><a href="{b["href"]}" style="text-decoration:none">{b["name"]}</a> &nbsp;/&nbsp; {label}</p>'
+
+def biz_head(biz, h1, lede, actions):
+    """Page head for a business landing page: the business name, and its place in the parent company."""
+    b = BUSINESSES[biz]
+    return f'''<section class="page-head"><div class="wrap"><p class="eyebrow">{b["name"]} &middot; <a href="/" style="text-decoration:none">Part of Synergy Concepts Hub</a></p>
+<h1>{h1}</h1>
+<p class="lede">{lede}</p>
+<div class="actions" style="margin-top:36px">{actions}</div></div></section>'''
+
+BIZ_SUMMARY = {
+    "sch": "Business software, websites, automation and our own software products.",
+    "films": "Portrait, studio, product and wedding photography, and video for businesses.",
+    "creative": "Brand identity, company profiles, promotional design and social media content.",
+    "academy": "Practical courses, holiday programs and multimedia training.",
+}
+
+def other_businesses(key, sec_cls=""):
+    out = ""
+    for k in BIZ_ORDER:
+        if k == key:
+            continue
+        b = BUSINESSES[k]
+        out += (f'<a class="row row--kind" href="{b["href"]}"><span class="n">{b["tag"]}</span><span class="t">{b["name"]}</span>'
+                f'<span class="d">{BIZ_SUMMARY[k]}</span><span class="a" aria-hidden="true">&rarr;</span></a>')
+    return f'''<section class="sec sec--tight {sec_cls}" id="other-businesses"><div class="wrap">
+{sec_head("", "Synergy Concepts Hub", "The other Synergy businesses.")}
+<div class="rows rows--sm">{out}</div>
+<p style="margin-top:32px"><a class="link" href="/">Synergy Concepts Hub home &rarr;</a></p></div></section>'''
+
+def enquiry_body(biz, label, h1, lede, guide, scope, extra=""):
+    """A business's own enquiry page: what to include, contact details, and the shared enquiry form
+    limited to that business's services."""
+    b = BUSINESSES[biz]
+    return f'''
+<section class="page-head"><div class="wrap">{crumb(biz, label)}
+<h1>{h1}</h1>
+<p class="lede">{lede}</p></div></section>
+<section class="sec" id="enquiry-form"><div class="wrap"><div class="contact">
+<div class="info"><div><h2 class="h3" style="margin-bottom:20px">What to tell us</h2>{plain(guide)}</div>
+{CONTACT_DL}{extra}</div>
+<div class="form">{form_html(scope, b["name"])}</div>
+</div></div></section>'''
+
+def biz_org(key):
+    b = BUSINESSES[key]
+    return {"@type": "Organization", "name": b["name"], "url": f'{SITE}{b["href"]}', "parentOrganization": ORG_REF}
+
 client_design = [it for it in items("design") if "own brand" not in (it.get("client") or "").lower()]
 
-creative_body = f'''
-<section class="page-head"><div class="wrap"><p class="eyebrow">Creative</p>
-<h1>Commercial photography, graphic design and campaign production.</h1>
-<p class="lede">Photography and video by Synergy Capture Films, design and branding by Synergy Creative Hub, and content produced for social media and campaigns.</p>
-<nav class="jump" aria-label="Creative services"><a href="#photography-video">Photography &amp; Video</a><a href="#graphic-design">Graphic Design &amp; Branding</a><a href="#social-media-content">Social Media Content</a><a href="#campaign-content-production">Campaign &amp; Content Production</a></nav></div></section>
-<section class="sec"><div class="wrap">
-{creative_svc("photography-video", "01", "Photography &amp; Video", "Synergy Capture Films",
-  "Portraits, studio sessions and product photography, and video for business and promotion.",
-  ["Portraits and professional headshots", "Studio sessions, including graduation and couple portraits", "Product and brand photography", "Weddings and ceremonies", "Business and promotional video"],
-  "Professionals and teams who need current portraits, brands that need product images, and people marking a milestone.",
-  svc_pics(items("photography"), "/creative/photography/"),
-  '<a class="link" href="/creative/photography/">See photography work &rarr;</a>' + cta_link("photography"))}
-{creative_svc("graphic-design", "02", "Graphic Design &amp; Branding", "Synergy Creative Hub",
-  "Branding and materials that make a business look established and consistent.",
-  ["Logos and brand identity", "Company profiles and presentations", "Marketing materials and flyers", "Corporate communication and reports", "Social media graphics"],
-  "Businesses launching or refreshing a brand, and teams that need documents and promotional material to match it.",
-  svc_pics(client_design, "/creative/design/"),
-  '<a class="link" href="/creative/design/">See design work &rarr;</a>' + cta_link("design"))}
-{creative_svc("social-media-content", "03", "Social Media Content", "",
-  "Business photography, video and short-form content for the platforms your customers use, produced in one session a month.",
-  ["Business photography", "Business video", "Short-form content for Reels, Shorts and TikTok", "Product and content shoots", "Visual content sized for each platform"],
-  "Businesses that want a steady supply of their own photos and videos rather than stock images. Account management is a separate service.",
-  svc_pics(items("design", "social"), "/creative/social-media-content/"),
-  '<a class="link" href="/creative/social-media-content/">How it works &rarr;</a>' + cta_link("social"))}
-{creative_svc("campaign-content-production", "04", "Campaign &amp; Content Production", "",
-  "Content for launches, promotions and corporate communication, planned and produced as one piece of work.",
-  ["Campaign photography and video", "Product launch content", "Corporate communication and internal video", "Promotional films", "Behind-the-scenes and highlights"],
-  "Launches, promotions and announcements that need photography, video and design produced together.",
-  "", cta_link("campaign"))}
+# ---------- SYNERGY CAPTURE FILMS ----------
+FILMS_SERVICES = [
+    ("01", "Photography", "Portraits and headshots, studio sessions, and product and brand photography.",
+     "/capture-films/photography/", first("photography", "product") or first("photography", "portraits")),
+    ("02", "Weddings &amp; Ceremonies", "Weddings, introduction ceremonies and traditional ceremonies.",
+     "/capture-films/weddings/", item_by_id("wed-brenda-jan") or first("photography", "weddings")),
+    ("03", "Videography", "Business and promotional video, launch and campaign content, and corporate communication.",
+     "/capture-films/videography/", None),
+]
+films_body = f'''
+{biz_head("films", "Photography and video, from portraits to weddings.",
+  "Synergy Capture Films is the photography and video business of Synergy Concepts Hub in Kampala. We photograph people, products and ceremonies, and make video for businesses.",
+  f'<a class="btn" href="{QUOTE}">Get a Quote</a><a class="link" href="/work/#photography">See our work &rarr;</a>')}
+<section class="sec" id="services"><div class="wrap">
+{sec_head("", "Services", "What we photograph and film.")}
+{img_rows(FILMS_SERVICES)}
 </div></section>
-{cta_band("Need design or content for your business?")}
+<section class="sec stone" id="quotes"><div class="wrap">
+{sec_head("", "Quotes", "Every quote starts with the occasion.", "Tell us what you are planning and what you would like covered. We reply within 24 hours with questions or a quote for that coverage.")}
+<ol class="steps">
+<li><h3>Tell us the occasion</h3><p>The type of shoot or event, the date and the location.</p></li>
+<li><h3>Describe the coverage</h3><p>Photography, video or both, and roughly how long you need us there.</p></li>
+<li><h3>Receive a quote</h3><p>We confirm the details with you and send a quote for that coverage.</p></li>
+</ol>
+<!-- Future: the Capture Films quotation builder (services chosen individually, itemised estimate) belongs at {QUOTE}. -->
+<div class="actions" style="margin-top:48px"><a class="btn" href="{QUOTE}">Get a Quote</a></div>
+</div></section>
+{other_businesses("films")}
 '''
-CREATIVE_LD = json_ld(
-    breadcrumb_ld(("Home", "/"), ("Creative", "/creative/")),
-    {
-        "@type": "Service",
-        "@id": f"{SITE}/creative/#service",
-        "name": "Business Creative, Commercial Photography, Graphic Design and Campaign Production",
-        "url": f"{SITE}/creative/",
-        "provider": ORG_REF,
-        "areaServed": {"@type": "City", "name": "Kampala"},
-        "serviceType": [
-            "Commercial Photography & Video Production",
-            "Graphic Design & Brand Identity",
-            "Social Media Content Production",
-            "Campaign & Content Production",
-        ],
-    },
+FILMS_LD = json_ld(
+    breadcrumb_ld(("Home", "/"), ("Synergy Capture Films", "/capture-films/")),
+    {**biz_org("films"), "@id": f"{SITE}/capture-films/#organization",
+     "description": "Photography and video business of Synergy Concepts Hub in Kampala, Uganda.",
+     "areaServed": {"@type": "City", "name": "Kampala"},
+     "sameAs": ["https://www.instagram.com/synergycapturefilms_weddings", "https://www.youtube.com/@synergycapturefilms_ug"]},
 )
-page("/creative/", "Business Creative, Video & Campaign Production | Kampala, Uganda",
-     "Commercial photography, video production, graphic design, brand identity and campaign content for businesses in Kampala by Synergy Concepts Hub.",
-     creative_body, "/creative/", schema=CREATIVE_LD)
+page("/capture-films/", "Synergy Capture Films | Photography & Video in Kampala, Uganda",
+     "Synergy Capture Films: portrait, studio and product photography, wedding and ceremony photography, and business video in Kampala. Request a quote.",
+     films_body, "/capture-films/", schema=FILMS_LD, og_img=og_from_item("wed-brenda-jan"), biz="films")
 
-# ---------- PHOTOGRAPHY ----------
+# Photography
 _jump, _secs = gallery_sections("photography", PHOTO_GROUPS, "photography")
 photo_body = f'''
-<section class="page-head"><div class="wrap"><p class="eyebrow"><a href="/creative/" style="text-decoration:none">Creative</a> &nbsp;/&nbsp; Photography &amp; Video &middot; Synergy Capture Films</p>
+<section class="page-head"><div class="wrap">{crumb("films", "Photography")}
 <h1>Portrait, studio and product photography in Kampala.</h1>
-<p class="lede">Portraits, studio sessions and product photography by Synergy Capture Films, the photography and video side of Synergy Concepts Hub. Select any image to see it larger.</p>
-<div class="actions" style="margin-top:36px"><a class="btn" href="{CTA["photography"][1]}">{CTA["photography"][0]}</a></div>{_jump}</div></section>
+<p class="lede">Portraits and headshots, studio sessions and product photography by Synergy Capture Films. Select any image to see it larger.</p>
+<div class="actions" style="margin-top:36px"><a class="btn" href="{CTA["photography"][1]}">{CTA["photography"][0]}</a><a class="link" href="/capture-films/weddings/">Weddings &amp; ceremonies &rarr;</a></div>{_jump}</div></section>
 <section class="sec"><div class="wrap">{_secs}</div></section>
 {cta_band("Planning a shoot?", CTA["photography"][0], CTA["photography"][1])}
 '''
 PHOTO_LD = json_ld(
-    breadcrumb_ld(("Home", "/"), ("Creative", "/creative/"), ("Photography & Video", "/creative/photography/")),
+    breadcrumb_ld(("Home", "/"), ("Synergy Capture Films", "/capture-films/"), ("Photography", "/capture-films/photography/")),
     {
         "@type": "Service",
-        "@id": f"{SITE}/creative/photography/#service",
-        "name": "Commercial, Portrait, Studio and Product Photography in Kampala",
-        "url": f"{SITE}/creative/photography/",
-        "provider": {
-            "@type": "Organization",
-            "name": "Synergy Capture Films",
-            "parentOrganization": ORG_REF,
-        },
+        "@id": f"{SITE}/capture-films/photography/#service",
+        "name": "Portrait, Studio and Product Photography in Kampala",
+        "url": f"{SITE}/capture-films/photography/",
+        "provider": biz_org("films"),
         "areaServed": {"@type": "City", "name": "Kampala"},
-        "serviceType": [
-            "Corporate Headshots & Portraits",
-            "Studio Photography Sessions",
-            "Product & Brand Photography",
-            "Wedding & Ceremony Photography",
-            "Business & Promotional Video",
-        ],
+        "serviceType": ["Corporate Headshots & Portraits", "Studio Photography Sessions", "Product & Brand Photography"],
     },
 )
-page("/creative/photography/", "Commercial, Portrait & Studio Photography in Kampala | Synergy",
-     "Corporate headshots, studio portraits, product photography, weddings and business video in Kampala by Synergy Capture Films (Synergy Concepts Hub).",
-     photo_body, "/creative/photography/", schema=PHOTO_LD, og_img=og_from_item("christine-10"))
+page("/capture-films/photography/", "Portrait & Product Photography in Kampala | Synergy Capture Films",
+     "Corporate headshots, professional portraits, studio sessions and product photography in Kampala by Synergy Capture Films, part of Synergy Concepts Hub.",
+     photo_body, "/capture-films/photography/", schema=PHOTO_LD, og_img=og_from_item("christine-10"), biz="films")
 
-# ---------- DESIGN ----------
+# Weddings & ceremonies
+if not items("photography", "weddings"):
+    print("WARNING: no approved wedding images; /capture-films/weddings/ has no gallery")
+_jump, _secs = gallery_sections("photography", WEDDING_GROUPS, "weddings")
+wed_body = f'''
+<section class="page-head"><div class="wrap">{crumb("films", "Weddings &amp; Ceremonies")}
+<h1>Wedding, introduction and traditional ceremony photography.</h1>
+<p class="lede">Weddings, introduction ceremonies and traditional ceremonies photographed by Synergy Capture Films. Select any image to see it larger.</p>
+<div class="actions" style="margin-top:36px"><a class="btn" href="{CTA["weddings"][1]}">{CTA["weddings"][0]}</a><a class="link" href="/capture-films/photography/">Portraits, studio and product &rarr;</a></div>{_jump}</div></section>
+<section class="sec"><div class="wrap">{_secs}</div></section>
+{cta_band("Planning a wedding or ceremony?", CTA["weddings"][0], CTA["weddings"][1])}
+'''
+WED_LD = json_ld(
+    breadcrumb_ld(("Home", "/"), ("Synergy Capture Films", "/capture-films/"), ("Weddings & Ceremonies", "/capture-films/weddings/")),
+    {
+        "@type": "Service",
+        "@id": f"{SITE}/capture-films/weddings/#service",
+        "name": "Wedding, Introduction and Traditional Ceremony Photography in Kampala",
+        "url": f"{SITE}/capture-films/weddings/",
+        "provider": biz_org("films"),
+        "areaServed": {"@type": "City", "name": "Kampala"},
+        "serviceType": ["Wedding Photography", "Introduction Ceremony Photography", "Traditional Ceremony Photography"],
+    },
+)
+page("/capture-films/weddings/", "Wedding & Ceremony Photography in Kampala | Synergy Capture Films",
+     "Wedding, introduction ceremony and traditional ceremony photography in Kampala by Synergy Capture Films. See the work and request a quote.",
+     wed_body, "/capture-films/weddings/", schema=WED_LD, og_img=og_from_item("wed-brenda-jan"), biz="films")
+
+# Videography (service page; films are published on the YouTube channel, not on this site)
+YOUTUBE = "https://www.youtube.com/@synergycapturefilms_ug"
+video_body = f'''
+<section class="page-head"><div class="wrap">{crumb("films", "Videography")}
+<h1>Business, promotional and campaign video.</h1>
+<p class="lede">Synergy Capture Films produces video for businesses and organisations: promotional films, launch and campaign content, and corporate communication.</p>
+<div class="actions" style="margin-top:36px"><a class="btn" href="{CTA["video"][1]}">{CTA["video"][0]}</a>{ext_link("Watch on YouTube", YOUTUBE, "link")}</div></div></section>
+<section class="sec"><div class="wrap">
+{svc("video-services", "01", "What we film", "Video planned around what it needs to do: promote, launch, explain or record.",
+ ["Business and promotional video", "Campaign and product launch video", "Corporate communication and internal video", "Promotional films", "Behind-the-scenes and highlights"],
+ "Businesses launching a product or campaign, organisations that need to explain what they do, and teams that need video for internal communication.",
+ f'<p class="prose">{ext_link("Synergy Capture Films on YouTube", YOUTUBE, "link")}</p>')}
+</div></section>
+<section class="sec stone"><div class="wrap">
+{sec_head("", "Related", "Video alongside other work.")}
+<div class="duo">
+<div><p class="lbl">Synergy Capture Films</p><h3>Photography</h3><p class="prose">Portraits, studio sessions and product photography, booked on their own or with video.</p><p><a class="link" href="/capture-films/photography/">Photography &rarr;</a></p></div>
+<div><p class="lbl">Synergy Creative Hub</p><h3>Monthly social media content</h3><p class="prose">Short-form video, photos and graphics for your channels, planned and produced each month.</p><p><a class="link" href="/creative-hub/social-media-content/">Social Media Content &rarr;</a></p></div>
+</div></div></section>
+{cta_band("Need a video made?", CTA["video"][0], CTA["video"][1])}
+'''
+VIDEO_LD = json_ld(
+    breadcrumb_ld(("Home", "/"), ("Synergy Capture Films", "/capture-films/"), ("Videography", "/capture-films/videography/")),
+    {
+        "@type": "Service",
+        "@id": f"{SITE}/capture-films/videography/#service",
+        "name": "Business, Promotional and Campaign Video Production in Kampala",
+        "url": f"{SITE}/capture-films/videography/",
+        "provider": biz_org("films"),
+        "areaServed": {"@type": "City", "name": "Kampala"},
+        "serviceType": ["Business & Promotional Video", "Campaign & Product Launch Video", "Corporate Communication Video"],
+    },
+)
+page("/capture-films/videography/", "Business & Promotional Video in Kampala | Synergy Capture Films",
+     "Business and promotional video, campaign and product launch content, and corporate communication video in Kampala by Synergy Capture Films.",
+     video_body, "/capture-films/videography/", schema=VIDEO_LD, biz="films")
+
+# Quote request (the future home of the Capture Films quotation builder)
+quote_body = enquiry_body("films", "Get a Quote", "Request a quote from Synergy Capture Films.",
+    "Tell us about the shoot or occasion. A short description is enough: we reply within 24 hours with questions or a quote.",
+    ["The occasion or type of shoot: portraits, studio, product, a wedding or ceremony, or business video",
+     "The date, or how flexible it is, and the location",
+     "What you would like covered: photography, video or both, and roughly for how long",
+     "What you need at the end: edited photographs, a film, or both"],
+    ["films"])
+quote_body += "\n<!-- Future: replace or extend this form with the Capture Films quotation builder (individual services, itemised estimate). Keep this URL. -->\n"
+QUOTE_LD = json_ld(
+    breadcrumb_ld(("Home", "/"), ("Synergy Capture Films", "/capture-films/"), ("Get a Quote", QUOTE)),
+    {"@type": "ContactPage", "@id": f"{SITE}{QUOTE}#webpage", "name": "Request a quote from Synergy Capture Films",
+     "url": f"{SITE}{QUOTE}", "about": biz_org("films")},
+)
+page(QUOTE, "Request a Photography or Video Quote | Synergy Capture Films",
+     "Request a quote from Synergy Capture Films for portraits, studio or product photography, weddings and ceremonies, or business video in Kampala.",
+     quote_body, QUOTE, schema=QUOTE_LD, biz="films")
+
+# ---------- SYNERGY CREATIVE HUB ----------
+creative_body = f'''
+{biz_head("creative", "Brand identity, design and content for businesses.",
+  "Synergy Creative Hub is the design and creative production business of Synergy Concepts Hub: logos and brand identity, company profiles, promotional design, social media content and campaign production.",
+  f'<a class="btn" href="{BRIEF}">Send a Brief</a><a class="link" href="/creative-hub/design/">See design work &rarr;</a>')}
+<section class="sec" id="services"><div class="wrap">
+<nav class="jump" aria-label="Creative Hub services" style="margin:0 0 56px"><a href="#graphic-design">Graphic Design &amp; Branding</a><a href="#social-media-content">Social Media Content</a><a href="#campaign-content-production">Campaign &amp; Content Production</a></nav>
+{creative_svc("graphic-design", "01", "Graphic Design &amp; Branding", "",
+  "Branding and materials that make a business look established and consistent.",
+  ["Logos and brand identity", "Company profiles and presentations", "Marketing materials and flyers", "Corporate communication and reports", "Social media graphics"],
+  "Businesses launching or refreshing a brand, and teams that need documents and promotional material to match it.",
+  svc_pics(client_design, "/creative-hub/design/"),
+  '<a class="link" href="/creative-hub/design/">See design work &rarr;</a>' + cta_link("design"))}
+{creative_svc("social-media-content", "02", "Social Media Content", "",
+  "Business photography, video and short-form content for the platforms your customers use, produced in one session a month.",
+  ["Business photography", "Business video", "Short-form content for Reels, Shorts and TikTok", "Product and content shoots", "Visual content sized for each platform"],
+  "Businesses that want a steady supply of their own photos and videos rather than stock images. Account management is a separate service.",
+  svc_pics(items("design", "social"), "/creative-hub/social-media-content/"),
+  '<a class="link" href="/creative-hub/social-media-content/">How it works &rarr;</a>' + cta_link("social"))}
+{creative_svc("campaign-content-production", "03", "Campaign &amp; Content Production", "",
+  "Content for launches, promotions and corporate communication, planned and produced as one piece of work.",
+  ["Campaign photography and video", "Product launch content", "Corporate communication and internal video", "Promotional films", "Behind-the-scenes and highlights"],
+  "Launches, promotions and announcements that need photography, video and design produced together.",
+  "", cta_link("campaign"))}
+<p class="small" style="margin-top:48px">Looking for photography or video on its own? <a class="link" href="/capture-films/">Synergy Capture Films &rarr;</a></p>
+</div></section>
+{cta_band("Need design or content for your business?", "Send a Brief", BRIEF)}
+{other_businesses("creative")}
+'''
+CREATIVE_LD = json_ld(
+    breadcrumb_ld(("Home", "/"), ("Synergy Creative Hub", "/creative-hub/")),
+    {**biz_org("creative"), "@id": f"{SITE}/creative-hub/#organization",
+     "description": "Graphic design, brand identity, social media content and campaign production business of Synergy Concepts Hub in Kampala, Uganda.",
+     "areaServed": {"@type": "City", "name": "Kampala"}},
+    {
+        "@type": "Service",
+        "@id": f"{SITE}/creative-hub/#service",
+        "name": "Graphic Design, Brand Identity, Social Media Content and Campaign Production",
+        "url": f"{SITE}/creative-hub/",
+        "provider": {"@id": f"{SITE}/creative-hub/#organization"},
+        "areaServed": {"@type": "City", "name": "Kampala"},
+        "serviceType": ["Graphic Design & Brand Identity", "Social Media Content Production", "Campaign & Content Production"],
+    },
+)
+page("/creative-hub/", "Synergy Creative Hub | Design, Branding & Content in Kampala",
+     "Synergy Creative Hub: logo and brand identity design, company profiles, promotional design, social media content and campaign production in Kampala.",
+     creative_body, "/creative-hub/", schema=CREATIVE_LD, og_img=og_from_item("matsen-01"), biz="creative")
+
+# Design & branding
 _jump, _secs = gallery_sections("design", DESIGN_GROUPS, "design")
 design_body = f'''
-<section class="page-head"><div class="wrap"><p class="eyebrow"><a href="/creative/" style="text-decoration:none">Creative</a> &nbsp;/&nbsp; Graphic Design &amp; Branding &middot; Synergy Creative Hub</p>
+<section class="page-head"><div class="wrap">{crumb("creative", "Design &amp; Branding")}
 <h1>Graphic design, brand identity and company profiles.</h1>
 <p class="lede">Logos, company profiles and promotional design by Synergy Creative Hub. Work for clients is credited to the client; Synergy&rsquo;s own brands are labelled as such. Select any design to see it larger.</p>
 <div class="actions" style="margin-top:36px"><a class="btn" href="{CTA["design"][1]}">{CTA["design"][0]}</a></div>{_jump}</div></section>
@@ -860,17 +1137,13 @@ design_body = f'''
 {cta_band("Need a brand or a document designed?", CTA["design"][0], CTA["design"][1])}
 '''
 DESIGN_LD = json_ld(
-    breadcrumb_ld(("Home", "/"), ("Creative", "/creative/"), ("Graphic Design & Branding", "/creative/design/")),
+    breadcrumb_ld(("Home", "/"), ("Synergy Creative Hub", "/creative-hub/"), ("Design & Branding", "/creative-hub/design/")),
     {
         "@type": "Service",
-        "@id": f"{SITE}/creative/design/#service",
+        "@id": f"{SITE}/creative-hub/design/#service",
         "name": "Graphic Design, Logo Design, Brand Identity and Company Profiles in Kampala",
-        "url": f"{SITE}/creative/design/",
-        "provider": {
-            "@type": "Organization",
-            "name": "Synergy Creative Hub",
-            "parentOrganization": ORG_REF,
-        },
+        "url": f"{SITE}/creative-hub/design/",
+        "provider": biz_org("creative"),
         "areaServed": {"@type": "City", "name": "Kampala"},
         "serviceType": [
             "Logo Design & Brand Identity",
@@ -880,11 +1153,11 @@ DESIGN_LD = json_ld(
         ],
     },
 )
-page("/creative/design/", "Graphic Design and Branding in Kampala | Synergy Creative Hub",
+page("/creative-hub/design/", "Graphic Design and Branding in Kampala | Synergy Creative Hub",
      "Logo design, brand identity, company profiles, presentations and promotional design in Kampala by Synergy Creative Hub, part of Synergy Concepts Hub.",
-     design_body, "/creative/design/", schema=DESIGN_LD, og_img=og_from_item("matsen-01"))
+     design_body, "/creative-hub/design/", schema=DESIGN_LD, og_img=og_from_item("matsen-01"), biz="creative")
 
-# ---------- SOCIAL MEDIA CONTENT ----------
+# Social media content
 _social = items("design", "social")
 _social_examples = f'''<section class="sec stone" id="examples"><div class="wrap">
 {sec_head("", "Examples", "Graphics made for social media.")}
@@ -892,7 +1165,7 @@ _social_examples = f'''<section class="sec stone" id="examples"><div class="wrap
 </div></section>''' if _social else ""
 _split_pic = first("photography", "product")
 sm_body = f'''
-<section class="page-head"><div class="wrap"><p class="eyebrow"><a href="/creative/" style="text-decoration:none">Creative</a> &nbsp;/&nbsp; Social Media Content</p>
+<section class="page-head"><div class="wrap">{crumb("creative", "Social Media Content")}
 <h1>Monthly social media content production for businesses.</h1>
 <p class="lede">We plan, shoot and edit the photos, videos and graphics your business needs for social media in one monthly recording session. You post them when it suits you.</p>
 <div class="actions" style="margin-top:36px"><a class="btn" href="{CTA["social"][1]}">{CTA["social"][0]}</a></div></div></section>
@@ -921,13 +1194,13 @@ sm_body = f'''
 </div></section>
 '''
 SOCIAL_LD = json_ld(
-    breadcrumb_ld(("Home", "/"), ("Creative", "/creative/"), ("Social Media Content", "/creative/social-media-content/")),
+    breadcrumb_ld(("Home", "/"), ("Synergy Creative Hub", "/creative-hub/"), ("Social Media Content", "/creative-hub/social-media-content/")),
     {
         "@type": "Service",
-        "@id": f"{SITE}/creative/social-media-content/#service",
+        "@id": f"{SITE}/creative-hub/social-media-content/#service",
         "name": "Social Media Content Production for Businesses in Kampala",
-        "url": f"{SITE}/creative/social-media-content/",
-        "provider": ORG_REF,
+        "url": f"{SITE}/creative-hub/social-media-content/",
+        "provider": biz_org("creative"),
         "areaServed": {"@type": "City", "name": "Kampala"},
         "serviceType": [
             "Monthly Social Media Content Production",
@@ -937,19 +1210,68 @@ SOCIAL_LD = json_ld(
         ],
     },
 )
-page("/creative/social-media-content/", "Social Media Content Production in Kampala | Synergy Concepts",
+page("/creative-hub/social-media-content/", "Social Media Content Production in Kampala | Synergy Creative Hub",
      "Business photography, short-form video and graphic design for social media, planned and recorded in one monthly session in Kampala, Uganda.",
-     sm_body, "/creative/social-media-content/", schema=SOCIAL_LD, og_img=og_from_item("flyer-watches-2"))
+     sm_body, "/creative-hub/social-media-content/", schema=SOCIAL_LD, og_img=og_from_item("flyer-watches-2"), biz="creative")
+
+# Brief
+brief_body = enquiry_body("creative", "Send a Brief", "Send a brief to Synergy Creative Hub.",
+    "Tell us what you need designed or produced. A short description is enough: we reply within 24 hours with questions or a quote.",
+    ["What you need: a logo or brand identity, a company profile, promotional design, social media content or a campaign",
+     "Where it will be used: print, social media, presentations or your website",
+     "Your deadline, if you have one",
+     "Any brand material you already have, such as a logo, colours or earlier documents"],
+    ["creative"])
+BRIEF_LD = json_ld(
+    breadcrumb_ld(("Home", "/"), ("Synergy Creative Hub", "/creative-hub/"), ("Send a Brief", BRIEF)),
+    {"@type": "ContactPage", "@id": f"{SITE}{BRIEF}#webpage", "name": "Send a brief to Synergy Creative Hub",
+     "url": f"{SITE}{BRIEF}", "about": biz_org("creative")},
+)
+page(BRIEF, "Send a Design or Content Brief | Synergy Creative Hub",
+     "Send a brief to Synergy Creative Hub for brand identity, company profiles, promotional design, social media content or campaign production in Kampala.",
+     brief_body, BRIEF, schema=BRIEF_LD, biz="creative")
+
+# ---------- SYNERGY MULTIMEDIA ACADEMY ----------
+# The Academy's courses, intakes, admissions and applications live on its own website (SMA). This page
+# introduces the Academy within the group and hands visitors over to that site. It never collects
+# applications or replaces the Academy's own admissions workflow.
+academy_body = f'''
+{biz_head("academy", "Practical courses in creative and digital media.",
+  "Synergy Multimedia Academy is the education business of Synergy Concepts Hub: practical courses, holiday programs and multimedia training for the next generation of creators. Courses, intakes and applications are on the Academy&rsquo;s own website.",
+  ext_link("Visit the Academy website", SMA, "btn") + '<a class="link" href="#teaches">What the Academy teaches &darr;</a>')}
+<section class="sec" id="teaches"><div class="wrap"><div class="split">
+<div class="pic">{static_img("sma-learning.jpg", 1400, 933, "A student editing photos on a laptop at Synergy Multimedia Academy")}</div>
+<div class="txt"><p class="eyebrow">What the Academy teaches</p><h2>Photography, film, design and multimedia.</h2>
+{plain(["Photography and photo editing", "Videography and video editing", "Graphic design", "2D animation", "Social media", "Multimedia"])}
+<p class="small">Current courses, dates and fees are published on the Academy website.</p>
+</div></div></div></section>
+<section class="sec stone" id="academy-links"><div class="wrap">
+{sec_head("", "Where to go", "Courses and admissions are handled by the Academy.")}
+<div class="rows rows--sm">
+<a class="row row--kind" href="{SMA}" target="_blank" rel="noopener"><span class="n">Academy website</span><span class="t">Courses, holiday programs &amp; admissions</span><span class="d">Course details, intakes and applications.<span class="vh"> (opens another website)</span></span><span class="a" aria-hidden="true">&#8599;</span></a>
+<a class="row row--kind" href="/products/#sma-sync"><span class="n">Synergy Concepts Hub</span><span class="t">SMA Sync</span><span class="d">Offline-first media synchronization software built by Synergy Concepts Hub and used by the Academy.</span><span class="a" aria-hidden="true">&rarr;</span></a>
+</div></div></section>
+{other_businesses("academy")}
+'''
+ACADEMY_LD = json_ld(
+    breadcrumb_ld(("Home", "/"), ("Synergy Multimedia Academy", "/academy/")),
+    {"@type": "EducationalOrganization", "@id": f"{SITE}/academy/#organization", "name": "Synergy Multimedia Academy",
+     "url": SMA, "parentOrganization": ORG_REF,
+     "description": "Education business of Synergy Concepts Hub offering practical courses, holiday programs and multimedia training."},
+)
+page("/academy/", "Synergy Multimedia Academy | Creative & Digital Media Training",
+     "Synergy Multimedia Academy, part of Synergy Concepts Hub: practical courses in photography, video, graphic design and multimedia, and holiday programs.",
+     academy_body, "/academy/", schema=ACADEMY_LD, og_img=(f"{IMG}sma-learning.jpg", 1400, 933, "A student editing photos on a laptop at Synergy Multimedia Academy"), biz="academy")
 
 # ---------- PRODUCTS ----------
 prod_body = f'''
-<section class="page-head"><div class="wrap"><p class="eyebrow">Products</p>
+<section class="page-head"><div class="wrap"><p class="eyebrow">Synergy Concepts Hub &middot; Products</p>
 <h1>Software products built by Synergy Concepts Hub.</h1>
 <p class="lede">Alongside client systems and creative work, Synergy Concepts Hub develops and maintains its own software products in Kampala, Uganda.</p></div></section>
 <section class="sec"><div class="wrap">
 <div class="cards">
 <div class="card" id="quickcredit"><span class="k">In use &middot; Financial systems</span><h2 class="h3">QuickCredit</h2><p>Enterprise lending and credit management platform built for lending operations, combining borrower workflows, mobile money integration, credit scoring and real-time analytics.</p><p class="small"><a class="link" href="https://quickcreditclientportal.netlify.app/home" target="_blank" rel="noopener">View QuickCredit platform &#8599;</a></p></div>
-<div class="card" id="sma-sync"><span class="k">In use &middot; Media workflows</span><h2 class="h3">SMA Sync</h2><p>Offline-first media synchronization software designed for creative production and training workflows where reliable local file synchronization is essential.</p><p class="small">Built by Synergy Concepts Hub. Used by Synergy Multimedia Academy. <!-- Internal product: do not add download, purchase, pricing or sign-up links unless Synergy decides to release it publicly. --></p></div>
+<div class="card" id="sma-sync"><span class="k">In use &middot; Media workflows</span><h2 class="h3">SMA Sync</h2><p>Offline-first media synchronization software designed for creative production and training workflows where reliable local file synchronization is essential.</p><p class="small">Built by Synergy Concepts Hub. Used by <a class="link" href="/academy/">Synergy Multimedia Academy</a>. <!-- Internal product: do not add download, purchase, pricing or sign-up links unless Synergy decides to release it publicly. --></p></div>
 <div class="card" id="recovery-tools"><span class="k">Coming soon</span><h2 class="h3">Creative &amp; Media Recovery Tools</h2><p>Practical utilities for creative production teams to organize, verify and recover photo and video files from studio and field shoots.</p></div>
 </div>
 <div class="prose" style="margin-top:72px">
@@ -995,7 +1317,7 @@ PRODUCTS_LD = json_ld(
 )
 page("/products/", "Software Products: QuickCredit & SMA Sync | Synergy Concepts",
      "Proprietary software products built by Synergy Concepts Hub in Uganda, including the QuickCredit lending platform and SMA Sync media workflow tool.",
-     prod_body, "/products/", schema=PRODUCTS_LD)
+     prod_body, "/products/", schema=PRODUCTS_LD, biz="sch")
 
 # ---------- WORK ----------
 TECHW = [  # name, type, description, cats, link
@@ -1011,7 +1333,7 @@ tech_rows = ""
 for name, kind, desc, cats, link in TECHW:
     tech_rows += f'<a class="row row--kind" data-cat="{cats}" href="{link}" target="_blank" rel="noopener"><span class="n">{kind}</span><span class="t">{name}</span><span class="d">{desc}</span><span class="a" aria-hidden="true">&#8599;</span></a>'
 
-def work_block(category, title, page_href, cta_key, limit=6):
+def work_block(category, title, business, page_href, cta_key, limit=6):
     """A short, curated block per creative category on the Work page (sets count once)."""
     its, seen, picked = items(category), set(), []
     for it in its:
@@ -1027,13 +1349,13 @@ def work_block(category, title, page_href, cta_key, limit=6):
     keep = {it.get("set") or it["id"] for it in picked}
     sel = [it for it in its if (it.get("set") or it["id"]) in keep]
     return f'''<div class="wblock" data-cat="creative {category}" id="{category}">
-<div class="wblock-head"><h2 class="wsub">{title}</h2><p class="wlinks"><a class="link" href="{page_href}">All {title.lower()} &rarr;</a>{cta_link(cta_key)}</p></div>
+<div class="wblock-head"><h2 class="wsub">{title} &middot; {business}</h2><p class="wlinks"><a class="link" href="{page_href}">All {title.lower()} &rarr;</a>{cta_link(cta_key)}</p></div>
 {gallery(sel, "c3", "work-" + category)}</div>'''
 
-_work_creative = work_block("photography", "Photography", "/creative/photography/", "photography") + \
-                 work_block("design", "Design", "/creative/design/", "design")
+_work_creative = work_block("photography", "Photography", "Synergy Capture Films", "/capture-films/photography/", "photography") + \
+                 work_block("design", "Design", "Synergy Creative Hub", "/creative-hub/design/", "design")
 
-_FILTERS = [("all", "All"), ("creative", "Creative"), ("photography", "Photography"), ("design", "Design"),
+_FILTERS = [("all", "All"), ("photography", "Photography"), ("design", "Design"),
             ("technology", "Technology"), ("websites", "Websites"), ("video", "Video")]
 import re
 _cats_present = {c for m in re.findall(r'data-cat="([^"]+)"', _work_creative + tech_rows) for c in m.split()}
@@ -1044,11 +1366,11 @@ filter_btns = "".join(
 work_body = f'''
 <section class="page-head"><div class="wrap"><p class="eyebrow">Work</p>
 <h1>Selected photography, design, systems and websites.</h1>
-<p class="lede">Photography, design, systems and websites for businesses in Uganda and across East Africa.</p></div></section>
+<p class="lede">Work across the Synergy businesses: photography by Synergy Capture Films, design by Synergy Creative Hub, and systems and websites by Synergy Concepts Hub, for businesses in Uganda and across East Africa.</p></div></section>
 <section class="sec dark"><div class="wrap">
 <div class="filters" role="group" aria-label="Filter work">{filter_btns}</div>
 <div data-group id="creative">{_work_creative}</div>
-<div data-group id="technology" style="margin-top:72px"><h2 class="wsub">Technology and websites</h2><div class="rows" id="websites">{tech_rows}</div></div>
+<div data-group id="technology" style="margin-top:72px"><h2 class="wsub">Technology and websites &middot; Synergy Concepts Hub</h2><div class="rows" id="websites">{tech_rows}</div></div>
 </div></section>
 {cta_band("Want to see something specific?")}
 '''
@@ -1103,12 +1425,12 @@ about_body = f'''
 <h1>About Synergy Concepts Hub in Kampala, Uganda.</h1>
 <p class="lede">Synergy Concepts Hub is a Kampala-based technology and business creative company building software systems, websites, photography, design and digital products for growing organisations.</p></div></section>
 <section class="sec"><div class="wrap">
-{sec_head("", "Structure", "One company across technology, creative and education.")}
+{sec_head("", "Structure", "One parent company, four Synergy businesses.")}
 <div class="rows">
-<div class="row"><span class="n">01</span><span class="t">Synergy Concepts Hub</span><span class="d">The main consolidated company for business technology, creative production and proprietary software products such as QuickCredit and SMA Sync.</span></div>
-<a class="row" href="/creative/photography/"><span class="n">02</span><span class="t">Synergy Capture Films</span><span class="d">Our commercial photography and video production division: corporate portraits, studio sessions, product photography, weddings and business video.</span><span class="a" aria-hidden="true">&rarr;</span></a>
-<a class="row" href="/creative/design/"><span class="n">03</span><span class="t">Synergy Creative Hub</span><span class="d">Our graphic design and branding division: logos, brand identity systems, company profiles, presentations and promotional collateral.</span><span class="a" aria-hidden="true">&rarr;</span></a>
-<a class="row" href="{SMA}" target="_blank" rel="noopener"><span class="n">04</span><span class="t">Synergy Multimedia Academy</span><span class="d">Our dedicated education brand offering practical courses, holiday programs and multimedia training on its own website.</span><span class="a" aria-hidden="true">&#8599;</span></a>
+<a class="row" href="/technology/"><span class="n">01</span><span class="t">Synergy Concepts Hub</span><span class="d">The parent company, and the home of our business technology and proprietary software products such as QuickCredit and SMA Sync.</span><span class="a" aria-hidden="true">&rarr;</span></a>
+<a class="row" href="/capture-films/"><span class="n">02</span><span class="t">Synergy Capture Films</span><span class="d">Our photography and video business: corporate portraits, studio sessions, product photography, weddings and ceremonies, and business video.</span><span class="a" aria-hidden="true">&rarr;</span></a>
+<a class="row" href="/creative-hub/"><span class="n">03</span><span class="t">Synergy Creative Hub</span><span class="d">Our design and creative production business: logos, brand identity, company profiles, promotional design, social media content and campaigns.</span><span class="a" aria-hidden="true">&rarr;</span></a>
+<a class="row" href="/academy/"><span class="n">04</span><span class="t">Synergy Multimedia Academy</span><span class="d">Our education business, offering practical courses, holiday programs and multimedia training. Admissions run on the Academy&rsquo;s own website.</span><span class="a" aria-hidden="true">&rarr;</span></a>
 </div></div></section>
 <section class="sec stone"><div class="wrap">
 {sec_head("", "How we work", "Understand, build, support.")}
@@ -1139,7 +1461,7 @@ page("/about/", "About Synergy Concepts Hub | Technology & Creative, Uganda",
 contact_body = f'''
 <section class="page-head"><div class="wrap"><p class="eyebrow">Contact</p>
 <h1>Contact Synergy Concepts Hub to start a project.</h1>
-<p class="lede">Tell us what you need across business software, websites, photography, graphic design or social media content. A short description is enough and we reply within 24 hours.</p></div></section>
+<p class="lede">Tell us what you need across business software, websites, photography, video, graphic design or social media content. Choose the service and we pass it to the right Synergy business. A short description is enough and we reply within 24 hours.</p></div></section>
 {contact_block("").replace('<section class="sec  ', '<section class="sec ')}
 '''
 # the contact page reuses the block without its own heading
@@ -1170,8 +1492,10 @@ page("/404", "Page not found | Synergy Concepts Hub",
      not_found_body, "", out_file="404.html")
 
 # ---------- sitemap, robots, redirects ----------
-urls = ["/", "/technology/", "/creative/", "/creative/photography/", "/creative/design/",
-        "/creative/social-media-content/", "/products/", "/work/"] + CASE_URLS + ["/about/", "/contact/"]
+urls = ["/", "/technology/", "/products/",
+        "/capture-films/", "/capture-films/photography/", "/capture-films/weddings/", "/capture-films/videography/", QUOTE,
+        "/creative-hub/", "/creative-hub/design/", "/creative-hub/social-media-content/", BRIEF,
+        "/academy/", "/work/"] + CASE_URLS + ["/about/", "/contact/"]
 _smap_lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
 for u in urls:
     _lmod = PAGE_LASTMOD.get(u) or SOURCE_LASTMOD
@@ -1187,7 +1511,23 @@ _robots_path = os.path.join(ROOT, "robots.txt")
 if not (os.path.exists(_robots_path) and open(_robots_path, encoding="utf8").read() == _robots_out):
     with open(_robots_path, "w", encoding="utf8", newline="\n") as f:
         f.write(_robots_out)
-_redir_out = "/social-media-management.html /creative/social-media-content/ 301\n/social-media-management /creative/social-media-content/ 301\n"
+# Permanent redirects for pages that moved into a business section (Oct 2026). Each old URL goes straight
+# to its final page (no chains). Both the trailing-slash and bare forms are listed.
+REDIRECTS = [
+    ("/social-media-management.html", "/creative-hub/social-media-content/"),
+    ("/social-media-management", "/creative-hub/social-media-content/"),
+    ("/creative/photography/", "/capture-films/photography/"),
+    ("/creative/photography", "/capture-films/photography/"),
+    ("/creative/design/", "/creative-hub/design/"),
+    ("/creative/design", "/creative-hub/design/"),
+    ("/creative/social-media-content/", "/creative-hub/social-media-content/"),
+    ("/creative/social-media-content", "/creative-hub/social-media-content/"),
+    ("/creative/", "/creative-hub/"),
+    ("/creative", "/creative-hub/"),
+]
+assert not ({src for src, _ in REDIRECTS} & set(urls)), "a redirect source is also a live page"
+assert all(dst in urls for _, dst in REDIRECTS), "a redirect points at a page that is not built"
+_redir_out = "".join(f"{src} {dst} 301\n" for src, dst in REDIRECTS)
 _redir_path = os.path.join(ROOT, "_redirects")
 if not (os.path.exists(_redir_path) and open(_redir_path, encoding="utf8").read() == _redir_out):
     with open(_redir_path, "w", encoding="utf8", newline="\n") as f:

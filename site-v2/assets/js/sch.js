@@ -1,4 +1,5 @@
 /* Synergy Concepts Hub — site behaviour. Four small jobs: menu, work filter, image viewer, enquiry form. */
+/* Navigation is plain links (four businesses, then section bars); no dropdowns need scripting. */
 (function () {
   'use strict';
 
@@ -9,12 +10,17 @@
   // (systems / media / products / other); the chosen creative service is written into the brief.
   var SERVICE_MAP = {
     technology: 'systems', products: 'products', other: 'other', creative: 'media',
-    photography: 'media', design: 'media', social: 'media', 'social-management': 'media', campaign: 'media'
+    photography: 'media', weddings: 'media', video: 'media',
+    design: 'media', social: 'media', 'social-management': 'media', campaign: 'media'
   };
   var SUB_SERVICE = {
-    photography: 'Photography & Video', design: 'Graphic Design & Branding', social: 'Social Media Content',
+    photography: 'Photography', weddings: 'Weddings & Ceremonies', video: 'Videography',
+    design: 'Graphic Design & Branding', social: 'Social Media Content',
     'social-management': 'Social Media Management', campaign: 'Campaign & Content Production'
   };
+  // Business attribution: each option carries data-business (the Synergy business that delivers it);
+  // business pages also set it on the form for "Other". It is written into the brief, so every lead in
+  // the portal shows which business it is for, with no change to the portal's API or tables.
 
   /* Mobile menu */
   var btn = document.querySelector('.menu-btn');
@@ -27,34 +33,21 @@
     });
   }
 
-  /* Header dropdown (Creative): the caret toggles it; Escape or a click elsewhere closes it.
-     Hover and keyboard focus open it through CSS, so it also works without this script. */
-  var drops = document.querySelectorAll('.nav-drop');
-  var closeDrops = function (except) {
-    drops.forEach(function (d) {
-      if (d === except) return;
-      d.classList.remove('open');
-      var c = d.querySelector('.nav-caret');
-      if (c) c.setAttribute('aria-expanded', 'false');
-    });
-  };
-  drops.forEach(function (d) {
-    var caret = d.querySelector('.nav-caret');
-    if (!caret) return;
-    caret.addEventListener('click', function (e) {
-      e.stopPropagation();
-      var open = d.classList.toggle('open');
-      caret.setAttribute('aria-expanded', open ? 'true' : 'false');
-      closeDrops(d);
-    });
-  });
-  if (drops.length) {
-    document.addEventListener('click', function (e) { if (!e.target.closest('.nav-drop')) closeDrops(); });
+  /* Section bar: on narrow screens the links scroll sideways; bring the current page into view. */
+  var secList = document.querySelector('.secbar ul');
+  var secCur = secList && secList.querySelector('[aria-current="page"]');
+  if (secCur && secList.scrollWidth > secList.clientWidth) {
+    secList.scrollLeft = Math.max(0, secCur.parentElement.offsetLeft - secList.offsetLeft - 24);
+  }
+
+  /* Escape closes the open mobile menu and returns focus to its button. */
+  if (btn && nav) {
     document.addEventListener('keydown', function (e) {
-      if (e.key !== 'Escape') return;
-      var openDrop = document.querySelector('.nav-drop.open');
-      closeDrops();
-      if (openDrop) openDrop.querySelector('.nav-caret').focus();
+      if (e.key !== 'Escape' || !nav.classList.contains('open')) return;
+      nav.classList.remove('open');
+      btn.setAttribute('aria-expanded', 'false');
+      btn.textContent = 'Menu';
+      btn.focus();
     });
   }
 
@@ -168,7 +161,11 @@
       status.textContent = '';
 
       var choice = form.elements.service.value;
-      var brief = (SUB_SERVICE[choice] ? 'Service: ' + SUB_SERVICE[choice] + '\n\n' : '') +
+      var opt = form.elements.service.options[form.elements.service.selectedIndex];
+      var business = (opt && opt.getAttribute('data-business')) || form.getAttribute('data-business') || '';
+      var head = (business ? 'Business: ' + business + '\n' : '') +
+        (SUB_SERVICE[choice] ? 'Service: ' + SUB_SERVICE[choice] + '\n' : '');
+      var brief = (head ? head + '\n' : '') +
         form.elements.brief.value.trim() + '\n\n[Sent from ' + location.pathname + ']';
       var payload = {
         name: form.elements.name.value.trim(),

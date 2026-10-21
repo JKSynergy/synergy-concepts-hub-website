@@ -13,6 +13,15 @@ Portfolio images are gated separately by `_review/portfolio.json` (see "Portfoli
 | SMA Sync | "In use", no download, buy, pricing or sign-up. Homepage now shows Products as two short rows instead of three cards. | Unchanged unless Synergy decides to release it. |
 | Work page client project links and names (QuickCredit, Solverscreations, Afrisites, Octagon Africa, Elgon Bottling, Diani Art Gallery, Davy Cinematography) | Carried over from the existing public site. Synergy's role on Davy Cinematography (video production or website) is not stated. | Confirm they remain approved for display, and clarify the Davy entry. |
 
+## Business ownership decisions from the Oct 2026 reorganization (confirm or correct)
+
+| Item | Decision taken | To confirm |
+| --- | --- | --- |
+| Social Media Content and Campaign & Content Production | Placed under Synergy Creative Hub (previously shown under "Creative" without a business name). | Confirm Creative Hub owns these, or move them to Capture Films in `BUSINESSES` / `FORM_GROUPS`. |
+| Videography | Placed under Synergy Capture Films as a service page (business, promotional, campaign and corporate video). No video portfolio on the site; links to the Capture Films YouTube channel. | Add approved video work or stills if wanted. Confirm whether wedding/ceremony films are offered before they are listed. |
+| Event photography (non-wedding), drone coverage, photo books, animation and motion graphics | Not listed anywhere: no existing site content or documentation supports them. | Confirm which are offered before adding them (and before they become options in the future quotation builder). |
+| Academy subjects on `/academy/` | Photography and photo editing, videography and video editing, graphic design, 2D animation, social media, multimedia (from the project README course list; no prices). The page defers to the Academy website for current courses, dates and fees. | Confirm the list is current. Project Lab, masterclasses and intakes are not mentioned because no public content for them exists in this repository. |
+
 ## Portfolio images
 
 - Source of truth: `_review/portfolio.json`. Readable summary: `_review/ASSET_REVIEW.md` (generated).

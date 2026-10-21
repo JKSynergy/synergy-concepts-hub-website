@@ -11,10 +11,12 @@
   var SERVICE_MAP = {
     technology: 'systems', products: 'products', other: 'other', creative: 'media',
     photography: 'media', weddings: 'media', video: 'media',
+    events: 'media', kukyala: 'media', introduction: 'media',
     design: 'media', social: 'media', 'social-management': 'media', campaign: 'media'
   };
   var SUB_SERVICE = {
-    photography: 'Photography', weddings: 'Weddings & Ceremonies', video: 'Videography',
+    photography: 'Photography', weddings: 'Weddings', video: 'Videography',
+    events: 'Events', kukyala: 'Kukyala', introduction: 'Introduction ceremony',
     design: 'Graphic Design & Branding', social: 'Social Media Content',
     'social-management': 'Social Media Management', campaign: 'Campaign & Content Production'
   };

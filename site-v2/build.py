@@ -75,9 +75,9 @@ BUSINESSES = {
     "films": {
         "name": "Synergy Capture Films", "short": "Capture Films", "tag": "Photography &amp; video",
         "href": "/capture-films/",
-        "sub": [("Overview", "/capture-films/"), ("Photography", "/capture-films/photography/"),
-                ("Weddings &amp; Ceremonies", "/capture-films/weddings/"), ("Videography", "/capture-films/videography/"),
-                ("Our Work", "/work/#photography"), ("Get a Quote", "/capture-films/quote/")],
+        "sub": [("Overview", "/capture-films/"), ("Events", "/capture-films/events/"),
+                ("Weddings &amp; Ceremonies", "/capture-films/weddings/"), ("Portraits &amp; Studio", "/capture-films/photography/"),
+                ("Videography", "/capture-films/videography/"), ("Our Work", "/work/#photography"), ("Get a Quote", "/capture-films/quote/")],
     },
     "creative": {
         "name": "Synergy Creative Hub", "short": "Creative Hub", "tag": "Design &amp; content",
@@ -154,8 +154,8 @@ FOOTER = f'''<footer class="site-footer"><div class="wrap">
     ("AI &amp; Automation", "/technology/#ai-automation"), ("Managed Technology", "/technology/#managed-technology"),
     ("Products", "/products/")])}</ul></div>
 <div><p class="lbl">Capture Films</p><ul>{_flinks([
-    ("Overview", "/capture-films/"), ("Photography", "/capture-films/photography/"),
-    ("Weddings &amp; Ceremonies", "/capture-films/weddings/"), ("Videography", "/capture-films/videography/"),
+    ("Events", "/capture-films/events/"), ("Weddings &amp; Ceremonies", "/capture-films/weddings/"),
+    ("Portraits &amp; Studio", "/capture-films/photography/"), ("Videography", "/capture-films/videography/"),
     ("Get a Quote", "/capture-films/quote/")])}</ul></div>
 <div><p class="lbl">Creative Hub</p><ul>{_flinks([
     ("Overview", "/creative-hub/"), ("Design &amp; Branding", "/creative-hub/design/"),
@@ -520,7 +520,9 @@ def contact_block(sec_cls="dark"):
 # existing ?service= links and portal records depend on them.
 FORM_GROUPS = [
     ("films", "Synergy Capture Films", [
-        ("photography", "Photography"), ("weddings", "Weddings &amp; ceremonies"), ("video", "Videography")]),
+        ("events", "Events: corporate, conferences, celebrations"), ("weddings", "Weddings"), ("kukyala", "Kukyala"),
+        ("introduction", "Introduction ceremony"), ("photography", "Portraits, studio or product photography"),
+        ("video", "Business or promotional video")]),
     ("creative", "Synergy Creative Hub", [
         ("design", "Graphic Design &amp; Branding"), ("social", "Social Media Content"),
         ("social-management", "Social Media Management"), ("campaign", "Campaign &amp; Content Production"),
@@ -563,7 +565,10 @@ QUOTE = "/capture-films/quote/"
 BRIEF = "/creative-hub/brief/"
 CTA = {
     "photography": ("Request a photography quote", f"{QUOTE}?service=photography"),
+    "events": ("Request an event quote", f"{QUOTE}?service=events"),
     "weddings": ("Request a wedding quote", f"{QUOTE}?service=weddings"),
+    "kukyala": ("Request a Kukyala quote", f"{QUOTE}?service=kukyala"),
+    "introduction": ("Request an introduction quote", f"{QUOTE}?service=introduction"),
     "video": ("Request a video quote", f"{QUOTE}?service=video"),
     "design": ("Request a design quote", f"{BRIEF}?service=design"),
     "social": ("Get a content quote", f"{BRIEF}?service=social"),
@@ -610,7 +615,7 @@ ORG_ENTITY = {
             "@type": "Organization",
             "name": "Synergy Capture Films",
             "url": f"{SITE}/capture-films/",
-            "description": "Photography and video production business of Synergy Concepts Hub in Kampala, Uganda: portraits, studio and product photography, weddings and ceremonies, and business video.",
+            "description": "Photography and video business of Synergy Concepts Hub in Kampala, Uganda: events, weddings, Kukyala and introduction ceremonies, portraits, studio and product photography, and business video.",
         },
         {
             "@type": "Organization",
@@ -680,8 +685,8 @@ DESTINATIONS = [
       ("AI &amp; Automation", "/technology/#ai-automation"), ("Products", "/products/")],
      "Go to Concepts Hub",
      static_img("brand-stationery.jpg", 1400, 1400, "Synergy Concepts Hub stationery: notebook, letterhead, business card and mug")),
-    ("films", "02", "Portraits, studio sessions, product photography, weddings and ceremonies, and video for businesses.",
-     [("Photography", "/capture-films/photography/"), ("Weddings &amp; Ceremonies", "/capture-films/weddings/"),
+    ("films", "02", "Photography and video for events, weddings, Kukyala and introduction ceremonies, plus portraits, product shoots and business video.",
+     [("Events", "/capture-films/events/"), ("Weddings &amp; Ceremonies", "/capture-films/weddings/"),
       ("Videography", "/capture-films/videography/"), ("Get a Quote", "/capture-films/quote/")],
      "Go to Capture Films",
      pic_for("wed-vannie-5", ("studio-portrait.jpg", 1000, 1500, "Studio portrait by Synergy Capture Films"))),
@@ -690,7 +695,7 @@ DESTINATIONS = [
       ("Campaign Production", "/creative-hub/#campaign-content-production"), ("Send a Brief", "/creative-hub/brief/")],
      "Go to Creative Hub",
      static_img("design-matsen.jpg", 1400, 788, "Company profile designed by Synergy Creative Hub")),
-    ("academy", "04", "Practical courses, holiday programs and multimedia training for the next generation of creators.",
+    ("academy", "04", "Practical courses and intakes, monthly masterclasses, Project Lab and holiday programmes for the next generation of creators.",
      [("About the Academy", "/academy/"), ("Courses &amp; admissions", SMA)],
      "Go to the Academy",
      static_img("sma-learning.jpg", 1400, 933, "A student editing photos on a laptop at Synergy Multimedia Academy")),
@@ -891,9 +896,9 @@ def biz_head(biz, h1, lede, actions):
 
 BIZ_SUMMARY = {
     "sch": "Business software, websites, automation and our own software products.",
-    "films": "Portrait, studio, product and wedding photography, and video for businesses.",
+    "films": "Photography and video for events, weddings, Kukyala and introduction ceremonies, and for businesses.",
     "creative": "Brand identity, company profiles, promotional design and social media content.",
-    "academy": "Practical courses, holiday programs and multimedia training.",
+    "academy": "Practical courses, masterclasses, Project Lab and holiday programmes.",
 }
 
 def other_businesses(key, sec_cls=""):
@@ -930,30 +935,54 @@ def biz_org(key):
 client_design = [it for it in items("design") if "own brand" not in (it.get("client") or "").lower()]
 
 # ---------- SYNERGY CAPTURE FILMS ----------
+# Core offer (confirmed by the business, Oct 2026): photography and videography for events, weddings,
+# Kukyala and introduction ceremonies; also portraits, studio and product photography and business video.
+# Drone coverage is an optional inclusion in suitable packages, never a standalone service or a guarantee.
+# The package builder (event type -> photography/videography -> package -> extras such as drone) is a
+# FUTURE item; until it exists, every page leads to the enquiry form at QUOTE. Do not show packages or prices.
+DRONE_NOTE = ("Drone coverage can be included as an option in suitable photography and videography packages, "
+              "where the venue and conditions allow. Ask about it when you request a quote.")
+
+def coverage_options(cta_key, sec_cls="stone"):
+    """Photography, videography or both, with drone as an optional extra. No packages or prices are stated."""
+    return f'''<section class="sec {sec_cls}" id="coverage"><div class="wrap">
+{sec_head("", "Coverage", "Photography, videography or both.", "Coverage, team size and deliverables are agreed with you in the quote.")}
+<div class="duo">
+<div><p class="lbl">Photography</p><h3>Photographs of the day</h3><p class="prose">Photographers cover the occasion, and you receive edited photographs.</p></div>
+<div><p class="lbl">Videography</p><h3>A film of the day</h3><p class="prose">Videographers film the occasion, and you receive an edited film.</p></div>
+<div><p class="lbl">Both</p><h3>Photography and video together</h3><p class="prose">One team covering the occasion in photographs and on film.</p></div>
+<div><p class="lbl">Optional</p><h3>Drone coverage</h3><p class="prose">{DRONE_NOTE}</p></div>
+</div>
+<p style="margin-top:40px">{cta_link(cta_key)}</p>
+</div></section>'''
+
 FILMS_SERVICES = [
-    ("01", "Photography", "Portraits and headshots, studio sessions, and product and brand photography.",
-     "/capture-films/photography/", first("photography", "product") or first("photography", "portraits")),
-    ("02", "Weddings &amp; Ceremonies", "Weddings, introduction ceremonies and traditional ceremonies.",
+    ("01", "Events", "Corporate events, conferences, celebrations and other occasions, in photographs and on film.",
+     "/capture-films/events/", None),
+    ("02", "Weddings, Kukyala &amp; Introductions", "Weddings, Kukyala visits and traditional introduction ceremonies such as Kwanjula.",
      "/capture-films/weddings/", item_by_id("wed-brenda-jan") or first("photography", "weddings")),
-    ("03", "Videography", "Business and promotional video, launch and campaign content, and corporate communication.",
+    ("03", "Portraits, Studio &amp; Product", "Portraits and headshots, studio sessions, and product and brand photography.",
+     "/capture-films/photography/", first("photography", "product") or first("photography", "portraits")),
+    ("04", "Videography", "Event and ceremony films, business and promotional video, and social media video and Reels.",
      "/capture-films/videography/", None),
 ]
 films_body = f'''
-{biz_head("films", "Photography and video, from portraits to weddings.",
-  "Synergy Capture Films is the photography and video business of Synergy Concepts Hub in Kampala. We photograph people, products and ceremonies, and make video for businesses.",
+{biz_head("films", "Photography and video for events, weddings and ceremonies.",
+  "Synergy Capture Films is the photography and video business of Synergy Concepts Hub in Kampala. We photograph and film events, weddings, Kukyala and introduction ceremonies, and also shoot portraits, products and video for businesses.",
   f'<a class="btn" href="{QUOTE}">Get a Quote</a><a class="link" href="/work/#photography">See our work &rarr;</a>')}
 <section class="sec" id="services"><div class="wrap">
 {sec_head("", "Services", "What we photograph and film.")}
 {img_rows(FILMS_SERVICES)}
+<p class="small" style="margin-top:40px">Need regular photos, video and Reels for social media? <a class="link" href="/creative-hub/social-media-content/">Social Media Content &rarr;</a> (produced with Synergy Creative Hub)</p>
 </div></section>
 <section class="sec stone" id="quotes"><div class="wrap">
 {sec_head("", "Quotes", "Every quote starts with the occasion.", "Tell us what you are planning and what you would like covered. We reply within 24 hours with questions or a quote for that coverage.")}
 <ol class="steps">
-<li><h3>Tell us the occasion</h3><p>The type of shoot or event, the date and the location.</p></li>
-<li><h3>Describe the coverage</h3><p>Photography, video or both, and roughly how long you need us there.</p></li>
+<li><h3>Tell us the occasion</h3><p>An event, a wedding, a Kukyala or an introduction ceremony, or a shoot. Include the date and the location.</p></li>
+<li><h3>Choose the coverage</h3><p>Photography, videography or both. Drone coverage can be added to suitable packages where the venue and conditions allow.</p></li>
 <li><h3>Receive a quote</h3><p>We confirm the details with you and send a quote for that coverage.</p></li>
 </ol>
-<!-- Future: the Capture Films quotation builder (services chosen individually, itemised estimate) belongs at {QUOTE}. -->
+<!-- Future: the Capture Films package builder (event type, photography and/or videography, package, optional extras such as drone) belongs at {QUOTE}. Not built yet. -->
 <div class="actions" style="margin-top:48px"><a class="btn" href="{QUOTE}">Get a Quote</a></div>
 </div></section>
 {other_businesses("films")}
@@ -961,26 +990,56 @@ films_body = f'''
 FILMS_LD = json_ld(
     breadcrumb_ld(("Home", "/"), ("Synergy Capture Films", "/capture-films/")),
     {**biz_org("films"), "@id": f"{SITE}/capture-films/#organization",
-     "description": "Photography and video business of Synergy Concepts Hub in Kampala, Uganda.",
+     "description": "Photography and video business of Synergy Concepts Hub in Kampala, Uganda: events, weddings, Kukyala and introduction ceremonies, portraits and business video.",
      "areaServed": {"@type": "City", "name": "Kampala"},
      "sameAs": ["https://www.instagram.com/synergycapturefilms_weddings", "https://www.youtube.com/@synergycapturefilms_ug"]},
 )
-page("/capture-films/", "Synergy Capture Films | Photography & Video in Kampala, Uganda",
-     "Synergy Capture Films: portrait, studio and product photography, wedding and ceremony photography, and business video in Kampala. Request a quote.",
+page("/capture-films/", "Synergy Capture Films | Event & Wedding Photography, Kampala",
+     "Synergy Capture Films: photography and videography for events, weddings, Kukyala and introduction ceremonies in Kampala, plus portraits and business video.",
      films_body, "/capture-films/", schema=FILMS_LD, og_img=og_from_item("wed-brenda-jan"), biz="films")
 
-# Photography
+# Events
+events_body = f'''
+<section class="page-head"><div class="wrap">{crumb("films", "Events")}
+<h1>Event photography and videography in Kampala.</h1>
+<p class="lede">Synergy Capture Films photographs and films corporate events, conferences, celebrations and other occasions, with photography, videography or both.</p>
+<div class="actions" style="margin-top:36px"><a class="btn" href="{CTA["events"][1]}">{CTA["events"][0]}</a><a class="link" href="/capture-films/weddings/">Weddings &amp; ceremonies &rarr;</a></div></div></section>
+<section class="sec"><div class="wrap">
+{svc("events-covered", "01", "Events we cover", "Coverage for business and personal occasions, planned around your programme for the day.",
+ ["Corporate events", "Conferences", "Celebrations", "Other occasions"],
+ "Organisations recording a conference or corporate event, and families and hosts marking a celebration.")}
+</div></section>
+{coverage_options("events")}
+{cta_band("Planning an event?", CTA["events"][0], CTA["events"][1])}
+'''
+EVENTS_LD = json_ld(
+    breadcrumb_ld(("Home", "/"), ("Synergy Capture Films", "/capture-films/"), ("Events", "/capture-films/events/")),
+    {
+        "@type": "Service",
+        "@id": f"{SITE}/capture-films/events/#service",
+        "name": "Event Photography and Videography in Kampala",
+        "url": f"{SITE}/capture-films/events/",
+        "provider": biz_org("films"),
+        "areaServed": {"@type": "City", "name": "Kampala"},
+        "serviceType": ["Event Photography", "Event Videography", "Corporate Event Coverage", "Conference Photography and Video"],
+    },
+)
+page("/capture-films/events/", "Event Photography & Videography in Kampala | Synergy Capture Films",
+     "Photography and videography for corporate events, conferences, celebrations and other occasions in Kampala by Synergy Capture Films. Request a quote.",
+     events_body, "/capture-films/events/", schema=EVENTS_LD, biz="films")
+
+# Portraits, studio and product photography
 _jump, _secs = gallery_sections("photography", PHOTO_GROUPS, "photography")
 photo_body = f'''
-<section class="page-head"><div class="wrap">{crumb("films", "Photography")}
+<section class="page-head"><div class="wrap">{crumb("films", "Portraits &amp; Studio")}
 <h1>Portrait, studio and product photography in Kampala.</h1>
 <p class="lede">Portraits and headshots, studio sessions and product photography by Synergy Capture Films. Select any image to see it larger.</p>
-<div class="actions" style="margin-top:36px"><a class="btn" href="{CTA["photography"][1]}">{CTA["photography"][0]}</a><a class="link" href="/capture-films/weddings/">Weddings &amp; ceremonies &rarr;</a></div>{_jump}</div></section>
+<div class="actions" style="margin-top:36px"><a class="btn" href="{CTA["photography"][1]}">{CTA["photography"][0]}</a><a class="link" href="/capture-films/events/">Events &rarr;</a><a class="link" href="/capture-films/weddings/">Weddings &amp; ceremonies &rarr;</a></div>{_jump}</div></section>
 <section class="sec"><div class="wrap">{_secs}</div></section>
 {cta_band("Planning a shoot?", CTA["photography"][0], CTA["photography"][1])}
 '''
 PHOTO_LD = json_ld(
-    breadcrumb_ld(("Home", "/"), ("Synergy Capture Films", "/capture-films/"), ("Photography", "/capture-films/photography/")),
+    breadcrumb_ld(("Home", "/"), ("Synergy Capture Films", "/capture-films/"), ("Portraits & Studio", "/capture-films/photography/")),
     {
         "@type": "Service",
         "@id": f"{SITE}/capture-films/photography/#service",
@@ -995,16 +1054,30 @@ page("/capture-films/photography/", "Portrait & Product Photography in Kampala |
      "Corporate headshots, professional portraits, studio sessions and product photography in Kampala by Synergy Capture Films, part of Synergy Concepts Hub.",
      photo_body, "/capture-films/photography/", schema=PHOTO_LD, og_img=og_from_item("christine-10"), biz="films")
 
-# Weddings & ceremonies
+# Weddings, Kukyala and introduction ceremonies
 if not items("photography", "weddings"):
     print("WARNING: no approved wedding images; /capture-films/weddings/ has no gallery")
 _jump, _secs = gallery_sections("photography", WEDDING_GROUPS, "weddings")
+CEREMONIES = [
+    ("weddings", "Weddings", "Wedding ceremonies and receptions."),
+    ("kukyala", "Kukyala", "The visit to the bride&rsquo;s family that comes before the introduction."),
+    ("introduction", "Introduction ceremonies", "Kwanjula and other traditional introduction ceremonies."),
+]
+_cer_rows = "".join(
+    f'<div class="row row--kind" id="{k}"><span class="n">{n:02d}</span><span class="t">{t}</span>'
+    f'<span class="d">{d}<br><a class="link" href="{CTA[k][1]}" style="margin-top:10px">{CTA[k][0]} &rarr;</a></span></div>'
+    for n, (k, t, d) in enumerate(CEREMONIES, 1))
 wed_body = f'''
 <section class="page-head"><div class="wrap">{crumb("films", "Weddings &amp; Ceremonies")}
-<h1>Wedding, introduction and traditional ceremony photography.</h1>
-<p class="lede">Weddings, introduction ceremonies and traditional ceremonies photographed by Synergy Capture Films. Select any image to see it larger.</p>
-<div class="actions" style="margin-top:36px"><a class="btn" href="{CTA["weddings"][1]}">{CTA["weddings"][0]}</a><a class="link" href="/capture-films/photography/">Portraits, studio and product &rarr;</a></div>{_jump}</div></section>
-<section class="sec"><div class="wrap">{_secs}</div></section>
+<h1>Wedding, Kukyala and introduction photography and video.</h1>
+<p class="lede">Synergy Capture Films photographs and films weddings, Kukyala visits and traditional introduction ceremonies, with photography, videography or both.</p>
+<div class="actions" style="margin-top:36px"><a class="btn" href="{CTA["weddings"][1]}">{CTA["weddings"][0]}</a><a class="link" href="#gallery">See wedding and ceremony work &darr;</a></div></div></section>
+<section class="sec" id="ceremonies"><div class="wrap">
+{sec_head("", "Ceremonies", "Weddings and the ceremonies before them.")}
+<div class="rows rows--sm">{_cer_rows}</div>
+</div></section>
+{coverage_options("weddings")}
+<section class="sec" id="gallery"><div class="wrap">{_jump}{_secs}</div></section>
 {cta_band("Planning a wedding or ceremony?", CTA["weddings"][0], CTA["weddings"][1])}
 '''
 WED_LD = json_ld(
@@ -1012,35 +1085,37 @@ WED_LD = json_ld(
     {
         "@type": "Service",
         "@id": f"{SITE}/capture-films/weddings/#service",
-        "name": "Wedding, Introduction and Traditional Ceremony Photography in Kampala",
+        "name": "Wedding, Kukyala and Introduction Ceremony Photography and Videography in Kampala",
         "url": f"{SITE}/capture-films/weddings/",
         "provider": biz_org("films"),
         "areaServed": {"@type": "City", "name": "Kampala"},
-        "serviceType": ["Wedding Photography", "Introduction Ceremony Photography", "Traditional Ceremony Photography"],
+        "serviceType": ["Wedding Photography", "Wedding Videography", "Kukyala Photography and Video",
+                        "Introduction Ceremony (Kwanjula) Photography and Video"],
     },
 )
-page("/capture-films/weddings/", "Wedding & Ceremony Photography in Kampala | Synergy Capture Films",
-     "Wedding, introduction ceremony and traditional ceremony photography in Kampala by Synergy Capture Films. See the work and request a quote.",
+page("/capture-films/weddings/", "Wedding, Kukyala & Introduction Coverage | Synergy Capture Films",
+     "Photography and videography for weddings, Kukyala and introduction ceremonies (Kwanjula) in Kampala by Synergy Capture Films. See the work and request a quote.",
      wed_body, "/capture-films/weddings/", schema=WED_LD, og_img=og_from_item("wed-brenda-jan"), biz="films")
 
 # Videography (service page; films are published on the YouTube channel, not on this site)
 YOUTUBE = "https://www.youtube.com/@synergycapturefilms_ug"
 video_body = f'''
 <section class="page-head"><div class="wrap">{crumb("films", "Videography")}
-<h1>Business, promotional and campaign video.</h1>
-<p class="lede">Synergy Capture Films produces video for businesses and organisations: promotional films, launch and campaign content, and corporate communication.</p>
+<h1>Event, ceremony and business video.</h1>
+<p class="lede">Synergy Capture Films films events, weddings and ceremonies, and produces video for businesses: promotional films, campaign content, social media video and Reels, and corporate communication.</p>
 <div class="actions" style="margin-top:36px"><a class="btn" href="{CTA["video"][1]}">{CTA["video"][0]}</a>{ext_link("Watch on YouTube", YOUTUBE, "link")}</div></div></section>
 <section class="sec"><div class="wrap">
-{svc("video-services", "01", "What we film", "Video planned around what it needs to do: promote, launch, explain or record.",
- ["Business and promotional video", "Campaign and product launch video", "Corporate communication and internal video", "Promotional films", "Behind-the-scenes and highlights"],
- "Businesses launching a product or campaign, organisations that need to explain what they do, and teams that need video for internal communication.",
- f'<p class="prose">{ext_link("Synergy Capture Films on YouTube", YOUTUBE, "link")}</p>')}
+{svc("video-services", "01", "What we film", "Video planned around what it needs to do: record an occasion, promote, launch or explain.",
+ ["Events, weddings, Kukyala and introduction ceremonies", "Business and promotional video", "Campaign and product launch video",
+  "Social media video and Reels", "Corporate communication and internal video", "Behind-the-scenes and highlights"],
+ "Hosts and families recording an occasion, businesses launching a product or campaign, and teams that need video for social media or internal communication.",
+ f'<p class="prose">{DRONE_NOTE}</p><p class="prose" style="margin-top:16px">{ext_link("Synergy Capture Films on YouTube", YOUTUBE, "link")}</p>')}
 </div></section>
 <section class="sec stone"><div class="wrap">
 {sec_head("", "Related", "Video alongside other work.")}
 <div class="duo">
-<div><p class="lbl">Synergy Capture Films</p><h3>Photography</h3><p class="prose">Portraits, studio sessions and product photography, booked on their own or with video.</p><p><a class="link" href="/capture-films/photography/">Photography &rarr;</a></p></div>
-<div><p class="lbl">Synergy Creative Hub</p><h3>Monthly social media content</h3><p class="prose">Short-form video, photos and graphics for your channels, planned and produced each month.</p><p><a class="link" href="/creative-hub/social-media-content/">Social Media Content &rarr;</a></p></div>
+<div><p class="lbl">Synergy Capture Films</p><h3>Events and ceremonies</h3><p class="prose">Photography and video for events, weddings, Kukyala and introduction ceremonies.</p><p><a class="link" href="/capture-films/events/">Events &rarr;</a> &nbsp; <a class="link" href="/capture-films/weddings/">Weddings &amp; ceremonies &rarr;</a></p></div>
+<div><p class="lbl">With Synergy Creative Hub</p><h3>Monthly social media content</h3><p class="prose">Short-form video, photos and graphics for your channels, planned and produced each month.</p><p><a class="link" href="/creative-hub/social-media-content/">Social Media Content &rarr;</a></p></div>
 </div></div></section>
 {cta_band("Need a video made?", CTA["video"][0], CTA["video"][1])}
 '''
@@ -1049,33 +1124,35 @@ VIDEO_LD = json_ld(
     {
         "@type": "Service",
         "@id": f"{SITE}/capture-films/videography/#service",
-        "name": "Business, Promotional and Campaign Video Production in Kampala",
+        "name": "Event, Ceremony and Business Video Production in Kampala",
         "url": f"{SITE}/capture-films/videography/",
         "provider": biz_org("films"),
         "areaServed": {"@type": "City", "name": "Kampala"},
-        "serviceType": ["Business & Promotional Video", "Campaign & Product Launch Video", "Corporate Communication Video"],
+        "serviceType": ["Event & Ceremony Videography", "Business & Promotional Video", "Social Media Video & Reels",
+                        "Corporate Communication Video"],
     },
 )
-page("/capture-films/videography/", "Business & Promotional Video in Kampala | Synergy Capture Films",
-     "Business and promotional video, campaign and product launch content, and corporate communication video in Kampala by Synergy Capture Films.",
+page("/capture-films/videography/", "Event & Business Videography in Kampala | Synergy Capture Films",
+     "Videography for events, weddings, Kukyala and introduction ceremonies, plus promotional, social media and corporate video in Kampala by Synergy Capture Films.",
      video_body, "/capture-films/videography/", schema=VIDEO_LD, biz="films")
 
-# Quote request (the future home of the Capture Films quotation builder)
+# Quote request (the future home of the Capture Films package builder)
 quote_body = enquiry_body("films", "Get a Quote", "Request a quote from Synergy Capture Films.",
-    "Tell us about the shoot or occasion. A short description is enough: we reply within 24 hours with questions or a quote.",
-    ["The occasion or type of shoot: portraits, studio, product, a wedding or ceremony, or business video",
+    "Tell us about the occasion or shoot. A short description is enough: we reply within 24 hours with questions or a quote.",
+    ["The occasion: an event, a wedding, a Kukyala or an introduction ceremony, a portrait or product shoot, or business video",
      "The date, or how flexible it is, and the location",
-     "What you would like covered: photography, video or both, and roughly for how long",
+     "What you would like covered: photography, videography or both, and roughly for how long",
+     "Whether you would like drone coverage considered (available in suitable packages, where the venue and conditions allow)",
      "What you need at the end: edited photographs, a film, or both"],
     ["films"])
-quote_body += "\n<!-- Future: replace or extend this form with the Capture Films quotation builder (individual services, itemised estimate). Keep this URL. -->\n"
+quote_body += "\n<!-- Future: the Capture Films package builder (event type, photography and/or videography, package, optional extras such as drone) replaces or extends this form. Keep this URL and the /api/quote integration. -->\n"
 QUOTE_LD = json_ld(
     breadcrumb_ld(("Home", "/"), ("Synergy Capture Films", "/capture-films/"), ("Get a Quote", QUOTE)),
     {"@type": "ContactPage", "@id": f"{SITE}{QUOTE}#webpage", "name": "Request a quote from Synergy Capture Films",
      "url": f"{SITE}{QUOTE}", "about": biz_org("films")},
 )
 page(QUOTE, "Request a Photography or Video Quote | Synergy Capture Films",
-     "Request a quote from Synergy Capture Films for portraits, studio or product photography, weddings and ceremonies, or business video in Kampala.",
+     "Request a photography or videography quote from Synergy Capture Films for an event, wedding, Kukyala, introduction ceremony, portrait shoot or business video.",
      quote_body, QUOTE, schema=QUOTE_LD, biz="films")
 
 # ---------- SYNERGY CREATIVE HUB ----------
@@ -1168,6 +1245,7 @@ sm_body = f'''
 <section class="page-head"><div class="wrap">{crumb("creative", "Social Media Content")}
 <h1>Monthly social media content production for businesses.</h1>
 <p class="lede">We plan, shoot and edit the photos, videos and graphics your business needs for social media in one monthly recording session. You post them when it suits you.</p>
+<p class="small" style="margin-top:20px">A shared service: Synergy Creative Hub designs the graphics, carousels and branded templates; <a class="link" href="/capture-films/videography/">Synergy Capture Films</a> shoots the photos, video and Reels.</p>
 <div class="actions" style="margin-top:36px"><a class="btn" href="{CTA["social"][1]}">{CTA["social"][0]}</a></div></div></section>
 <section class="sec"><div class="wrap">
 {sec_head("", "How it works", "Plan, record, deliver.")}
@@ -1233,34 +1311,64 @@ page(BRIEF, "Send a Design or Content Brief | Synergy Creative Hub",
 
 # ---------- SYNERGY MULTIMEDIA ACADEMY ----------
 # The Academy's courses, intakes, admissions and applications live on its own website (SMA). This page
-# introduces the Academy within the group and hands visitors over to that site. It never collects
-# applications or replaces the Academy's own admissions workflow.
+# introduces the Academy within the group and refers visitors to that site. It never collects applications,
+# shows fees or reproduces the Academy's admissions workflow.
+# Destinations verified by rendering each page on 21 Oct 2026. The Academy site shows its homepage for any
+# unknown path, so only these verified paths may be linked. Intake dates and masterclass speakers are NOT
+# copied here: they change, and this page is only rebuilt by hand. The linked pages always show the current ones.
+SMA_PAGES = {
+    "programs": SMA + "programs",          # programme catalogue: regular, holiday, bootcamp, corporate
+    "intake": SMA + "intake",              # admissions: open intakes and application links
+    "masterclass": SMA + "masterclass",    # monthly masterclass (The Creative Talk Series)
+    "project-lab": SMA + "project-lab",    # Project Lab
+    "holiday": SMA + "holiday-programs",   # holiday programmes
+}
+ACADEMY_HIGHLIGHTS = [
+    ("Courses &amp; intakes", "Courses and upcoming intakes",
+     "Practical programmes in photography, video production, graphic design, animation, social media, UI/UX design and AI for creatives. Intakes open during the year: the Academy&rsquo;s admissions page shows which are open now and when applications close.",
+     [("Browse programmes", "programs"), ("See open intakes and apply", "intake")]),
+    ("Masterclasses", "The SMA Monthly Masterclass",
+     "A monthly talk series, The Creative Talk Series, where Uganda&rsquo;s creatives, entrepreneurs and innovators share their experience with the next generation. The Academy announces each session&rsquo;s date and speaker.",
+     [("About the masterclass", "masterclass")]),
+    ("Project Lab", "Project Lab",
+     "Practical projects with mentorship, for turning skills into professional, portfolio-ready work. Courses teach the skills; Project Lab puts them to work.",
+     [("Explore Project Lab", "project-lab")]),
+    ("Holiday &amp; other programmes", "Holiday programmes, bootcamps and corporate training",
+     "Short practical programmes for students and beginners during the school holidays, plus bootcamps and corporate training listed in the programme catalogue.",
+     [("Holiday programmes", "holiday"), ("All programmes", "programs")]),
+]
+
+def academy_highlights():
+    out = ""
+    for lbl, title, text, links in ACADEMY_HIGHLIGHTS:
+        ls = " &nbsp; ".join(ext_link(l, SMA_PAGES[k], "link") for l, k in links)
+        out += f'<div><p class="lbl">{lbl}</p><h3>{title}</h3><p class="prose">{text}</p><p>{ls}</p></div>'
+    return f'<div class="duo">{out}</div>'
+
 academy_body = f'''
 {biz_head("academy", "Practical courses in creative and digital media.",
-  "Synergy Multimedia Academy is the education business of Synergy Concepts Hub: practical courses, holiday programs and multimedia training for the next generation of creators. Courses, intakes and applications are on the Academy&rsquo;s own website.",
-  ext_link("Visit the Academy website", SMA, "btn") + '<a class="link" href="#teaches">What the Academy teaches &darr;</a>')}
-<section class="sec" id="teaches"><div class="wrap"><div class="split">
+  "Synergy Multimedia Academy is the education business of Synergy Concepts Hub: practical courses, holiday programmes, masterclasses and project-based learning for the next generation of creators. Courses, intakes and applications are on the Academy&rsquo;s own website.",
+  ext_link("Visit the Academy website", SMA, "btn") + '<a class="link" href="#highlights">Highlights &darr;</a>')}
+<section class="sec" id="highlights"><div class="wrap">
+{sec_head("", "Highlights", "Courses, masterclasses, projects and programmes.", "Full details, fees and registration are on the Academy website.")}
+{academy_highlights()}
+</div></section>
+<section class="sec stone" id="teaches"><div class="wrap"><div class="split">
 <div class="pic">{static_img("sma-learning.jpg", 1400, 933, "A student editing photos on a laptop at Synergy Multimedia Academy")}</div>
-<div class="txt"><p class="eyebrow">What the Academy teaches</p><h2>Photography, film, design and multimedia.</h2>
-{plain(["Photography and photo editing", "Videography and video editing", "Graphic design", "2D animation", "Social media", "Multimedia"])}
-<p class="small">Current courses, dates and fees are published on the Academy website.</p>
+<div class="txt"><p class="eyebrow">What the Academy teaches</p><h2>Photography, film, design and more.</h2>
+{plain(["Photography", "Video production", "Graphic design", "Animation", "Social media", "UI/UX design", "AI for creatives"])}
+<p class="small">Built by Synergy Concepts Hub, <a class="link" href="/products/#sma-sync">SMA Sync</a> is media synchronization software used by the Academy.</p>
 </div></div></div></section>
-<section class="sec stone" id="academy-links"><div class="wrap">
-{sec_head("", "Where to go", "Courses and admissions are handled by the Academy.")}
-<div class="rows rows--sm">
-<a class="row row--kind" href="{SMA}" target="_blank" rel="noopener"><span class="n">Academy website</span><span class="t">Courses, holiday programs &amp; admissions</span><span class="d">Course details, intakes and applications.<span class="vh"> (opens another website)</span></span><span class="a" aria-hidden="true">&#8599;</span></a>
-<a class="row row--kind" href="/products/#sma-sync"><span class="n">Synergy Concepts Hub</span><span class="t">SMA Sync</span><span class="d">Offline-first media synchronization software built by Synergy Concepts Hub and used by the Academy.</span><span class="a" aria-hidden="true">&rarr;</span></a>
-</div></div></section>
 {other_businesses("academy")}
 '''
 ACADEMY_LD = json_ld(
     breadcrumb_ld(("Home", "/"), ("Synergy Multimedia Academy", "/academy/")),
     {"@type": "EducationalOrganization", "@id": f"{SITE}/academy/#organization", "name": "Synergy Multimedia Academy",
      "url": SMA, "parentOrganization": ORG_REF,
-     "description": "Education business of Synergy Concepts Hub offering practical courses, holiday programs and multimedia training."},
+     "description": "Education business of Synergy Concepts Hub offering practical courses, holiday programmes, masterclasses and Project Lab."},
 )
 page("/academy/", "Synergy Multimedia Academy | Creative & Digital Media Training",
-     "Synergy Multimedia Academy, part of Synergy Concepts Hub: practical courses in photography, video, graphic design and multimedia, and holiday programs.",
+     "Synergy Multimedia Academy, part of Synergy Concepts Hub: practical courses and intakes, monthly masterclasses, Project Lab and holiday programmes in Kampala.",
      academy_body, "/academy/", schema=ACADEMY_LD, og_img=(f"{IMG}sma-learning.jpg", 1400, 933, "A student editing photos on a laptop at Synergy Multimedia Academy"), biz="academy")
 
 # ---------- PRODUCTS ----------
@@ -1493,7 +1601,7 @@ page("/404", "Page not found | Synergy Concepts Hub",
 
 # ---------- sitemap, robots, redirects ----------
 urls = ["/", "/technology/", "/products/",
-        "/capture-films/", "/capture-films/photography/", "/capture-films/weddings/", "/capture-films/videography/", QUOTE,
+        "/capture-films/", "/capture-films/events/", "/capture-films/weddings/", "/capture-films/photography/", "/capture-films/videography/", QUOTE,
         "/creative-hub/", "/creative-hub/design/", "/creative-hub/social-media-content/", BRIEF,
         "/academy/", "/work/"] + CASE_URLS + ["/about/", "/contact/"]
 _smap_lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']

@@ -31,12 +31,13 @@ Each business has a section bar (secondary navigation, sticky under the header o
 | Business | Section root | Pages |
 | --- | --- | --- |
 | Synergy Concepts Hub (technology, products) | `/technology/` | `/technology/`, `/products/` |
-| Synergy Capture Films | `/capture-films/` | `photography/`, `weddings/`, `videography/`, `quote/` |
+| Synergy Capture Films | `/capture-films/` | `events/`, `weddings/` (weddings, Kukyala, introductions), `photography/` (portraits, studio, product), `videography/`, `quote/` |
 | Synergy Creative Hub | `/creative-hub/` | `design/`, `social-media-content/`, `brief/` |
 | Synergy Multimedia Academy | `/academy/` | Bridge page; courses, intakes and applications stay on the Academy website |
 | Shared | | `/`, `/work/`, `/about/`, `/contact/` |
 
-- `/capture-films/quote/` is the canonical home of the future Capture Films quotation builder. Today it is the shared enquiry form limited to Capture Films services. No packages or prices are shown.
+- `/capture-films/quote/` is the canonical home of the future Capture Films package builder (event type, photography and/or videography, package, optional extras such as drone). Not built: today it is the shared enquiry form limited to Capture Films services. No packages or prices are shown. Drone coverage appears only as an optional inclusion in suitable packages (`DRONE_NOTE`).
+- Academy links go only to the verified pages in `SMA_PAGES` in `build.py`.
 - Old `/creative/...` URLs 301-redirect to their new pages. Generated folders of moved pages are removed at build time (`RETIRED_OUTPUT_DIRS`).
 - Attribution: every enquiry option carries `data-business`; `sch.js` writes `Business: <name>` and `Service: <label>` at the top of the brief sent to the portal's `/api/quote`. The `service` values sent to the portal are unchanged. `<body data-business>` marks each page's business (`sch-group` for shared pages) for future analytics; no analytics runs on the site today.
 - New components: `.secbar` (section bar), `.biz` / `.bizlist` (homepage business destinations), `.vh` (visually hidden text).

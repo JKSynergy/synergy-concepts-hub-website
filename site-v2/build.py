@@ -300,6 +300,8 @@ def page(path, title, desc, body, current="", schema="", out_file=None, og_img=N
 <meta name="twitter:image:alt" content="{esc(og_alt)}">
 <meta name="theme-color" content="#0B0F19">
 <link rel="icon" type="image/png" href="{IMG}logo-mark-light.png">
+<link rel="apple-touch-icon" href="{IMG}app/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/css/sch.css?v={ASSET_V["css"]}">

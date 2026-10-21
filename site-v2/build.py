@@ -48,6 +48,8 @@ ITEMS = [it for it in _MANIFEST["items"] if _visible(it)]
 _approved_files = {v[0] for i, s in _SIZES.items() if s["dir"] == "public"
                    for v in s["files"].values()
                    if any(it["id"] == i and it["status"] == "approved" for it in _MANIFEST["items"])}
+# Each approved JPEG may have its WebP copy (build_webp.py) beside it.
+_approved_files |= {os.path.splitext(n)[0] + ".webp" for n in _approved_files}
 _work_dir = os.path.join(SRC, "assets", "img", "work")
 _stray = sorted(set(os.listdir(_work_dir)) - _approved_files) if os.path.isdir(_work_dir) else []
 if _stray and not PREVIEW:
@@ -156,6 +158,47 @@ def _relativize(out, path):
         return pre + rest + tail
     out = _re.sub(r'((?:href|src)=")(/(?!/)[^"]*)"', lambda m: m.group(1) + fix(m.group(2)) + '"', out)
     out = _re.sub(r'(srcset=")([^"]*)"', lambda m: m.group(1) + _re.sub(r"(^|,\s*)/(?!/)", lambda n: n.group(1) + pre, m.group(2)) + '"', out)
+    return out
+
+def _webp_file(url):
+    """The WebP copy of a site JPEG URL, if build_webp.py made one (public or review-preview images)."""
+    if not url.startswith(IMG) or not url.lower().endswith((".jpg", ".jpeg")):
+        return None
+    rel = url[1:].rsplit(".", 1)[0] + ".webp"
+    for base in (SRC, os.path.join(SRC, "_review", "preview")):
+        if os.path.exists(os.path.join(base, rel)):
+            return "/" + rel
+    return None
+
+def _webpify(out):
+    """Serve WebP where a copy exists: wrap each JPEG <img> in <picture> with a WebP <source>
+    (the JPEG stays as the fallback), and give full-size viewer links a data-webp URL.
+    og:image / twitter:image stay JPEG for the social platforms."""
+    def pic(m):
+        tag = m.group(0)
+        src = _re.search(r'\bsrc="([^"]+)"', tag)
+        if not src or not _webp_file(src.group(1)):
+            return tag
+        srcset = _re.search(r'\bsrcset="([^"]+)"', tag)
+        if srcset:
+            parts = []
+            for c in srcset.group(1).split(","):
+                u, *d = c.strip().split()
+                w = _webp_file(u)
+                if not w:
+                    return tag
+                parts.append(" ".join([w] + d))
+            ws = ", ".join(parts)
+        else:
+            ws = _webp_file(src.group(1))
+        sizes = _re.search(r'\bsizes="([^"]+)"', tag)
+        sz = f' sizes="{sizes.group(1)}"' if sizes else ""
+        return f'<picture><source type="image/webp" srcset="{ws}"{sz}>{tag}</picture>'
+    out = _re.sub(r'<img\b[^>]*>', pic, out)
+    def link(m):
+        w = _webp_file(m.group(2))
+        return m.group(0) if not w or "data-webp=" in m.group(0) else f'{m.group(1)}{m.group(2)}" data-webp="{w}"'
+    out = _re.sub(r'(<a\b(?=[^>]*\bdata-gallery=)[^>]*?\bhref=")([^"]+)"', link, out)
     return out
 
 DEFAULT_OG_IMAGE = (f"{IMG}brand-stationery.jpg", 1400, 1400, "Synergy Concepts Hub stationery: notebook, letterhead, business card and mug")
@@ -272,6 +315,7 @@ def page(path, title, desc, body, current="", schema="", out_file=None, og_img=N
 </body>
 </html>
 '''
+    out = _webpify(out)
     if PREVIEW:
         out = _relativize(out, "/" if out_file else path)
     if out_file:

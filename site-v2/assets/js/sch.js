@@ -106,14 +106,14 @@
     var show = function (i) {
       idx = (i + seq.length) % seq.length;
       var a = seq[idx];
-      vImg.src = a.getAttribute('href');
+      vImg.src = a.getAttribute('data-webp') || a.getAttribute('href');
       vImg.alt = altOf(a);
       if (a.getAttribute('data-w')) { vImg.width = a.getAttribute('data-w'); vImg.height = a.getAttribute('data-h'); }
       vCap.textContent = a.getAttribute('data-caption') || '';
       vCount.textContent = seq.length > 1 ? (idx + 1) + ' / ' + seq.length : '';
       var multi = seq.length > 1;
       vPrev.hidden = !multi; vNext.hidden = !multi;
-      if (multi) { var pre = new Image(); pre.src = seq[(idx + 1) % seq.length].getAttribute('href'); }
+      if (multi) { var nx = seq[(idx + 1) % seq.length], pre = new Image(); pre.src = nx.getAttribute('data-webp') || nx.getAttribute('href'); }
     };
     var open = function (a) {
       var name = a.getAttribute('data-gallery');

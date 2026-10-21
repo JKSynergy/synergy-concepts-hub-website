@@ -51,6 +51,8 @@ body {
   font: 400 1rem/1.65 var(--f-body);
   -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
 }
+/* <picture> only chooses the WebP or JPEG file; it takes no part in layout. */
+picture { display: contents; }
 img { display: block; max-width: 100%; height: auto; }
 a { color: inherit; }
 h1, h2, h3, h4, p, ul, ol, figure, blockquote { margin: 0; }

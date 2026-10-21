@@ -8,6 +8,7 @@ Writes  approved items  -> assets/img/work/<id>-<width>.jpg   (published)
         pending items   -> _review/preview/assets/img/work/    (local review preview only)
         _review/portfolio.images.json  (sizes, read by build.py)
         _review/ASSET_REVIEW.md        (human-readable manifest)
+        a WebP copy of each image       (via build_webp.py; build.py serves it through <picture>)
 
 Rejected items and items with "proposed": false are never processed.
 Images are resized only (never cropped). Metadata (EXIF, GPS) is stripped.
@@ -136,10 +137,13 @@ def main():
         n[it["status"]] += 1
     with open(SIZES_OUT, "w", encoding="utf8") as f:
         json.dump(sizes, f, indent=1)
+    import build_webp
+    build_webp.main()
     with open(REVIEW_MD, "w", encoding="utf8") as f:
         f.write(review_md(data))
     # Warn about public files whose item is no longer approved (remove them by hand before deploying).
     keep = {v[0] for i in sizes.values() if i["dir"] == "public" for v in i["files"].values()}
+    keep |= {os.path.splitext(k)[0] + ".webp" for k in keep}
     stale = sorted(set(os.listdir(PUBLIC_DIR)) - keep)
     print(f"images: {n['approved']} approved (public), {n['pending']} pending (preview only)")
     if stale:

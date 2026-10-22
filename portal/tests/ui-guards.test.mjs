@@ -39,10 +39,12 @@ test("no full-page route transition animation", () => {
   assert.deepEqual(offenders, []);
 });
 
-test("admin navigation: Academy is not a primary item, operations group is labelled", () => {
-  const shell = read("components/ux/admin-shell.tsx");
-  assert.ok(!/href: "\/admin\/academy"/.test(shell));
-  assert.ok(/label: "Operations"/.test(shell));
+// Phase A (business workspaces) deliberately makes Multimedia Academy a workspace again;
+// the earlier Phase 2 IA had hidden it. Access is still admin-only (route + middleware).
+test("admin navigation: Academy is an admin-only workspace, operations is labelled", () => {
+  const nav = read("lib/navigation/workspaces.ts");
+  assert.ok(/href: "\/admin\/academy", label: "Courses", match: \["\/admin\/academy"\], roles: ADMIN/.test(nav));
+  assert.ok(/label: "Operations"/.test(nav));
 });
 
 test("dashboard and login carry no invented metrics", () => {

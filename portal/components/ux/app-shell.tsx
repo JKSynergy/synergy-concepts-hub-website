@@ -7,8 +7,16 @@ import { createClient } from "@/lib/supabase/client";
 import { FeedbackProvider } from "./feedback";
 import { ThemeToggle } from "./theme-toggle";
 
-export type ShellItem = { href: string; label: string; match: string[]; exact?: boolean };
-export type ShellGroup = { label?: string; ariaLabel: string; items: ShellItem[] };
+export type ShellItem = { href: string; label: string; match: string[]; exclude?: string[]; exact?: boolean };
+export type ShellGroup = {
+  label?: string;
+  ariaLabel: string;
+  items: ShellItem[];
+  /** Plain text shown in place of links (a workspace with no screens yet). Never a link. */
+  note?: string;
+  /** A heading rendered above this group, e.g. "Businesses" or "Shared services". */
+  sectionBefore?: string;
+};
 export type ShellTab = { href: string; label: string; match: string; exclude?: string; exact?: boolean };
 export type ShellSection = { prefixes: string[]; tabs: ShellTab[] };
 
@@ -19,6 +27,7 @@ export function AppShell({
   groups,
   sections = [],
   brandSub = "Concepts Hub",
+  context,
   userLabel,
   userRole,
   children,
@@ -26,6 +35,8 @@ export function AppShell({
   groups: ShellGroup[];
   sections?: ShellSection[];
   brandSub?: string;
+  /** "You are here" label for the top bar on narrow screens (defaults to Synergy Concepts Hub). */
+  context?: string;
   userLabel: string;
   userRole: string;
   children: ReactNode;
@@ -36,8 +47,9 @@ export function AppShell({
   const menuRef = useRef<HTMLButtonElement>(null);
   const sideRef = useRef<HTMLElement>(null);
 
+  const under = (p: string) => pathname === p || pathname.startsWith(p + "/");
   const active = (i: ShellItem) =>
-    i.exact ? pathname === i.href : i.match.some((m) => pathname === m || pathname.startsWith(m + "/"));
+    i.exact ? pathname === i.href : !(i.exclude ?? []).some(under) && i.match.some(under);
 
   // Close when the route changes.
   useEffect(() => setOpen(false), [pathname]);
@@ -105,7 +117,7 @@ export function AppShell({
           <button ref={menuRef} type="button" onClick={() => setOpen(true)} aria-expanded={open} aria-controls="ux-side">
             Menu
           </button>
-          <b>Synergy Concepts Hub</b>
+          <b>{context ? `Synergy ${context}` : "Synergy Concepts Hub"}</b>
         </div>
         {open && <div className="ux-scrim" onClick={() => setOpen(false)} aria-hidden="true" />}
 
@@ -118,22 +130,36 @@ export function AppShell({
               <span>{brandSub}</span>
             </div>
           </div>
-          {groups.map((g, gi) => (
-            <div key={g.ariaLabel}>
-              {g.label && (
-                <div className="ux-nav-label" style={{ marginTop: gi === 0 ? 0 : 18 }}>
-                  {g.label}
-                </div>
-              )}
-              <nav className="ux-nav" aria-label={g.ariaLabel}>
-                {g.items.map((i) => (
-                  <NavLink key={i.href} href={i.href} aria-current={active(i) ? "page" : undefined}>
-                    {i.label}
-                  </NavLink>
-                ))}
-              </nav>
-            </div>
-          ))}
+          {groups.map((g, gi) => {
+            const here = g.items.some(active);
+            return (
+              <div key={g.ariaLabel} style={gi > 0 && !g.label && !g.sectionBefore ? { marginTop: 18 } : undefined}>
+                {g.sectionBefore && (
+                  <div className="ux-nav-section" style={gi === 0 ? { borderTop: 0, paddingTop: 0 } : { marginTop: 22 }}>
+                    {g.sectionBefore}
+                  </div>
+                )}
+                {g.label && (
+                  <div
+                    className={`ux-nav-label${here ? " is-here" : ""}`}
+                    style={{ marginTop: gi === 0 || g.sectionBefore ? 0 : 18 }}
+                  >
+                    {g.label}
+                  </div>
+                )}
+                {g.items.length > 0 && (
+                  <nav className="ux-nav" aria-label={g.ariaLabel}>
+                    {g.items.map((i) => (
+                      <NavLink key={i.href} href={i.href} aria-current={active(i) ? "page" : undefined}>
+                        {i.label}
+                      </NavLink>
+                    ))}
+                  </nav>
+                )}
+                {g.note && <p className="ux-nav-note">{g.note}</p>}
+              </div>
+            );
+          })}
           <div className="ux-user">
             <b>{userLabel}</b>
             <span>{userRole}</span>

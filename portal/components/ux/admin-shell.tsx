@@ -1,9 +1,13 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { AppShell, type ShellGroup, type ShellItem, type ShellSection } from "./app-shell";
-import { canAccessFinance, isAdmin as isAdminRole, isFinance, type Role } from "@/lib/security/roles";
+import { usePathname } from "next/navigation";
+import { AppShell, type ShellGroup, type ShellSection } from "./app-shell";
+import type { Role } from "@/lib/security/roles";
+import { activeGroupFor, navFor } from "@/lib/navigation/workspaces";
 
+// Section tabs for areas with several related screens. Unchanged by the workspace
+// shell: they still appear above the page wherever the path matches.
 const SECTIONS: ShellSection[] = [
   {
     prefixes: ["/admin/bookings", "/admin/leads"],
@@ -48,6 +52,10 @@ const SECTIONS: ShellSection[] = [
   },
 ];
 
+/**
+ * Admin navigation: business workspaces, then shared services (lib/navigation/workspaces.ts).
+ * Links are filtered by role for clarity only; pages, middleware and RLS enforce access.
+ */
 export function AdminShell({
   role,
   userLabel,
@@ -59,41 +67,23 @@ export function AdminShell({
   userRole: string;
   children: ReactNode;
 }) {
-  const isAdmin = isAdminRole(role);
-  const finance = canAccessFinance(role);
-  const financeOnly = isFinance(role); // finance sees Clients, Projects (read-only) and Finance only
-  // Grouped by how work flows: enquiry -> client -> project, then what they pay for,
-  // then what is hosted and run for them. No group label repeats an item label.
-  const item = {
-    dashboard: { href: "/admin", label: "Dashboard", match: ["/admin"], exact: true },
-    enquiries: { href: "/admin/leads", label: "Enquiries", match: ["/admin/bookings", "/admin/leads"] },
-    clients: { href: "/admin/clients", label: "Clients", match: ["/admin/clients"] },
-    projects: { href: "/admin/projects", label: "Projects", match: ["/admin/projects"] },
-    support: { href: "/admin/support", label: "Support", match: ["/admin/support"] },
-    agreements: { href: "/admin/agreements", label: "Agreements", match: ["/admin/agreements"] },
-    finance: { href: "/admin/invoices", label: "Finance", match: ["/admin/invoices", "/admin/finances", "/admin/reports"] },
-    systems: { href: "/admin/systems", label: "Systems", match: ["/admin/systems"] },
-    operations: { href: "/admin/operations", label: "Operations", match: ["/admin/operations"] },
-    services: { href: "/admin/services", label: "Services", match: ["/admin/services"] },
-    team: { href: "/admin/staff", label: "Team", match: ["/admin/staff"] },
-  } satisfies Record<string, ShellItem>;
+  const pathname = usePathname() ?? "";
+  const visible = navFor(role);
+  const firstShared = visible.findIndex((g) => g.kind === "shared");
+  const groups: ShellGroup[] = visible.map((g, i) => ({
+    // A group whose only link has the same name shows the link alone (no repeated label).
+    label: g.items.length === 1 && g.items[0].label === g.label && !g.note ? undefined : g.label,
+    ariaLabel: g.label,
+    items: g.items,
+    note: g.note,
+    sectionBefore: i === 0 && g.kind === "workspace" ? "Businesses" : i === firstShared ? "Shared services" : undefined,
+  }));
 
-  const groups: ShellGroup[] = financeOnly
-    ? [
-        // finance sees Clients, Projects (read-only), Support, Agreements, Finance and Operations
-        { label: "Work", ariaLabel: "Work", items: [item.clients, item.projects, item.support] },
-        { label: "Money", ariaLabel: "Money", items: [item.agreements, item.finance] },
-        { label: "Platform", ariaLabel: "Platform", items: [item.operations] },
-      ]
-    : [
-        { ariaLabel: "Main", items: [item.dashboard] },
-        { label: "Work", ariaLabel: "Work", items: [item.enquiries, item.clients, item.projects, item.support] },
-        { label: "Money", ariaLabel: "Money", items: finance ? [item.agreements, item.finance] : [item.agreements] },
-        { label: "Platform", ariaLabel: "Platform", items: [item.systems, item.operations] },
-        { label: "Settings", ariaLabel: "Settings", items: isAdmin ? [item.services, item.team] : [item.services] },
-      ];
+  const here = activeGroupFor(pathname);
+  const context = here ? (here.kind === "workspace" ? here.label : `Shared: ${here.label}`) : "Concepts Hub";
+
   return (
-    <AppShell groups={groups} sections={SECTIONS} userLabel={userLabel} userRole={userRole}>
+    <AppShell groups={groups} sections={SECTIONS} brandSub={context} context={context} userLabel={userLabel} userRole={userRole}>
       {children}
     </AppShell>
   );

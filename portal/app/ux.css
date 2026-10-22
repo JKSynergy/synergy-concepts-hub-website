@@ -94,6 +94,12 @@
 }
 .ux-nav-rule { margin: 14px 24px; border: 0; border-top: 1px solid rgba(255,255,255,.12); }
 .ux-nav-label { padding: 0 24px 6px; font-size: 10.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.4); }
+.ux-nav-label.is-here { color: var(--ux-orange); }
+.ux-nav-section {
+  margin: 0 24px 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.12);
+  font: 600 11px/1.2 var(--ux-f-display); letter-spacing: .02em; color: rgba(255,255,255,.78);
+}
+.ux-nav-note { margin: 2px 24px 0; font-size: 12px; line-height: 1.45; color: rgba(255,255,255,.45); }
 .ux-user { margin-top: auto; padding: 16px 24px 0; border-top: 1px solid rgba(255,255,255,.12); }
 .ux-user b { display: block; font-weight: 500; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ux-user span { display: block; font-size: 11.5px; color: rgba(255,255,255,.5); }

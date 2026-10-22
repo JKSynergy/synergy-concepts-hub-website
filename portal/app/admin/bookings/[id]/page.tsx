@@ -7,6 +7,7 @@ import { BOOKING_TONE, bookingTypeText, fmtDateTime } from "../booking-labels";
 import type { BookingStatus } from "@/lib/types";
 import { canReviewQuotes, isOperationalStaff } from "@/lib/security/roles";
 import QuotePanel from "./quote-panel";
+import { requesterFromMetadata, serviceInterestLabel } from "@/lib/bookings/requester";
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -64,8 +65,9 @@ export default async function AdminBookingDetailPage({
     .eq("booking_id", id)
     .maybeSingle();
 
+  const enquirer = requesterFromMetadata(booking.metadata as Record<string, unknown> | null);
   const clientLabel =
-    client?.company_name || client?.full_name || client?.email || "Unknown requester";
+    client?.company_name || client?.full_name || client?.email || enquirer.name || enquirer.email || "Unknown requester";
 
   // Internal keys are not shown as rows; a structured quotation has its own section below.
   const HIDDEN_META = new Set(["request_id", "quote_request_id"]);
@@ -106,7 +108,11 @@ export default async function AdminBookingDetailPage({
           <Row label="Requested">{fmtDateTime(booking.created_at)}</Row>
           {meta.map(([key, value]) => (
             <Row key={key} label={key.replace(/_/g, " ")}>
-              {typeof value === "object" ? JSON.stringify(value) : String(value)}
+              {key === "service_interest" && typeof value === "string"
+                ? serviceInterestLabel(value)
+                : typeof value === "object"
+                  ? JSON.stringify(value)
+                  : String(value)}
             </Row>
           ))}
           {relatedProject && (
@@ -128,6 +134,15 @@ export default async function AdminBookingDetailPage({
           {client?.full_name && client.company_name && <Row label="Contact">{client.full_name}</Row>}
           {client?.email && <Row label="Email">{client.email}</Row>}
           {client?.phone && <Row label="Phone">{client.phone}</Row>}
+          {!client && (enquirer.name || enquirer.email) && (
+            <>
+              <Row label="Account">
+                <span className="ux-muted">Website enquiry, not yet converted to a client</span>
+              </Row>
+              {enquirer.email && <Row label="Email">{enquirer.email}</Row>}
+              {enquirer.phone && <Row label="Phone">{enquirer.phone}</Row>}
+            </>
+          )}
         </dl>
       </Section>
 

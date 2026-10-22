@@ -6,6 +6,7 @@ import BookingsTable, { type BookingRow } from "./bookings-table";
 import { PageHeader } from "@/components/ux/primitives";
 import type { Service, AcademyCourse } from "@/lib/types";
 import { isAdmin, isOperationalStaff } from "@/lib/security/roles";
+import { requesterFromMetadata } from "@/lib/bookings/requester";
 
 export default async function AdminBookingsPage() {
   const supabase = await createClient();
@@ -66,8 +67,7 @@ export default async function AdminBookingsPage() {
   );
 
   const rows: BookingRow[] = (bookings ?? []).map((b) => {
-    const meta = (b.metadata ?? {}) as Record<string, unknown>;
-    const str = (k: string) => (typeof meta[k] === "string" && meta[k] ? (meta[k] as string) : null);
+    const r = requesterFromMetadata(b.metadata as Record<string, unknown> | null);
     const c = b.client_id ? clientMap.get(b.client_id) : undefined;
     return {
       id: b.id,
@@ -76,8 +76,8 @@ export default async function AdminBookingsPage() {
       status: b.status,
       scheduled_at: b.scheduled_at,
       created_at: b.created_at,
-      requester: c?.name ?? str("name") ?? str("full_name") ?? str("email") ?? "Unknown requester",
-      requester_email: c?.email ?? str("email"),
+      requester: c?.name ?? r.name ?? r.email ?? "Unknown requester",
+      requester_email: c?.email ?? r.email,
       linked: !!c,
     };
   });

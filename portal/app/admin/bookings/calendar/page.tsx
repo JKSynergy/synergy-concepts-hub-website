@@ -5,6 +5,7 @@ import CalendarView from "./calendar-view";
 import { PageHeader } from "@/components/ux/primitives";
 import type { BookingStatus, BookingType } from "@/lib/types";
 import { isOperationalStaff } from "@/lib/security/roles";
+import { requesterFromMetadata } from "@/lib/bookings/requester";
 
 export default async function AdminBookingCalendarPage({
   searchParams,
@@ -66,9 +67,9 @@ export default async function AdminBookingCalendarPage({
     scheduled_at: b.scheduled_at!,
     client_name:
       (b.client_id ? clientMap.get(b.client_id) : undefined) ??
-      (typeof (b.metadata as Record<string, unknown> | null)?.name === "string"
-        ? ((b.metadata as Record<string, unknown>).name as string)
-        : "Unknown requester"),
+      requesterFromMetadata(b.metadata as Record<string, unknown> | null).name ??
+      requesterFromMetadata(b.metadata as Record<string, unknown> | null).email ??
+      "Unknown requester",
   }));
 
   return (

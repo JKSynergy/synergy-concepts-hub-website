@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import LeadActions from "./lead-actions";
 import { EmptyState, StatusMark, type Tone } from "@/components/ux/primitives";
 import type { Lead } from "@/lib/types";
+import { serviceInterestLabel } from "@/lib/bookings/requester";
 
 export const LEAD_TONE: Record<string, Tone> = {
   new: "warning",
@@ -33,7 +34,7 @@ export default function LeadsTable({ rows }: { rows: Lead[] }) {
       if (status === "open" && r.status !== "new" && r.status !== "contacted") return false;
       if (status !== "open" && status !== "all" && r.status !== status) return false;
       if (!term) return true;
-      return [r.name, r.email, r.phone, r.service_interest, r.message].some((v) => v?.toLowerCase().includes(term));
+      return [r.name, r.email, r.phone, r.service_interest, serviceInterestLabel(r.service_interest), r.message].some((v) => v?.toLowerCase().includes(term));
     });
   }, [rows, q, status]);
 
@@ -98,7 +99,7 @@ export default function LeadsTable({ rows }: { rows: Lead[] }) {
                     <span className="ux-cell-sub">{l.email}</span>
                     {l.phone && <span className="ux-cell-sub">{l.phone}</span>}
                   </td>
-                  <td data-label="Service interest">{l.service_interest || <span className="ux-muted">Not specified</span>}</td>
+                  <td data-label="Service interest">{serviceInterestLabel(l.service_interest) || <span className="ux-muted">Not specified</span>}</td>
                   <td data-label="Message" className="ux-lead-msg" title={l.message ?? undefined}>
                     {l.message ? excerpt(l.message) : <span className="ux-muted">No message</span>}
                   </td>

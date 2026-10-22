@@ -5,7 +5,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { NAV_GROUPS, navFor, isItemActive, activeGroupFor } from "../lib/navigation/workspaces.ts";
 import { adminRouteRedirect, ROLES, type Role } from "../lib/security/roles.ts";
 
-const hrefs = (role: Role) => navFor(role).flatMap((g) => g.items.map((i) => i.href));
+const hrefs = (role: Role) => navFor(role).flatMap((g) => g.items.filter((i) => !i.external).map((i) => i.href));
 const groups = (role: Role) => navFor(role).map((g) => g.label);
 
 test("four business workspaces, then the four shared areas, in order", () => {
@@ -19,7 +19,7 @@ test("four business workspaces, then the four shared areas, in order", () => {
 });
 
 test("every linked route exists as a page (no placeholders, no broken links)", () => {
-  for (const g of NAV_GROUPS) for (const i of g.items) {
+  for (const g of NAV_GROUPS) for (const i of g.items.filter((x) => !x.external)) {
     const file = `app${i.href}/page.tsx`;
     assert.ok(existsSync(file), `${i.label} links to ${i.href}, but ${file} does not exist`);
   }
@@ -47,6 +47,7 @@ test("staff: no finance, Academy or Team links; Capture Films price list visible
   const h = hrefs("staff");
   for (const blocked of ["/admin/invoices", "/admin/academy", "/admin/staff"]) assert.ok(!h.includes(blocked), blocked);
   assert.ok(h.includes("/admin/services/capture-films"));
+  assert.ok(h.includes("/admin/services/capture-films/quotations"));
   assert.ok(!groups("staff").includes("Multimedia Academy"));
 });
 
@@ -75,8 +76,9 @@ test("exactly one item is current for each page, and the right workspace is name
     ["/admin", "Dashboard", "Concepts Hub"],
     ["/admin/bookings/123", "Enquiries", "Concepts Hub"],
     ["/admin/services/capture-films", "Price list", "Capture Films"],
+    ["/admin/services/capture-films/quotations", "Quotations", "Capture Films"],
     ["/admin/services", "Services", "Administration"],
-    ["/admin/academy", "Courses", "Multimedia Academy"],
+    ["/admin/academy", "Legacy course list", "Multimedia Academy"],
     ["/admin/operations/action-center", "Action Center", "Action Center"],
     ["/admin/operations/tasks", "Operations", "Administration"],
     ["/admin/finances/packages", "Invoices and payments", "Finance"],
@@ -97,4 +99,22 @@ test("shell keeps same-tab links, a labelled nav per group and the keyboard draw
   assert.match(shell, /aria-current=\{active\(i\) \? "page" : undefined\}/);
   const admin = readFileSync("components/ux/admin-shell.tsx", "utf8");
   assert.match(admin, /navFor\(role\)/);
+});
+
+test("Academy links to its own system (analytics included) instead of duplicating it; admin only", () => {
+  const academy = NAV_GROUPS.find((g) => g.id === "academy")!;
+  const ext = academy.items.filter((i) => i.external);
+  assert.deepEqual(ext.map((i) => i.href), [
+    "https://synergymultimediaacademy.com/admin",
+    "https://synergymultimediaacademy.com/admin/website-analytics",
+  ]);
+  for (const i of ext) {
+    assert.ok(i.href.startsWith("https://"), "external links are absolute https");
+    assert.deepEqual([...i.roles], ["admin"]);
+    assert.equal(isItemActive(i, i.href), false);
+  }
+  assert.ok(!navFor("staff").some((g) => g.id === "academy"));
+  const shell = readFileSync("components/ux/app-shell.tsx", "utf8");
+  assert.match(shell, /i\.external \? \(/);
+  assert.match(shell, /\(opens another system\)/);
 });

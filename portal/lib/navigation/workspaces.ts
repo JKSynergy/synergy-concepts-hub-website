@@ -20,6 +20,8 @@ export type NavItem = {
   /** Prefixes that must NOT make it current (a more specific item owns them). */
   exclude?: string[];
   exact?: boolean;
+  /** A link to another system (absolute https URL). Opens in the same tab; never "current". */
+  external?: boolean;
   roles: readonly Role[];
 };
 
@@ -31,6 +33,9 @@ export type NavGroup = {
   /** Shown instead of links when the workspace has no screens of its own yet. */
   note?: { text: string; roles: readonly Role[] };
 };
+
+/** Synergy Multimedia Academy's own system (separate app, separate sign-in). */
+export const SMA_URL = "https://synergymultimediaacademy.com";
 
 const ALL_INTERNAL = ["admin", "staff", "finance"] as const;
 const OPERATIONAL = ["admin", "staff"] as const;
@@ -56,9 +61,16 @@ export const NAV_GROUPS: NavGroup[] = [
     kind: "workspace",
     items: [
       {
+        href: "/admin/services/capture-films/quotations",
+        label: "Quotations",
+        match: ["/admin/services/capture-films/quotations"],
+        roles: OPERATIONAL,
+      },
+      {
         href: "/admin/services/capture-films",
         label: "Price list",
         match: ["/admin/services/capture-films"],
+        exclude: ["/admin/services/capture-films/quotations"],
         roles: OPERATIONAL,
       },
     ],
@@ -77,7 +89,20 @@ export const NAV_GROUPS: NavGroup[] = [
     id: "academy",
     label: "Multimedia Academy",
     kind: "workspace",
-    items: [{ href: "/admin/academy", label: "Courses", match: ["/admin/academy"], roles: ADMIN }],
+    // The Academy runs its own system (students, admissions, intakes, trainers, finance and
+    // first-party website analytics). The portal links to it instead of duplicating it.
+    items: [
+      { href: `${SMA_URL}/admin`, label: "Academy system", match: [], external: true, roles: ADMIN },
+      {
+        href: `${SMA_URL}/admin/website-analytics`,
+        label: "Website analytics",
+        match: [],
+        external: true,
+        roles: ADMIN,
+      },
+      // Older SCH copy of the course list (academy_courses). Kept, not extended; see Phase B1 notes.
+      { href: "/admin/academy", label: "Legacy course list", match: ["/admin/academy"], roles: ADMIN },
+    ],
   },
   {
     id: "customers",
@@ -139,6 +164,7 @@ export const NAV_GROUPS: NavGroup[] = [
 const under = (path: string, prefix: string) => path === prefix || path.startsWith(prefix + "/");
 
 export function isItemActive(item: NavItem, path: string): boolean {
+  if (item.external) return false;
   if (item.exact) return path === item.href;
   if (item.exclude?.some((p) => under(path, p))) return false;
   return item.match.some((m) => under(path, m));

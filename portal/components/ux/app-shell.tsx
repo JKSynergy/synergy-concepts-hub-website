@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { FeedbackProvider } from "./feedback";
 import { ThemeToggle } from "./theme-toggle";
 
-export type ShellItem = { href: string; label: string; match: string[]; exclude?: string[]; exact?: boolean };
+export type ShellItem = { href: string; label: string; match: string[]; exclude?: string[]; exact?: boolean; external?: boolean };
 export type ShellGroup = {
   label?: string;
   ariaLabel: string;
@@ -49,7 +49,7 @@ export function AppShell({
 
   const under = (p: string) => pathname === p || pathname.startsWith(p + "/");
   const active = (i: ShellItem) =>
-    i.exact ? pathname === i.href : !(i.exclude ?? []).some(under) && i.match.some(under);
+    i.external ? false : i.exact ? pathname === i.href : !(i.exclude ?? []).some(under) && i.match.some(under);
 
   // Close when the route changes.
   useEffect(() => setOpen(false), [pathname]);
@@ -149,11 +149,20 @@ export function AppShell({
                 )}
                 {g.items.length > 0 && (
                   <nav className="ux-nav" aria-label={g.ariaLabel}>
-                    {g.items.map((i) => (
-                      <NavLink key={i.href} href={i.href} aria-current={active(i) ? "page" : undefined}>
-                        {i.label}
-                      </NavLink>
-                    ))}
+                    {g.items.map((i) =>
+                      i.external ? (
+                        // Another system: a plain link in the same tab, labelled as leaving the portal.
+                        <a key={i.href} href={i.href} rel="noopener">
+                          {i.label}
+                          <span className="ux-sr"> (opens another system)</span>
+                          <span aria-hidden="true" className="ux-nav-ext"> ↗</span>
+                        </a>
+                      ) : (
+                        <NavLink key={i.href} href={i.href} aria-current={active(i) ? "page" : undefined}>
+                          {i.label}
+                        </NavLink>
+                      )
+                    )}
                   </nav>
                 )}
                 {g.note && <p className="ux-nav-note">{g.note}</p>}

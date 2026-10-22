@@ -43,7 +43,7 @@ test("no full-page route transition animation", () => {
 // the earlier Phase 2 IA had hidden it. Access is still admin-only (route + middleware).
 test("admin navigation: Academy is an admin-only workspace, operations is labelled", () => {
   const nav = read("lib/navigation/workspaces.ts");
-  assert.ok(/href: "\/admin\/academy", label: "Courses", match: \["\/admin\/academy"\], roles: ADMIN/.test(nav));
+  assert.ok(/href: "\/admin\/academy", label: "Legacy course list", match: \["\/admin\/academy"\], roles: ADMIN/.test(nav));
   assert.ok(/label: "Operations"/.test(nav));
 });
 

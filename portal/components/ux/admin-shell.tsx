@@ -10,6 +10,13 @@ import { activeGroupFor, navFor } from "@/lib/navigation/workspaces";
 // shell: they still appear above the page wherever the path matches.
 const SECTIONS: ShellSection[] = [
   {
+    prefixes: ["/admin/services/capture-films"],
+    tabs: [
+      { href: "/admin/services/capture-films/quotations", label: "Quotations", match: "/admin/services/capture-films/quotations" },
+      { href: "/admin/services/capture-films", label: "Price list", match: "/admin/services/capture-films", exclude: "/admin/services/capture-films/quotations" },
+    ],
+  },
+  {
     prefixes: ["/admin/bookings", "/admin/leads"],
     tabs: [
       { href: "/admin/leads", label: "Website enquiries", match: "/admin/leads" },
